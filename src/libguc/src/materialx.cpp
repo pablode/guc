@@ -890,11 +890,11 @@ namespace guc
     std::string texValueType = getTextureValueType(textureView, color);
 
     bool isSrgbInUsd = m_hdstormCompat && isTextureSrgbInUsd(textureView);
-    bool linearizeColor = color && !isSrgbInUsd;
+    bool convertToSrgb = color && !isSrgbInUsd;
     bool vec3IncorrectlyLinearized = !color && isSrgbInUsd;
 
     // Bring the default value into the texture colorspace before performing colorspace transformation
-    if (m_explicitColorSpaceTransforms && linearizeColor)
+    if (m_explicitColorSpaceTransforms && vec3IncorrectlyLinearized)
     {
       defaultValue = detail::convertFloat3ValueToSrgb(defaultValue);
     }
@@ -920,7 +920,7 @@ namespace guc
       }
     }
 
-    if (m_explicitColorSpaceTransforms && (linearizeColor || vec3IncorrectlyLinearized))
+    if (m_explicitColorSpaceTransforms && (convertToSrgb || vec3IncorrectlyLinearized))
     {
       auto channel1Node = detail::makeExtractChannelNode(nodeGraph, valueNode, 0);
       channel1Node = vec3IncorrectlyLinearized ? detail::makeLinearToSrgbConversionNodes(nodeGraph, channel1Node) : detail::makeSrgbToLinearConversionNodes(nodeGraph, channel1Node);

@@ -1167,19 +1167,30 @@ namespace guc
       return "";
     }
 
-    switch (metadata.channelCount)
+    int channelCount = metadata.channelCount;
+
+    if (channelCount == 3 || (m_hdstormCompat && channelCount == 1))
     {
-    case 1:
-      return "float";
-    case 2:
-      return "vector2";
-    case 3:
+      // USD promotes single-channel textures to RGB
       return color ? "color3" : "vector3";
-    case 4:
+    }
+    else if (channelCount == 4 || (m_hdstormCompat && channelCount == 2))
+    {
+      // And for greyscale-alpha textures, to RGBA (with vec2[1] being alpha)
       return color ? "color4" : "vector4";
     }
-
-    TF_VERIFY(false);
-    return "";
+    else if (channelCount == 2)
+    {
+      return "vector2";
+    }
+    else if (channelCount == 1)
+    {
+      return "float";
+    }
+    else
+    {
+      TF_VERIFY(false);
+      return "";
+    }
   }
 }

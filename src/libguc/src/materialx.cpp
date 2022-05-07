@@ -583,7 +583,9 @@ namespace guc
 
       mx::InputPtr input1 = multiplyNode1->getInput("in1");
       auto defaultValue = mx::Value::createValue(mx::Vector3(1.0f, 1.0f, 1.0f));
-      addAndConnectGeompropValueNode(nodeGraph, input1, "displayColor", "color3", defaultValue);
+
+      auto geompropNode = makeGeompropValueNode(nodeGraph, "displayColor", "color3", defaultValue);
+      input1->setNodeName(geompropNode->getName());
 
       mx::InputPtr input2 = multiplyNode1->getInput("in2");
       input2->setValue(factor);
@@ -624,7 +626,9 @@ namespace guc
 
       mx::InputPtr input1 = multiplyNode1->getInput("in1");
       auto defaultOpacity = mx::Value::createValue(1.0f);
-      addAndConnectGeompropValueNode(nodeGraph, input1, "displayOpacity", "float", defaultOpacity);
+
+      auto geompropNode = makeGeompropValueNode(nodeGraph, "displayOpacity", "float", defaultOpacity);
+      input1->setNodeName(geompropNode->getName());
 
       mx::InputPtr input2 = multiplyNode1->getInput("in2");
       input2->setValue(factor);
@@ -975,7 +979,8 @@ namespace guc
       uvInput->setNodeName(texcoordNode->getName());
     }
 #else
-    addAndConnectGeompropValueNode(nodeGraph, uvInput, makeStSetName(stIndex), "vector2");
+    auto geompropNode = makeGeompropValueNode(nodeGraph, makeStSetName(stIndex), "vector2");
+    uvInput->setNodeName(geompropNode->getName());
 #endif
 
     mx::InputPtr fileInput = node->getInput("file");
@@ -1033,11 +1038,10 @@ namespace guc
     return node;
   }
 
-  void MaterialXMaterialConverter::addAndConnectGeompropValueNode(mx::NodeGraphPtr nodeGraph,
-                                                                  mx::InputPtr input,
-                                                                  const std::string& geompropName,
-                                                                  const std::string& geompropValueTypeName,
-                                                                  mx::ValuePtr defaultValue)
+  mx::NodePtr MaterialXMaterialConverter::makeGeompropValueNode(mx::NodeGraphPtr nodeGraph,
+                                                                const std::string& geompropName,
+                                                                const std::string& geompropValueTypeName,
+                                                                mx::ValuePtr defaultValue)
   {
     mx::NodePtr node;
 #ifdef MATERIALXVIEW_COMPAT
@@ -1084,7 +1088,7 @@ namespace guc
       node->setAttribute("colorspace", COLORSPACE_LINEAR);
     }
 
-    input->setNodeName(node->getName());
+    return node;
   }
 
   void MaterialXMaterialConverter::connectNodeGraphNodeToShaderInput(mx::NodeGraphPtr nodeGraph, mx::InputPtr input, mx::NodePtr node)

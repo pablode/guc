@@ -111,11 +111,10 @@ namespace guc
                                const cgltf_texture_view& textureView,
                                mx::ValuePtr defaultValue);
 
-    void addAndConnectGeompropValueNode(mx::NodeGraphPtr nodeGraph,
-                                        mx::InputPtr input,
-                                        const std::string& geompropName,
-                                        const std::string& geompropValueTypeName,
-                                        mx::ValuePtr defaultValue = nullptr);
+    mx::NodePtr makeGeompropValueNode(mx::NodeGraphPtr nodeGraph,
+                                      const std::string& geompropName,
+                                      const std::string& geompropValueTypeName,
+                                      mx::ValuePtr defaultValue = nullptr);
 
     void connectNodeGraphNodeToShaderInput(mx::NodeGraphPtr nodeGraph, mx::InputPtr input, mx::NodePtr node);
 

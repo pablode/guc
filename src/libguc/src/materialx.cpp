@@ -375,8 +375,13 @@ namespace guc
     : m_doc(doc)
     , m_imageMetadataMap(imageMetadataMap)
     , m_flattenNodes(flatten_nodes)
+#ifndef MATERIALXVIEW_COMPAT
     , m_explicitColorSpaceTransforms(explicit_colorspace_transforms || hdstorm_compat)
     , m_hdstormCompat(hdstorm_compat)
+#else
+    , m_explicitColorSpaceTransforms(explicit_colorspace_transforms)
+    , m_hdstormCompat(false)
+#endif
   {
     if (!m_explicitColorSpaceTransforms)
     {

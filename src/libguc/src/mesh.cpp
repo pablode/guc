@@ -1,5 +1,6 @@
 #include "mesh.h"
 
+#include <pxr/base/gf/vec3f.h>
 #include <pxr/base/tf/diagnostic.h>
 
 #include "debugCodes.h"
@@ -115,5 +116,36 @@ namespace guc
       return false;
     }
     return true;
+  }
+
+  void createFlatNormals(const VtArray<int>& indices,
+                         const VtArray<GfVec3f>& positions,
+                         VtArray<GfVec3f>& normals)
+  {
+    TF_VERIFY((indices.size() % 3) == 0);
+    normals.resize(positions.size());
+
+    for (int i = 0; i < indices.size(); i += 3)
+    {
+      int i0 = indices[i + 0];
+      int i1 = indices[i + 1];
+      int i2 = indices[i + 2];
+
+      const GfVec3f& p0 = positions[i0];
+      const GfVec3f& p1 = positions[i1];
+      const GfVec3f& p2 = positions[i2];
+
+      GfVec3f e1 = (p1 - p0);
+      GfVec3f e2 = (p2 - p0);
+      e1.Normalize();
+      e2.Normalize();
+
+      GfVec3f n = GfCross(e1, e2);
+      n.Normalize();
+
+      normals[i0] = n;
+      normals[i1] = n;
+      normals[i2] = n;
+    }
   }
 }

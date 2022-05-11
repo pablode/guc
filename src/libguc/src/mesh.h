@@ -12,4 +12,8 @@ namespace guc
                                     const VtArray<int>& inIndices,
                                     VtArray<int>& outIndices,
                                     VtArray<int>& faceVertexCounts);
+
+  void createFlatNormals(const VtArray<int>& indices,
+                         const VtArray<GfVec3f>& positions,
+                         VtArray<GfVec3f>& normals);
 }

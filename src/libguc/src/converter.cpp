@@ -585,13 +585,20 @@ namespace guc
     }
 
     // Normals
+    bool createNormals = true;
     VtArray<GfVec3f> normals;
     {
       const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "NORMAL");
       if (accessor)
       {
-        detail::readVtArrayFromAccessor(accessor, normals);
+        createNormals = !detail::readVtArrayFromAccessor(accessor, normals);
       }
+    }
+    if (createNormals) // spec sec. 3.7.2.1
+    {
+      TF_DEBUG(GUC).Msg("normals do not exist; calculating flat normals\n");
+
+      createFlatNormals(indices, points, normals);
     }
 
     // Colors

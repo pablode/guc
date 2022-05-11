@@ -1,3 +1,6 @@
 [submodule "extern/cgltf"]
 	path = extern/cgltf
 	url = https://github.com/jkuhlmann/cgltf
+[submodule "extern/MikkTSpace"]
+	path = extern/MikkTSpace
+	url = https://github.com/mmikk/MikkTSpace

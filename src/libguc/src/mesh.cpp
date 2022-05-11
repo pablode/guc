@@ -1,7 +1,10 @@
 #include "mesh.h"
 
+#include <pxr/base/gf/vec2f.h>
 #include <pxr/base/gf/vec3f.h>
 #include <pxr/base/tf/diagnostic.h>
+
+#include <mikktspace.h>
 
 #include "debugCodes.h"
 
@@ -147,5 +150,110 @@ namespace guc
       normals[i1] = n;
       normals[i2] = n;
     }
+  }
+
+  bool createTangents(const VtArray<int>& indices,
+                      const VtArray<GfVec3f>& positions,
+                      const VtArray<GfVec3f>& normals,
+                      const VtArray<GfVec2f>& texcoords,
+                      VtArray<float>& signs,
+                      VtArray<GfVec3f>& tangents)
+  {
+    TF_VERIFY(!texcoords.empty());
+    tangents.resize(normals.size());
+    signs.resize(normals.size());
+
+    struct UserData {
+      const VtArray<int>& indices;
+      const VtArray<GfVec3f>& positions;
+      const VtArray<GfVec3f>& normals;
+      const VtArray<GfVec2f>& texcoords;
+      VtArray<float>& signs;
+      VtArray<GfVec3f>& tangents;
+    } userData = {
+      indices, positions, normals, texcoords, signs, tangents
+    };
+
+    auto getNumFacesFunc = [](const SMikkTSpaceContext* pContext) {
+      UserData* userData = (UserData*) pContext->m_pUserData;
+      return (int) userData->indices.size() / 3;
+    };
+
+    auto getNumVerticesOfFaceFunc = [](const SMikkTSpaceContext* pContext, const int iFace) {
+      return 3;
+    };
+
+    auto getPositionFunc = [](const SMikkTSpaceContext* pContext, float fvPosOut[], const int iFace, const int iVert) {
+      UserData* userData = (UserData*) pContext->m_pUserData;
+      int vertexIndex = userData->indices[iFace * 3 + iVert];
+      const GfVec3f& position = userData->positions[vertexIndex];
+      fvPosOut[0] = position[0];
+      fvPosOut[1] = position[1];
+      fvPosOut[2] = position[2];
+    };
+
+    auto getNormalFunc = [](const SMikkTSpaceContext* pContext, float fvNormOut[], const int iFace, const int iVert) {
+      UserData* userData = (UserData*) pContext->m_pUserData;
+      int vertexIndex = userData->indices[iFace * 3 + iVert];
+      const GfVec3f& normal = userData->normals[vertexIndex];
+      fvNormOut[0] = normal[0];
+      fvNormOut[1] = normal[1];
+      fvNormOut[2] = normal[2];
+    };
+
+    auto getTexCoordFunc = [](const SMikkTSpaceContext* pContext, float fvTexcOut[], const int iFace, const int iVert) {
+      UserData* userData = (UserData*) pContext->m_pUserData;
+      int vertexIndex = userData->indices[iFace * 3 + iVert];
+      const GfVec2f& texcoord = userData->texcoords[vertexIndex];
+      fvTexcOut[0] = texcoord[0];
+      fvTexcOut[1] = texcoord[1];
+    };
+
+    auto setTSpaceBasicFunc = [](const SMikkTSpaceContext* pContext, const float fvTangent[], const float fSign, const int iFace, const int iVert) {
+      UserData* userData = (UserData*) pContext->m_pUserData;
+      int vertexIndex = userData->indices[iFace * 3 + iVert];
+      GfVec3f& tangent = userData->tangents[vertexIndex];
+      tangent[0] = fvTangent[0];
+      tangent[1] = fvTangent[1];
+      tangent[2] = fvTangent[2];
+      userData->signs[vertexIndex] = fSign;
+    };
+
+    SMikkTSpaceInterface interface;
+    interface.m_getNumFaces = getNumFacesFunc;
+    interface.m_getNumVerticesOfFace= getNumVerticesOfFaceFunc;
+    interface.m_getPosition = getPositionFunc;
+    interface.m_getNormal = getNormalFunc;
+    interface.m_getTexCoord = getTexCoordFunc;
+    interface.m_setTSpaceBasic = setTSpaceBasicFunc;
+    interface.m_setTSpace = nullptr;
+
+    SMikkTSpaceContext context;
+    context.m_pInterface = &interface;
+    context.m_pUserData = &userData;
+
+    return genTangSpaceDefault(&context);
+  }
+
+  bool createBitangents(const VtArray<GfVec3f>& normals,
+                        const VtArray<GfVec3f>& tangents,
+                        const VtArray<float>& signs,
+                        VtArray<GfVec3f>& bitangents)
+  {
+    if (normals.size() != tangents.size())
+    {
+      TF_RUNTIME_ERROR("tangent count does not match normal count");
+      return false;
+    }
+
+    bitangents.resize(normals.size());
+
+    for (int i = 0; i < normals.size(); i++)
+    {
+       float sign = signs.empty() ? 1.0f : signs[i];
+       bitangents[i] = GfCross(normals[i], tangents[i]) * sign;
+    }
+
+    return true;
   }
 }

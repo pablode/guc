@@ -16,4 +16,16 @@ namespace guc
   void createFlatNormals(const VtArray<int>& indices,
                          const VtArray<GfVec3f>& positions,
                          VtArray<GfVec3f>& normals);
+
+  bool createTangents(const VtArray<int>& indices,
+                      const VtArray<GfVec3f>& positions,
+                      const VtArray<GfVec3f>& normals,
+                      const VtArray<GfVec2f>& texcoords,
+                      VtArray<float>& signs,
+                      VtArray<GfVec3f>& tangents);
+
+  bool createBitangents(const VtArray<GfVec3f>& normals,
+                        const VtArray<GfVec3f>& tangents,
+                        const VtArray<float>& signs,
+                        VtArray<GfVec3f>& bitangents);
 }

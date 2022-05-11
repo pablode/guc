@@ -24,6 +24,7 @@ target_link_libraries(
   libguc
   PRIVATE
     cgltf
+    MikkTSpace
     usd
     usdGeom
     usdLux

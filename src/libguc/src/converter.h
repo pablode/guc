@@ -43,6 +43,7 @@ namespace guc
 
   private:
     bool overridePrimInPathMap(void* dataPtr, const SdfPath& path, UsdPrim& prim);
+    bool isValidTexture(const cgltf_texture_view& textureView);
 
   private:
     const cgltf_data* m_data;

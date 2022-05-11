@@ -38,6 +38,7 @@ TF_DEFINE_PRIVATE_TOKENS(
   (generator)
   (version)
   (min_version)
+  (bitangents)
 );
 
 namespace detail
@@ -545,6 +546,8 @@ namespace guc
 
   bool Converter::createPrimitive(const cgltf_primitive* primitiveData, SdfPath path, UsdPrim& prim)
   {
+    const cgltf_material* material = primitiveData->material;
+
     // Indices
     VtArray<int> indices;
     {
@@ -657,16 +660,6 @@ namespace guc
       }
     }
 
-    // Tangents
-    VtArray<GfVec4f> tangents;
-    {
-      const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "TANGENT");
-      if (accessor)
-      {
-        detail::readVtArrayFromAccessor(accessor, tangents);
-      }
-    }
-
     // TexCoord sets
     std::vector<VtArray<GfVec2f>> texCoordSets;
     while (true)
@@ -694,12 +687,60 @@ namespace guc
       texCoordSets.push_back(texCoords);
     }
 
+    // Tangents and Bitangents
+    VtArray<GfVec3f> tangents;
+    VtArray<GfVec3f> bitangents;
+    if (!createNormals) // according to glTF spec 3.7.2.1, tangents must be ignored if normals are missing
+    {
+      VtArray<float> signs;
+
+      const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "TANGENT");
+      if (accessor)
+      {
+        VtArray<GfVec4f> tangentsWithW;
+        detail::readVtArrayFromAccessor(accessor, tangentsWithW);
+
+        tangents.resize(tangentsWithW.size());
+        signs.resize(tangentsWithW.size());
+
+        for (int i = 0; i < tangentsWithW.size(); i++)
+        {
+          tangents[i] = GfVec3f(tangentsWithW[i].data());
+          signs[i] = tangentsWithW[i][3];
+        }
+      }
+      else if (material)
+      {
+        const cgltf_texture_view& textureView = material->normal_texture;
+
+        if (isValidTexture(textureView))
+        {
+          if (textureView.texcoord < texCoordSets.size())
+          {
+            TF_DEBUG(GUC).Msg("generating tangents\n");
+            const VtArray<GfVec2f>& texCoords = texCoordSets[textureView.texcoord];
+            createTangents(indices, points, normals, texCoords, signs, tangents);
+          }
+          else
+          {
+            TF_RUNTIME_ERROR("invalid UV index for normalmap; can't calculate normals");
+          }
+        }
+      }
+
+      // We bake the w component (sign) into the bitangents for correct handedness while having vec3 tangents
+      if (!tangents.empty())
+      {
+        createBitangents(normals, tangents, signs, bitangents);
+      }
+    }
+
     // Create GPrim and assign values
     auto mesh = UsdGeomMesh::Define(m_stage, path);
 
     mesh.CreateSubdivisionSchemeAttr(VtValue(UsdGeomTokens->none));
 
-    if (primitiveData->material && primitiveData->material->double_sided)
+    if (material && material->double_sided)
     {
       mesh.CreateDoubleSidedAttr(VtValue(true));
     }
@@ -716,18 +757,26 @@ namespace guc
       mesh.CreateNormalsAttr(VtValue(normals));
       mesh.SetNormalsInterpolation(UsdGeomTokens->vertex);
     }
+
+    // There is no formal schema for tangents and bitangents, so we just define primvars
     if (!tangents.empty())
     {
-      // There is no formal schema for tangents and bitangents, so we just define a primvar
-      auto primvar = mesh.CreatePrimvar(UsdGeomTokens->tangents, SdfValueTypeNames->Float4Array, UsdGeomTokens->vertex);
+      auto primvar = mesh.CreatePrimvar(UsdGeomTokens->tangents, SdfValueTypeNames->Float3Array, UsdGeomTokens->vertex);
       primvar.Set(tangents);
     }
+    if (!bitangents.empty())
+    {
+      auto primvar = mesh.CreatePrimvar(_tokens->bitangents, SdfValueTypeNames->Float3Array, UsdGeomTokens->vertex);
+      primvar.Set(bitangents);
+    }
+
     for (int i = 0; i < texCoordSets.size(); i++)
     {
       auto primvarId = TfToken(makeStSetName(i));
       auto primvar = mesh.CreatePrimvar(primvarId, SdfValueTypeNames->TexCoord2fArray, UsdGeomTokens->vertex);
       primvar.Set(texCoordSets[i]);
     }
+
     if (!displayColors.empty())
     {
       auto primvar = mesh.CreateDisplayColorPrimvar(UsdGeomTokens->vertex);
@@ -754,6 +803,29 @@ namespace guc
     prim = m_stage->OverridePrim(path);
     auto references = prim.GetReferences();
     references.AddReference("", iter->second);
+    return true;
+  }
+
+  bool Converter::isValidTexture(const cgltf_texture_view& textureView)
+  {
+    const cgltf_texture* texture = textureView.texture;
+    if (!texture)
+    {
+      return false;
+    }
+
+    const cgltf_image* image = texture->image;
+    if (!image)
+    {
+      return false;
+    }
+
+    auto iter = m_imgMetadata.find(image);
+    if (iter == m_imgMetadata.end())
+    {
+      return false;
+    }
+
     return true;
   }
 }

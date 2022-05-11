@@ -184,17 +184,13 @@ namespace detail
 
   mx::NodePtr makeClampNode(mx::NodeGraphPtr nodeGraph, mx::NodePtr srcNode)
   {
-    mx::NodePtr remapNode = nodeGraph->addNode("range", mx::EMPTY_STRING, srcNode->getType());
-    remapNode->addInputsFromNodeDef();
+    mx::NodePtr node = nodeGraph->addNode("clamp", mx::EMPTY_STRING, srcNode->getType());
+    node->addInputsFromNodeDef();
 
-    auto inInput = remapNode->getInput("in");
+    auto inInput = node->getInput("in");
     inInput->setNodeName(srcNode->getName());
 
-    // clamps to [0, 1] because of outlow, outhigh defaults
-    auto doclampInput = remapNode->getInput("doclamp");
-    doclampInput->setValue(true);
-
-    return remapNode;
+    return node;
   }
 
   // These two functions implement the following code with MaterialX nodes:

@@ -23,7 +23,7 @@ All glTF features except animation and skinning are implemented and have been te
 
 ### Build
 
-You need to build my <a href="https://github.com/pablode/USD/tree/mtlx-1.38.4-adsk-dev">USD 22.05 fork</a> with `--materialx` and `--openimageio` support enabled, for the time being.
+You need to build the <a href="https://github.com/PixarAnimationStudios/USD/tree/dev">USD dev</a> branch with `--materialx` and `--openimageio` support enabled, for the time being.
 
 Do a recursive clone of the repository and set up a build folder:
 ```

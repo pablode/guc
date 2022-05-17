@@ -5,8 +5,9 @@
 #include <pxr/usd/usdGeom/camera.h>
 #include <pxr/usd/usdGeom/mesh.h>
 #include <pxr/usd/usdGeom/metrics.h>
-#include <pxr/usd/usdGeom/xform.h>
+#include <pxr/usd/usdGeom/primvarsAPI.h>
 #include <pxr/usd/usdGeom/scope.h>
+#include <pxr/usd/usdGeom/xform.h>
 #include <pxr/base/gf/camera.h>
 #include <pxr/usd/usdLux/shapingAPI.h>
 #include <pxr/usd/usdLux/sphereLight.h>
@@ -480,9 +481,9 @@ namespace guc
       if (lightData->type == cgltf_light_type_spot)
       {
         prim = light.GetPrim();
-        auto shape = UsdLuxShapingAPI::Apply(prim);
+        auto shapingApi = UsdLuxShapingAPI(prim);
         // FIXME: translate spot_inner_cone_angle and spot_outer_cone_angle to either ConeFocusAttr or ConeSoftnessAttr
-        shape.CreateShapingConeAngleAttr(VtValue(lightData->spot_outer_cone_angle));
+        shapingApi.CreateShapingConeAngleAttr(VtValue(lightData->spot_outer_cone_angle));
       }
     }
 
@@ -761,19 +762,22 @@ namespace guc
     // There is no formal schema for tangents and bitangents, so we just define primvars
     if (!tangents.empty())
     {
-      auto primvar = mesh.CreatePrimvar(UsdGeomTokens->tangents, SdfValueTypeNames->Float3Array, UsdGeomTokens->vertex);
+      auto primvarsApi = UsdGeomPrimvarsAPI(mesh);
+      auto primvar = primvarsApi.CreatePrimvar(UsdGeomTokens->tangents, SdfValueTypeNames->Float3Array, UsdGeomTokens->vertex);
       primvar.Set(tangents);
     }
     if (!bitangents.empty())
     {
-      auto primvar = mesh.CreatePrimvar(_tokens->bitangents, SdfValueTypeNames->Float3Array, UsdGeomTokens->vertex);
+      auto primvarsApi = UsdGeomPrimvarsAPI(mesh);
+      auto primvar = primvarsApi.CreatePrimvar(_tokens->bitangents, SdfValueTypeNames->Float3Array, UsdGeomTokens->vertex);
       primvar.Set(bitangents);
     }
 
     for (int i = 0; i < texCoordSets.size(); i++)
     {
+      auto primvarsApi = UsdGeomPrimvarsAPI(mesh);
       auto primvarId = TfToken(makeStSetName(i));
-      auto primvar = mesh.CreatePrimvar(primvarId, SdfValueTypeNames->TexCoord2fArray, UsdGeomTokens->vertex);
+      auto primvar = primvarsApi.CreatePrimvar(primvarId, SdfValueTypeNames->TexCoord2fArray, UsdGeomTokens->vertex);
       primvar.Set(texCoordSets[i]);
     }
 

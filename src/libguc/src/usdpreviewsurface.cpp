@@ -217,12 +217,7 @@ namespace guc
                                                                  const cgltf_texture_view& textureView)
   {
     // glTF spec 2.0 3.9.3: transform [0, 1] value range to [-1, 1].
-    // We also scale the normal although this does not guarantee that the resulting vector is normalized. In fact, the
-    // UsdPreviewSurface spec does not seem to require it; the vector is only required to lie in [(-1,-1,-1), (1, 1, 1)].
-    // Now, you might say that the use of the word 'normal' implies that the vector has a length of 1. But, surprisingly,
-    // according to Wikipedia, "A normal vector may have length one (a unit vector) or its length may represent the
-    // curvature of the object (a curvature vector)" (https://en.wikipedia.org/wiki/Normal_(geometry)). Since hdStorm
-    // normalizes the vector after reading it, I assume that a length of 1 is not a requirement?
+    // We also scale the normal although this does not guarantee that the resulting vector is normalized.
     float xyScale = 2.0f * textureView.scale;
     float xyBias = -1.0f * textureView.scale;
     GfVec4f scale(xyScale, xyScale, 2.0f, 0.0f);

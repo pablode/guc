@@ -472,6 +472,20 @@ namespace guc
                                                         mx::NodeGraphPtr nodeGraph,
                                                         mx::NodePtr shaderNode)
   {
+    mx::InputPtr baseColorInput = shaderNode->getInput("base_color");
+    mx::InputPtr alphaInput = shaderNode->getInput("alpha");
+    mx::InputPtr occlusionInput = shaderNode->getInput("occlusion");
+    mx::InputPtr metallicInput = shaderNode->getInput("metallic");
+    mx::InputPtr roughnessInput = shaderNode->getInput("roughness");
+
+    // FIXME: overwrite default values for the following inputs, as they are incorrect in
+    //        MaterialX 1.38.4. Remove this in later versions (see MaterialX PR #971).
+    baseColorInput->setValue(mx::Color3(1.0f));
+    alphaInput->setValue(1.0f);
+    occlusionInput->setValue(1.0f);
+    metallicInput->setValue(1.0f);
+    roughnessInput->setValue(1.0f);
+
     auto emissiveInput = shaderNode->getInput("emissive");
     mx::Color3 emissiveFactor = detail::makeMxColor3(material->emissive_factor);
     auto emissiveDefault = mx::Color3(1.0f, 1.0f, 1.0f); // spec sec. 5.19.7
@@ -480,7 +494,6 @@ namespace guc
     auto normalInput = shaderNode->getInput("normal");
     setNormalTextureInput(nodeGraph, normalInput, material->normal_texture);
 
-    auto occlusionInput = shaderNode->getInput("occlusion");
     setOcclusionTextureInput(nodeGraph, occlusionInput, material->occlusion_texture);
 
     mx::InputPtr alphaModeInput = shaderNode->getInput("alpha_mode");
@@ -498,18 +511,14 @@ namespace guc
 
       if (material->alpha_mode != cgltf_alpha_mode_opaque)
       {
-        mx::InputPtr alphaInput = shaderNode->getInput("alpha");
         setAlphaTextureInput(nodeGraph, alphaInput, pbrMetallicRoughness->base_color_texture, pbrMetallicRoughness->base_color_factor[3]);
       }
 
-      mx::InputPtr baseColorInput = shaderNode->getInput("base_color");
       setDiffuseTextureInput(nodeGraph, baseColorInput, pbrMetallicRoughness->base_color_texture, detail::makeMxColor3(pbrMetallicRoughness->base_color_factor));
 
-      mx::InputPtr metallicInput = shaderNode->getInput("metallic");
       auto metallicDefault = 1.0f; // spec sec. 5.22.5
       setFloatTextureInput(nodeGraph, metallicInput, pbrMetallicRoughness->metallic_roughness_texture, 2, pbrMetallicRoughness->metallic_factor, metallicDefault);
 
-      mx::InputPtr roughnessInput = shaderNode->getInput("roughness");
       auto roughnessDefault = 1.0f; // spec sec. 5.22.5
       setFloatTextureInput(nodeGraph, roughnessInput, pbrMetallicRoughness->metallic_roughness_texture, 1, pbrMetallicRoughness->roughness_factor, roughnessDefault);
     }

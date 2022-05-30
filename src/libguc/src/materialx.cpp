@@ -428,7 +428,7 @@ namespace guc
     shaderNode->addInputsFromNodeDef();
 
     // Fill nodegraph with helper nodes (e.g. textures) and set glTF PBR node params.
-    setGltfPbrProperties(material, nodeGraph, shaderNode);
+    setGltfPbrInputs(material, nodeGraph, shaderNode);
 
     if (m_flattenNodes)
     {
@@ -468,9 +468,9 @@ namespace guc
     materialSurfaceInput->setNodeName(shaderNode->getName());
   }
 
-  void MaterialXMaterialConverter::setGltfPbrProperties(const cgltf_material* material,
-                                                        mx::NodeGraphPtr nodeGraph,
-                                                        mx::NodePtr shaderNode)
+  void MaterialXMaterialConverter::setGltfPbrInputs(const cgltf_material* material,
+                                                    mx::NodeGraphPtr nodeGraph,
+                                                    mx::NodePtr shaderNode)
   {
     mx::InputPtr baseColorInput = shaderNode->getInput("base_color");
     mx::InputPtr alphaInput = shaderNode->getInput("alpha");
@@ -486,12 +486,12 @@ namespace guc
     metallicInput->setValue(1.0f);
     roughnessInput->setValue(1.0f);
 
-    auto emissiveInput = shaderNode->getInput("emissive");
+    mx::InputPtr emissiveInput = shaderNode->getInput("emissive");
     mx::Color3 emissiveFactor = detail::makeMxColor3(material->emissive_factor);
     auto emissiveDefault = mx::Color3(1.0f, 1.0f, 1.0f); // spec sec. 5.19.7
     setSrgbTextureInput(nodeGraph, emissiveInput, material->emissive_texture, emissiveFactor, emissiveDefault);
 
-    auto normalInput = shaderNode->getInput("normal");
+    mx::InputPtr normalInput = shaderNode->getInput("normal");
     setNormalTextureInput(nodeGraph, normalInput, material->normal_texture);
 
     setOcclusionTextureInput(nodeGraph, occlusionInput, material->occlusion_texture);

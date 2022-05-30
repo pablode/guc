@@ -30,9 +30,9 @@ namespace guc
     bool m_hdstormCompat;
 
   private:
-    void setGltfPbrProperties(const cgltf_material* material,
-                              mx::NodeGraphPtr nodeGraph,
-                              mx::NodePtr shaderNode);
+    void setGltfPbrInputs(const cgltf_material* material,
+                          mx::NodeGraphPtr nodeGraph,
+                          mx::NodePtr shaderNode);
 
   private:
     void setDiffuseTextureInput(mx::NodeGraphPtr nodeGraph,

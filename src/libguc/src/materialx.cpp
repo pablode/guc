@@ -780,11 +780,19 @@ namespace guc
       spaceInput->setValue("world");
     }
 
+#ifdef MATERIALXVIEW_COMPAT
+    auto tangentNode = nodeGraph->addNode("tangent", mx::EMPTY_STRING, "vector3");
+#else
     auto tangentNode = makeGeompropValueNode(nodeGraph, "tangents", "vector3");
+#endif
     tangentNode = detail::makeTransformVectorNode(nodeGraph, tangentNode);
     tangentNode = detail::makeNormalizeNode(nodeGraph, tangentNode);
 
+#ifdef MATERIALXVIEW_COMPAT
+    auto bitangentNode = nodeGraph->addNode("bitangent", mx::EMPTY_STRING, "vector3");
+#else
     auto bitangentNode = makeGeompropValueNode(nodeGraph, "bitangents", "vector3");
+#endif
     bitangentNode = detail::makeTransformVectorNode(nodeGraph, bitangentNode);
     bitangentNode = detail::makeNormalizeNode(nodeGraph, bitangentNode);
 

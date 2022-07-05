@@ -186,7 +186,7 @@ namespace guc
 
     auto defaultPrim = scope.GetPrim();
     m_stage->SetDefaultPrim(defaultPrim);
-    m_stage->SetMetadata(SdfFieldKeys->Documentation, "Converted from glTF with guc");
+    m_stage->SetMetadata(SdfFieldKeys->Documentation, TfStringPrintf("Converted from glTF with guc %s", GUC_VERSION_STRING));
 
     UsdGeomSetStageUpAxis(m_stage, UsdGeomTokens->y);
     UsdGeomSetStageMetersPerUnit(m_stage, 1.0);

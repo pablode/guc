@@ -30,6 +30,7 @@ void print_usage()
   fprintf(stderr, "--flatten-nodes                   Flatten MaterialX glTF PBR nodes to stdlib and pbrlib nodes\n");
   fprintf(stderr, "--explicit-colorspace-transforms  Explicitly transform colorspaces using MaterialX nodes\n");
   fprintf(stderr, "--hdstorm-compat                  Apply compatibility tweaks for the USD hdStorm renderer\n");
+  fprintf(stderr, "--version                         Print the application version\n");
 }
 
 int main(int argc, const char* argv[])
@@ -82,6 +83,11 @@ int main(int argc, const char* argv[])
       {
         params.hdstorm_compat = true;
         continue;
+      }
+      else if (!strcmp(arg, "version"))
+      {
+        printf("guc version %s\n", GUC_VERSION_STRING);
+        return EXIT_SUCCESS;
       }
     }
 

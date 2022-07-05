@@ -46,6 +46,11 @@ target_include_directories(
 
 target_compile_definitions(
   libguc
+  PUBLIC
+    GUC_VERSION_MAJOR=${CMAKE_PROJECT_VERSION_MAJOR}
+    GUC_VERSION_MINOR=${CMAKE_PROJECT_VERSION_MINOR}
+    GUC_VERSION_PATCH=${CMAKE_PROJECT_VERSION_PATCH}
+    GUC_VERSION_STRING="${CMAKE_PROJECT_VERSION}"
   PRIVATE
     # Workaround for https://github.com/PixarAnimationStudios/USD/issues/1471#issuecomment-799813477
     "$<$<OR:$<CONFIG:>,$<CONFIG:Debug>>:TBB_USE_DEBUG>"

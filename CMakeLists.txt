@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
 
+# this policy is requred before the project() call to allow the CMAKE_MSVC_RUNTIME_LIBRARY variable to work.
+cmake_policy(SET "CMP0091" NEW)
+
 project(guc VERSION 0.1.1)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -11,11 +14,11 @@ find_package(USD REQUIRED HINTS ${USD_ROOT} NAMES pxr)
 
 # Find MaterialX library provided by the USD installation.
 # Since we use UsdMtlx, using a custom MaterialX version leads to conflicts.
-find_package(MaterialX REQUIRED)
+find_package(MaterialX REQUIRED HINTS ${USD_ROOT})
 
 # We need to open PNG and JPEG files in order to read the number of channels
 # for shading node creation. OIIO should be provided by the USD installation.
-find_package(OpenImageIO REQUIRED)
+find_package(OpenImageIO REQUIRED HINTS ${USD_ROOT})
 
 option(GUC_BUILD_EXECUTABLE "Build the guc executable." ON)
 

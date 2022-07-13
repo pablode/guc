@@ -58,6 +58,10 @@ set_target_properties(
     PREFIX ""
 )
 
+if(WIN32 AND BUILD_SHARED_LIBS)
+  set_target_properties(libguc PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+endif()
+
 install(
   TARGETS libguc
   COMPONENT libguc

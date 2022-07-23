@@ -23,7 +23,7 @@ All glTF features except animation and skinning are implemented and have been te
 
 ### Build
 
-You need to build the <a href="https://github.com/PixarAnimationStudios/USD/commit/52b5a63f88ac99daa1b27fcad50a34a23422ed3c">USD dev</a> branch with `--materialx` and `--openimageio` support enabled, for the time being.
+You need <a href="https://github.com/PixarAnimationStudios/USD/tree/v22.08">USD 22.08</a> with MaterialX and OpenImageIO support enabled.
 
 Do a recursive clone of the repository and set up a build folder:
 ```

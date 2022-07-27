@@ -122,6 +122,13 @@ if(MSVC)
   # Enable multiprocessor builds.
   set(_GUC_CXX_FLAGS "${_GUC_CXX_FLAGS} /MP")
   set(_GUC_CXX_FLAGS "${_GUC_CXX_FLAGS} /Gm-")
+
+  # Disable boost auto-link, it creates errors when building Guc in Debug
+  # against a release Boost. And we don't have to link against it anyway on Windows.
+  _add_define("BOOST_ALL_NO_LIB")
+
+  # Same as for TBB...
+  _add_define("__TBB_NO_IMPLICIT_LINKAGE")
 else()
   # Enable all warnings.
   set(_GUC_CXX_FLAGS "${_GUC_CXX_FLAGS} -Wall -Wformat-security")

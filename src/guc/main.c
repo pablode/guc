@@ -22,6 +22,8 @@
 
 void print_usage()
 {
+  fprintf(stderr, "guc %s - a glTF to USD converter\n", GUC_VERSION_STRING);
+  fprintf(stderr, "\n");
   fprintf(stderr, "Usage: guc <gltf_path> <usd_path> [params]\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "Available params:\n");

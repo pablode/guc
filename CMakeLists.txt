@@ -10,15 +10,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Find USD - only non-monolithic builds have been tested.
-find_package(USD REQUIRED HINTS ${USD_ROOT} NAMES pxr)
+find_package(pxr CONFIG REQUIRED)
 
 # Find MaterialX library provided by the USD installation.
 # Since we use UsdMtlx, using a custom MaterialX version leads to conflicts.
-find_package(MaterialX REQUIRED HINTS ${USD_ROOT})
+find_package(MaterialX REQUIRED HINTS ${pxr_DIR})
 
 # We need to open PNG and JPEG files in order to read the number of channels
 # for shading node creation. OIIO should be provided by the USD installation.
-find_package(OpenImageIO REQUIRED HINTS ${USD_ROOT})
+find_package(OpenImageIO REQUIRED HINTS ${pxr_DIR})
 
 option(GUC_BUILD_EXECUTABLE "Build the guc executable." ON)
 

@@ -376,7 +376,7 @@ namespace detail
     return node;
   }
 
-  mx::NodePtr makeTransformVectorNode(mx::NodeGraphPtr nodeGraph, mx::NodePtr srcNode)
+  mx::NodePtr makeVectorToWorldSpaceNode(mx::NodeGraphPtr nodeGraph, mx::NodePtr srcNode)
   {
     mx::NodePtr node = nodeGraph->addNode("transformvector", mx::EMPTY_STRING, srcNode->getType());
     node->setAttribute("nodedef", "ND_transformvector_" + srcNode->getType());
@@ -785,7 +785,7 @@ namespace guc
 #else
     auto tangentNode = makeGeompropValueNode(nodeGraph, "tangents", "vector3");
 #endif
-    tangentNode = detail::makeTransformVectorNode(nodeGraph, tangentNode);
+    tangentNode = detail::makeVectorToWorldSpaceNode(nodeGraph, tangentNode);
     tangentNode = detail::makeNormalizeNode(nodeGraph, tangentNode);
 
 #ifdef MATERIALXVIEW_COMPAT
@@ -793,7 +793,7 @@ namespace guc
 #else
     auto bitangentNode = makeGeompropValueNode(nodeGraph, "bitangents", "vector3");
 #endif
-    bitangentNode = detail::makeTransformVectorNode(nodeGraph, bitangentNode);
+    bitangentNode = detail::makeVectorToWorldSpaceNode(nodeGraph, bitangentNode);
     bitangentNode = detail::makeNormalizeNode(nodeGraph, bitangentNode);
 
     // the next nodes implement multiplication with the TBN matrix

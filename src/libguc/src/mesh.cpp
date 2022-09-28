@@ -172,22 +172,24 @@ namespace guc
                       const VtArray<GfVec3f>& positions,
                       const VtArray<GfVec3f>& normals,
                       const VtArray<GfVec2f>& texcoords,
-                      VtArray<float>& signs,
-                      VtArray<GfVec3f>& tangents)
+                      VtArray<float>& unindexedSigns,
+                      VtArray<GfVec3f>& unindexedTangents)
   {
     TF_VERIFY(!texcoords.empty());
-    tangents.resize(normals.size());
-    signs.resize(normals.size());
+
+    int vertexCount = indices.size();
+    unindexedTangents.resize(vertexCount);
+    unindexedSigns.resize(vertexCount);
 
     struct UserData {
       const VtArray<int>& indices;
       const VtArray<GfVec3f>& positions;
       const VtArray<GfVec3f>& normals;
       const VtArray<GfVec2f>& texcoords;
-      VtArray<float>& signs;
-      VtArray<GfVec3f>& tangents;
+      VtArray<float>& unindexedSigns;
+      VtArray<GfVec3f>& unindexedTangents;
     } userData = {
-      indices, positions, normals, texcoords, signs, tangents
+      indices, positions, normals, texcoords, unindexedSigns, unindexedTangents
     };
 
     auto getNumFacesFunc = [](const SMikkTSpaceContext* pContext) {
@@ -227,12 +229,9 @@ namespace guc
 
     auto setTSpaceBasicFunc = [](const SMikkTSpaceContext* pContext, const float fvTangent[], const float fSign, const int iFace, const int iVert) {
       UserData* userData = (UserData*) pContext->m_pUserData;
-      int vertexIndex = userData->indices[iFace * 3 + iVert];
-      GfVec3f& tangent = userData->tangents[vertexIndex];
-      tangent[0] = fvTangent[0];
-      tangent[1] = fvTangent[1];
-      tangent[2] = fvTangent[2];
-      userData->signs[vertexIndex] = fSign;
+      int newVertexIndex = iFace * 3 + iVert;
+      userData->unindexedTangents[newVertexIndex] = GfVec3f(fvTangent[0], fvTangent[1], fvTangent[2]);
+      userData->unindexedSigns[newVertexIndex] = fSign;
     };
 
     SMikkTSpaceInterface interface;

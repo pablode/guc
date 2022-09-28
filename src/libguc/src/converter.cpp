@@ -158,6 +158,22 @@ namespace detail
     }
     return true;
   }
+
+  template<typename T>
+  void deindexVtArray(VtArray<int> indices, VtArray<T>& arr)
+  {
+    int newVertexCount = indices.size();
+
+    VtArray<T> newArr;
+    newArr.resize(newVertexCount);
+
+    for (int i = 0; i < newVertexCount; i++)
+    {
+      newArr[i] = arr[indices[i]];
+    }
+
+    arr = newArr;
+  }
 }
 
 namespace guc
@@ -737,8 +753,31 @@ namespace guc
           if (textureView.texcoord < texCoordSets.size())
           {
             TF_DEBUG(GUC).Msg("generating tangents\n");
+
             const VtArray<GfVec2f>& texCoords = texCoordSets[textureView.texcoord];
             createTangents(indices, points, normals, texCoords, signs, tangents);
+
+            // The generated tangents are unindexed, which means that we
+            // have to deindex all other primvars and reindex the mesh.
+            detail::deindexVtArray(indices, points);
+            detail::deindexVtArray(indices, normals);
+            for (VtArray<GfVec2f>& texCoords : texCoordSets)
+            {
+              detail::deindexVtArray(indices, texCoords);
+            }
+            if (!displayColors.empty())
+            {
+              detail::deindexVtArray(indices, displayColors);
+            }
+            if (!displayOpacities.empty())
+            {
+              detail::deindexVtArray(indices, displayOpacities);
+            }
+
+            for (int i = 0; i < indices.size(); i++)
+            {
+              indices[i] = i;
+            }
           }
           else
           {

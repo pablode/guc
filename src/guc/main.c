@@ -24,9 +24,9 @@ void print_usage()
 {
   fprintf(stderr, "guc %s - a glTF to USD converter\n", GUC_VERSION_STRING);
   fprintf(stderr, "\n");
-  fprintf(stderr, "Usage: guc <gltf_path> <usd_path> [params]\n");
+  fprintf(stderr, "Usage: guc <gltf_path> <usd_path> [options]\n");
   fprintf(stderr, "\n");
-  fprintf(stderr, "Available params:\n");
+  fprintf(stderr, "Options:\n");
   fprintf(stderr, "--emit-mtlx                       Emit MaterialX materials in addition to UsdPreviewSurfaces\n");
   fprintf(stderr, "--mtlx-as-usdshade                Convert and inline MaterialX materials with UsdMtlx\n");
   fprintf(stderr, "--flatten-nodes                   Flatten MaterialX glTF PBR nodes to stdlib and pbrlib nodes\n");

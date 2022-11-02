@@ -84,6 +84,10 @@ KHR_xmp_json_ld                     | ❌ Not supported
 <sup>\[1\]</sup> Spotlight cone falloff is ignored.  
 <sup>\[2\]</sup> Thickness is <a href="https://github.com/AcademySoftwareFoundation/MaterialX/pull/861">not supported</a> by the MaterialX glTF PBR implementation.
 
+### Known limitations
+
+Normal map bitangents are currently [not supported](https://github.com/AcademySoftwareFoundation/MaterialX/issues/945) in MaterialX.
+
 ### Apple AR Quick Look compatibility
 
 I have no intention of implementing workarounds for Apple's incomplete USD support. [usd_from_gltf](https://github.com/google/usd_from_gltf) or [Apple's USDZ Tools](https://developer.apple.com/augmented-reality/tools/) should be used instead.

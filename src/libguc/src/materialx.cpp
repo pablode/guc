@@ -350,7 +350,6 @@ namespace detail
   mx::NodePtr makeExtractChannelNode(mx::NodeGraphPtr nodeGraph, mx::NodePtr srcNode, int index)
   {
     mx::NodePtr node = nodeGraph->addNode("extract", mx::EMPTY_STRING, "float");
-    node->setAttribute("nodedef", "ND_extract_" + srcNode->getType());
     node->addInputsFromNodeDef();
 
     auto input = node->getInput("in");
@@ -366,7 +365,6 @@ namespace detail
   mx::NodePtr makeConversionNode(mx::NodeGraphPtr nodeGraph, mx::NodePtr srcNode, const std::string& destType)
   {
     mx::NodePtr node = nodeGraph->addNode("convert", mx::EMPTY_STRING, destType);
-    node->setAttribute("nodedef", "ND_convert_" + srcNode->getType() + "_" + destType);
     node->addInputsFromNodeDef();
 
     auto input = node->getInput("in");
@@ -379,7 +377,6 @@ namespace detail
   mx::NodePtr makeVectorToWorldSpaceNode(mx::NodeGraphPtr nodeGraph, mx::NodePtr srcNode)
   {
     mx::NodePtr node = nodeGraph->addNode("transformvector", mx::EMPTY_STRING, srcNode->getType());
-    node->setAttribute("nodedef", "ND_transformvector_" + srcNode->getType());
     node->addInputsFromNodeDef();
 
     auto input = node->getInput("in");

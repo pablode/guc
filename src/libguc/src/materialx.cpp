@@ -37,8 +37,19 @@
 namespace mx = MaterialX;
 namespace fs = std::filesystem;
 
-const char* COLORSPACE_SRGB = "srgb_texture";
-const char* COLORSPACE_LINEAR = "lin_rec709";
+const char* MTLX_COLORSPACE_SRGB = "srgb_texture";
+const char* MTLX_COLORSPACE_LINEAR = "lin_rec709";
+const char* MTLX_TYPE_INTEGER = "integer";
+const char* MTLX_TYPE_FLOAT = "float";
+const char* MTLX_TYPE_VECTOR2 = "vector2";
+const char* MTLX_TYPE_VECTOR3 = "vector3";
+const char* MTLX_TYPE_VECTOR4 = "vector4";
+const char* MTLX_TYPE_COLOR3 = "color3";
+const char* MTLX_TYPE_COLOR4 = "color4";
+const char* MTLX_TYPE_STRING = "string";
+const char* MTLX_TYPE_FILENAME = "filename";
+const char* MTLX_TYPE_MATERIAL = "material";
+const char* MTLX_TYPE_SURFACESHADER = "surfaceshader";
 
 namespace detail
 {
@@ -129,25 +140,25 @@ namespace detail
   {
     mx::ValuePtr valuePtr = nullptr;
 
-    if ((defaultValue->isA<float>() && textureType == "float") ||
-        (defaultValue->isA<mx::Color3>() && textureType == "color3") ||
-        (defaultValue->isA<mx::Vector3>() && textureType == "vector3"))
+    if ((defaultValue->isA<float>() && textureType == MTLX_TYPE_FLOAT) ||
+        (defaultValue->isA<mx::Color3>() && textureType == MTLX_TYPE_COLOR3) ||
+        (defaultValue->isA<mx::Vector3>() && textureType == MTLX_TYPE_VECTOR3))
     {
       valuePtr = defaultValue;
     }
     else if (defaultValue->isA<mx::Color3>())
     {
       auto colorValue = defaultValue->asA<mx::Color3>();
-      if (textureType == "color4")
+      if (textureType == MTLX_TYPE_COLOR4)
       {
         valuePtr = mx::Value::createValue(mx::Color4(colorValue[0], colorValue[1], colorValue[2], 1.0f));
       }
-      else if (textureType == "vector2")
+      else if (textureType == MTLX_TYPE_VECTOR2)
       {
         // weird scenario: greyscale+alpha texture that RGB is read from. have to choose one component from vec3 as default.
         valuePtr = mx::Value::createValue(mx::Vector2(colorValue[0]));
       }
-      else if (textureType == "float")
+      else if (textureType == MTLX_TYPE_FLOAT)
       {
         // greyscale
         valuePtr = mx::Value::createValue(colorValue[0]);
@@ -156,15 +167,15 @@ namespace detail
     else if (defaultValue->isA<mx::Vector3>())
     {
       auto vectorValue = defaultValue->asA<mx::Vector3>();
-      if (textureType == "vector4")
+      if (textureType == MTLX_TYPE_VECTOR4)
       {
         valuePtr = mx::Value::createValue(mx::Vector4(vectorValue[0], vectorValue[1], vectorValue[2], 1.0f));
       }
-      else if (textureType == "vector2")
+      else if (textureType == MTLX_TYPE_VECTOR2)
       {
         valuePtr = mx::Value::createValue(mx::Vector2(vectorValue[0]));
       }
-      else if (textureType == "float")
+      else if (textureType == MTLX_TYPE_FLOAT)
       {
         valuePtr = mx::Value::createValue(vectorValue[0]);
       }
@@ -172,19 +183,19 @@ namespace detail
     else if (defaultValue->isA<float>())
     {
       float floatValue = defaultValue->asA<float>();
-      if (textureType == "vector2") {
+      if (textureType == MTLX_TYPE_VECTOR2) {
         valuePtr = mx::Value::createValue(mx::Vector2(floatValue));
       }
-      else if (textureType == "color3") {
+      else if (textureType == MTLX_TYPE_COLOR3) {
         valuePtr = mx::Value::createValue(mx::Color3(floatValue));
       }
-      else if (textureType == "vector3") {
+      else if (textureType == MTLX_TYPE_VECTOR3) {
         valuePtr = mx::Value::createValue(mx::Vector3(floatValue));
       }
-      else if (textureType == "color4") {
+      else if (textureType == MTLX_TYPE_COLOR4) {
         valuePtr = mx::Value::createValue(mx::Color4(floatValue));
       }
-      else if (textureType == "vector4") {
+      else if (textureType == MTLX_TYPE_VECTOR4) {
         valuePtr = mx::Value::createValue(mx::Vector4(floatValue));
       }
     }
@@ -212,56 +223,56 @@ namespace detail
   // https://github.com/PixarAnimationStudios/USD/blob/3b097e3ba8fabf1777a1256e241ea15df83f3065/pxr/imaging/hdSt/textureUtils.cpp#L74-L94
   mx::NodePtr makeSrgbToLinearConversionNodes(mx::NodeGraphPtr nodeGraph, mx::NodePtr srcNode)
   {
-    TF_VERIFY(srcNode->getType() == "float");
+    TF_VERIFY(srcNode->getType() == MTLX_TYPE_FLOAT);
 
-    mx::NodePtr leftBranch = nodeGraph->addNode("divide", mx::EMPTY_STRING, "float");
+    mx::NodePtr leftBranch = nodeGraph->addNode("divide", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
     {
-      auto in1Input = leftBranch->addInput("in1", "float");
+      auto in1Input = leftBranch->addInput("in1", MTLX_TYPE_FLOAT);
       in1Input->setNodeName(srcNode->getName());
 
-      auto in2Input = leftBranch->addInput("in2", "float");
+      auto in2Input = leftBranch->addInput("in2", MTLX_TYPE_FLOAT);
       in2Input->setValue(12.92f);
     }
 
-    mx::NodePtr rightBranch = nodeGraph->addNode("power", mx::EMPTY_STRING, "float");
+    mx::NodePtr rightBranch = nodeGraph->addNode("power", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
     {
-      mx::NodePtr addNode = nodeGraph->addNode("add", mx::EMPTY_STRING, "float");
+      mx::NodePtr addNode = nodeGraph->addNode("add", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
       {
-        auto in1Input = addNode->addInput("in1", "float");
+        auto in1Input = addNode->addInput("in1", MTLX_TYPE_FLOAT);
         in1Input->setNodeName(srcNode->getName());
 
-        auto in2Input = addNode->addInput("in2", "float");
+        auto in2Input = addNode->addInput("in2", MTLX_TYPE_FLOAT);
         in2Input->setValue(0.055f);
       }
 
-      mx::NodePtr divideNode = nodeGraph->addNode("divide", mx::EMPTY_STRING, "float");
+      mx::NodePtr divideNode = nodeGraph->addNode("divide", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
       {
-        auto in1Input = divideNode->addInput("in1", "float");
+        auto in1Input = divideNode->addInput("in1", MTLX_TYPE_FLOAT);
         in1Input->setNodeName(addNode->getName());
 
-        auto in2Input = divideNode->addInput("in2", "float");
+        auto in2Input = divideNode->addInput("in2", MTLX_TYPE_FLOAT);
         in2Input->setValue(1.055f);
       }
 
-      auto in1Input = rightBranch->addInput("in1", "float");
+      auto in1Input = rightBranch->addInput("in1", MTLX_TYPE_FLOAT);
       in1Input->setNodeName(divideNode->getName());
 
-      auto in2Input = rightBranch->addInput("in2", "float");
+      auto in2Input = rightBranch->addInput("in2", MTLX_TYPE_FLOAT);
       in2Input->setValue(2.4f);
     }
 
-    mx::NodePtr ifGrEqNode = nodeGraph->addNode("ifgreatereq", mx::EMPTY_STRING, "float");
+    mx::NodePtr ifGrEqNode = nodeGraph->addNode("ifgreatereq", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
     {
-      auto value1Input = ifGrEqNode->addInput("value1", "float");
+      auto value1Input = ifGrEqNode->addInput("value1", MTLX_TYPE_FLOAT);
       value1Input->setValue(0.04045f);
 
-      auto value2Input = ifGrEqNode->addInput("value2", "float");
+      auto value2Input = ifGrEqNode->addInput("value2", MTLX_TYPE_FLOAT);
       value2Input->setNodeName(srcNode->getName());
 
-      auto in1Input = ifGrEqNode->addInput("in1", "float");
+      auto in1Input = ifGrEqNode->addInput("in1", MTLX_TYPE_FLOAT);
       in1Input->setNodeName(leftBranch->getName());
 
-      auto in2Input = ifGrEqNode->addInput("in2", "float");
+      auto in2Input = ifGrEqNode->addInput("in2", MTLX_TYPE_FLOAT);
       in2Input->setNodeName(rightBranch->getName());
     }
 
@@ -270,56 +281,56 @@ namespace detail
 
   mx::NodePtr makeLinearToSrgbConversionNodes(mx::NodeGraphPtr nodeGraph, mx::NodePtr srcNode)
   {
-    TF_VERIFY(srcNode->getType() == "float");
+    TF_VERIFY(srcNode->getType() == MTLX_TYPE_FLOAT);
 
-    mx::NodePtr leftBranch = nodeGraph->addNode("multiply", mx::EMPTY_STRING, "float");
+    mx::NodePtr leftBranch = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
     {
-      auto in1Input = leftBranch->addInput("in1", "float");
+      auto in1Input = leftBranch->addInput("in1", MTLX_TYPE_FLOAT);
       in1Input->setNodeName(srcNode->getName());
 
-      auto in2Input = leftBranch->addInput("in2", "float");
+      auto in2Input = leftBranch->addInput("in2", MTLX_TYPE_FLOAT);
       in2Input->setValue(12.92f);
     }
 
-    mx::NodePtr rightBranch = nodeGraph->addNode("subtract", mx::EMPTY_STRING, "float");
+    mx::NodePtr rightBranch = nodeGraph->addNode("subtract", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
     {
-      mx::NodePtr powerNode = nodeGraph->addNode("power", mx::EMPTY_STRING, "float");
+      mx::NodePtr powerNode = nodeGraph->addNode("power", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
       {
-        auto in1Input = powerNode->addInput("in1", "float");
+        auto in1Input = powerNode->addInput("in1", MTLX_TYPE_FLOAT);
         in1Input->setNodeName(srcNode->getName());
 
-        auto in2Input = powerNode->addInput("in2", "float");
+        auto in2Input = powerNode->addInput("in2", MTLX_TYPE_FLOAT);
         in2Input->setValue(1.0f / 2.4f);
       }
 
-      mx::NodePtr multiplyNode = nodeGraph->addNode("multiply", mx::EMPTY_STRING, "float");
+      mx::NodePtr multiplyNode = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
       {
-        auto in1Input = multiplyNode->addInput("in1", "float");
+        auto in1Input = multiplyNode->addInput("in1", MTLX_TYPE_FLOAT);
         in1Input->setNodeName(powerNode->getName());
 
-        auto in2Input = multiplyNode->addInput("in2", "float");
+        auto in2Input = multiplyNode->addInput("in2", MTLX_TYPE_FLOAT);
         in2Input->setValue(1.055f);
       }
 
-      auto in1Input = rightBranch->addInput("in1", "float");
+      auto in1Input = rightBranch->addInput("in1", MTLX_TYPE_FLOAT);
       in1Input->setNodeName(multiplyNode->getName());
 
-      auto in2Input = rightBranch->addInput("in2", "float");
+      auto in2Input = rightBranch->addInput("in2", MTLX_TYPE_FLOAT);
       in2Input->setValue(0.055f);
     }
 
-    mx::NodePtr ifGrEqNode = nodeGraph->addNode("ifgreatereq", mx::EMPTY_STRING, "float");
+    mx::NodePtr ifGrEqNode = nodeGraph->addNode("ifgreatereq", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
     {
-      auto value1Input = ifGrEqNode->addInput("value1", "float");
+      auto value1Input = ifGrEqNode->addInput("value1", MTLX_TYPE_FLOAT);
       value1Input->setValue(0.0031308f);
 
-      auto value2Input = ifGrEqNode->addInput("value2", "float");
+      auto value2Input = ifGrEqNode->addInput("value2", MTLX_TYPE_FLOAT);
       value2Input->setNodeName(srcNode->getName());
 
-      auto in1Input = ifGrEqNode->addInput("in1", "float");
+      auto in1Input = ifGrEqNode->addInput("in1", MTLX_TYPE_FLOAT);
       in1Input->setNodeName(leftBranch->getName());
 
-      auto in2Input = ifGrEqNode->addInput("in2", "float");
+      auto in2Input = ifGrEqNode->addInput("in2", MTLX_TYPE_FLOAT);
       in2Input->setNodeName(rightBranch->getName());
     }
 
@@ -328,13 +339,13 @@ namespace detail
 
   mx::NodePtr makeExtractChannelNode(mx::NodeGraphPtr nodeGraph, mx::NodePtr srcNode, int index)
   {
-    mx::NodePtr node = nodeGraph->addNode("extract", mx::EMPTY_STRING, "float");
+    mx::NodePtr node = nodeGraph->addNode("extract", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
 
-    auto input = node->addInput("in", "float");
+    auto input = node->addInput("in", MTLX_TYPE_FLOAT);
     input->setNodeName(srcNode->getName());
     input->setType(srcNode->getType());
 
-    auto indexInput = node->addInput("index", "integer");
+    auto indexInput = node->addInput("index", MTLX_TYPE_INTEGER);
     indexInput->setValue(index);
 
     return node;
@@ -357,10 +368,10 @@ namespace detail
     auto input = node->addInput("in", srcNode->getType());
     input->setNodeName(srcNode->getName());
 
-    auto fromspaceInput = node->addInput("fromspace", "string");
+    auto fromspaceInput = node->addInput("fromspace", MTLX_TYPE_STRING);
     fromspaceInput->setValueString("object");
 
-    auto tospaceInput = node->addInput("tospace", "string");
+    auto tospaceInput = node->addInput("tospace", MTLX_TYPE_STRING);
     tospaceInput->setValueString("world");
 
     return node;
@@ -368,9 +379,9 @@ namespace detail
 
   mx::NodePtr makeNormalizeNode(mx::NodeGraphPtr nodeGraph, mx::NodePtr srcNode)
   {
-    mx::NodePtr node = nodeGraph->addNode("normalize", mx::EMPTY_STRING, "vector3");
+    mx::NodePtr node = nodeGraph->addNode("normalize", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
 
-    auto input = node->addInput("in", "vector3");
+    auto input = node->addInput("in", MTLX_TYPE_VECTOR3);
     input->setNodeName(srcNode->getName());
 
     return node;
@@ -398,7 +409,7 @@ namespace guc
     if (!m_explicitColorSpaceTransforms)
     {
       // see MaterialX spec "Color Spaces and Color Management Systems"
-      m_doc->setAttribute("colorspace", COLORSPACE_LINEAR);
+      m_doc->setAttribute("colorspace", MTLX_COLORSPACE_LINEAR);
     }
   }
 
@@ -409,7 +420,7 @@ namespace guc
 
     mx::NodeGraphPtr nodeGraph = m_doc->addNodeGraph(nodegraphName);
     mx::GraphElementPtr shaderNodeRoot = m_flattenNodes ? std::static_pointer_cast<mx::GraphElement>(nodeGraph) : std::static_pointer_cast<mx::GraphElement>(m_doc);
-    mx::NodePtr shaderNode = shaderNodeRoot->addNode("gltf_pbr", shaderName, "surfaceshader");
+    mx::NodePtr shaderNode = shaderNodeRoot->addNode("gltf_pbr", shaderName, MTLX_TYPE_SURFACESHADER);
 
     // Fill nodegraph with helper nodes (e.g. textures) and set glTF PBR node params.
     setGltfPbrInputs(material, nodeGraph, shaderNode);
@@ -429,7 +440,7 @@ namespace guc
       mx::NodePtr surfaceNode = surfaceNodes[0];
 
       // 2. Create new surface node.
-      mx::NodePtr newSurfaceNode = m_doc->addNode("surface", shaderName, "surfaceshader");
+      mx::NodePtr newSurfaceNode = m_doc->addNode("surface", shaderName, MTLX_TYPE_SURFACESHADER);
       for (mx::InputPtr surfaceInput : surfaceNode->getInputs())
       {
         std::string nodegraphOutputName = "out_" + surfaceInput->getName();
@@ -447,8 +458,8 @@ namespace guc
     }
 
     // Create material and connect surface to it
-    mx::NodePtr materialNode = m_doc->addNode("surfacematerial", materialName, "material");
-    mx::InputPtr materialSurfaceInput = materialNode->addInput("surfaceshader", "surfaceshader");
+    mx::NodePtr materialNode = m_doc->addNode("surfacematerial", materialName, MTLX_TYPE_MATERIAL);
+    mx::InputPtr materialSurfaceInput = materialNode->addInput("surfaceshader", MTLX_TYPE_SURFACESHADER);
     materialSurfaceInput->setNodeName(shaderNode->getName());
   }
 
@@ -456,11 +467,11 @@ namespace guc
                                                     mx::NodeGraphPtr nodeGraph,
                                                     mx::NodePtr shaderNode)
   {
-    mx::InputPtr baseColorInput = shaderNode->addInput("base_color", "color3");
-    mx::InputPtr alphaInput = shaderNode->addInput("alpha", "float");
-    mx::InputPtr occlusionInput = shaderNode->addInput("occlusion", "float");
-    mx::InputPtr metallicInput = shaderNode->addInput("metallic", "float");
-    mx::InputPtr roughnessInput = shaderNode->addInput("roughness", "float");
+    mx::InputPtr baseColorInput = shaderNode->addInput("base_color", MTLX_TYPE_COLOR3);
+    mx::InputPtr alphaInput = shaderNode->addInput("alpha", MTLX_TYPE_FLOAT);
+    mx::InputPtr occlusionInput = shaderNode->addInput("occlusion", MTLX_TYPE_FLOAT);
+    mx::InputPtr metallicInput = shaderNode->addInput("metallic", MTLX_TYPE_FLOAT);
+    mx::InputPtr roughnessInput = shaderNode->addInput("roughness", MTLX_TYPE_FLOAT);
 
     // FIXME: overwrite default values for the following inputs, as they are incorrect in
     //        MaterialX 1.38.4. Remove this in later versions (see MaterialX PR #971).
@@ -470,12 +481,12 @@ namespace guc
     metallicInput->setValue(1.0f);
     roughnessInput->setValue(1.0f);
 
-    mx::InputPtr emissiveInput = shaderNode->addInput("emissive", "color3");
+    mx::InputPtr emissiveInput = shaderNode->addInput("emissive", MTLX_TYPE_COLOR3);
     mx::Color3 emissiveFactor = detail::makeMxColor3(material->emissive_factor);
     auto emissiveDefault = mx::Color3(1.0f, 1.0f, 1.0f); // spec sec. 5.19.7
     setSrgbTextureInput(nodeGraph, emissiveInput, material->emissive_texture, emissiveFactor, emissiveDefault);
 
-    mx::InputPtr normalInput = shaderNode->addInput("normal", "vector3");
+    mx::InputPtr normalInput = shaderNode->addInput("normal", MTLX_TYPE_VECTOR3);
     if (!setNormalTextureInput(nodeGraph, normalInput, material->normal_texture))
     {
       // in case no texture has been found, fall back to the implicit declaration (defaultgeomprop="Nworld")
@@ -484,12 +495,12 @@ namespace guc
 
     setOcclusionTextureInput(nodeGraph, occlusionInput, material->occlusion_texture);
 
-    mx::InputPtr alphaModeInput = shaderNode->addInput("alpha_mode", "integer");
+    mx::InputPtr alphaModeInput = shaderNode->addInput("alpha_mode", MTLX_TYPE_INTEGER);
     alphaModeInput->setValue(int(material->alpha_mode));
 
     if (material->alpha_mode == cgltf_alpha_mode_mask)
     {
-      mx::InputPtr alphaCutoffInput = shaderNode->addInput("alpha_cutoff", "float");
+      mx::InputPtr alphaCutoffInput = shaderNode->addInput("alpha_cutoff", MTLX_TYPE_FLOAT);
       alphaCutoffInput->setValue(material->alpha_cutoff);
     }
 
@@ -515,15 +526,15 @@ namespace guc
     {
       const cgltf_clearcoat* clearcoat = &material->clearcoat;
 
-      mx::InputPtr clearcoatInput = shaderNode->addInput("clearcoat", "float");
+      mx::InputPtr clearcoatInput = shaderNode->addInput("clearcoat", MTLX_TYPE_FLOAT);
       auto clearcoatDefault = 1.0f; // according to spec
       setFloatTextureInput(nodeGraph, clearcoatInput, clearcoat->clearcoat_texture, 0, clearcoat->clearcoat_factor, clearcoatDefault);
 
-      mx::InputPtr clearcoatRoughnessInput = shaderNode->addInput("clearcoat_roughness", "float");
+      mx::InputPtr clearcoatRoughnessInput = shaderNode->addInput("clearcoat_roughness", MTLX_TYPE_FLOAT);
       auto clearcodeRoughnessDefault = 1.0f; // according to spec
       setFloatTextureInput(nodeGraph, clearcoatRoughnessInput, clearcoat->clearcoat_roughness_texture, 1, clearcoat->clearcoat_roughness_factor, clearcodeRoughnessDefault);
 
-      mx::InputPtr clearcoatNormalInput = shaderNode->addInput("clearcoat_normal", "vector3");
+      mx::InputPtr clearcoatNormalInput = shaderNode->addInput("clearcoat_normal", MTLX_TYPE_VECTOR3);
       if (!setNormalTextureInput(nodeGraph, clearcoatNormalInput, clearcoat->clearcoat_normal_texture))
       {
         // in case no texture has been found, fall back to the implicit declaration (defaultgeomprop="Nworld")
@@ -535,7 +546,7 @@ namespace guc
     {
       const cgltf_transmission* transmission = &material->transmission;
 
-      mx::InputPtr transmissionInput = shaderNode->addInput("transmission", "float");
+      mx::InputPtr transmissionInput = shaderNode->addInput("transmission", MTLX_TYPE_FLOAT);
       auto transmissionDefault = 0.0f; // not given by spec
       setFloatTextureInput(nodeGraph, transmissionInput, transmission->transmission_texture, 0, transmission->transmission_factor, transmissionDefault);
     }
@@ -544,14 +555,14 @@ namespace guc
     {
       const cgltf_volume* volume = &material->volume;
 
-      mx::InputPtr thicknessInput = shaderNode->addInput("thickness", "float");
+      mx::InputPtr thicknessInput = shaderNode->addInput("thickness", MTLX_TYPE_FLOAT);
       auto thicknessDefault = 0.0f; // not given by spec
       setFloatTextureInput(nodeGraph, thicknessInput, volume->thickness_texture, 1, volume->thickness_factor, thicknessDefault);
 
-      mx::InputPtr attenuationDistanceInput = shaderNode->addInput("attenuation_distance", "float");
+      mx::InputPtr attenuationDistanceInput = shaderNode->addInput("attenuation_distance", MTLX_TYPE_FLOAT);
       attenuationDistanceInput->setValue(volume->attenuation_distance);
 
-      mx::InputPtr attenuationColorInput = shaderNode->addInput("attenuation_color", "color3");
+      mx::InputPtr attenuationColorInput = shaderNode->addInput("attenuation_color", MTLX_TYPE_COLOR3);
       attenuationColorInput->setValue(detail::makeMxColor3(volume->attenuation_color));
     }
 
@@ -559,7 +570,7 @@ namespace guc
     {
       const cgltf_ior* ior = &material->ior;
 
-      mx::InputPtr iorInput = shaderNode->addInput("ior", "float");
+      mx::InputPtr iorInput = shaderNode->addInput("ior", MTLX_TYPE_FLOAT);
       iorInput->setValue(ior->ior);
     }
 
@@ -567,11 +578,11 @@ namespace guc
     {
       const cgltf_specular* specular = &material->specular;
 
-      mx::InputPtr specularInput = shaderNode->addInput("specular", "float");
+      mx::InputPtr specularInput = shaderNode->addInput("specular", MTLX_TYPE_FLOAT);
       auto specularDefault = 1.0f; // not given by spec
       setFloatTextureInput(nodeGraph, specularInput, specular->specular_texture, 3, specular->specular_factor, specularDefault);
 
-      mx::InputPtr specularColorInput = shaderNode->addInput("specular_color", "color3");
+      mx::InputPtr specularColorInput = shaderNode->addInput("specular_color", MTLX_TYPE_COLOR3);
       auto specularColorDefault = mx::Color3(1.0f); // not given by spec
       setSrgbTextureInput(nodeGraph, specularColorInput, specular->specular_color_texture, detail::makeMxColor3(specular->specular_color_factor), specularColorDefault);
     }
@@ -580,11 +591,11 @@ namespace guc
     {
       const cgltf_sheen* sheen = &material->sheen;
 
-      mx::InputPtr sheenColorInput = shaderNode->addInput("sheen_color", "color3");
+      mx::InputPtr sheenColorInput = shaderNode->addInput("sheen_color", MTLX_TYPE_COLOR3);
       auto sheenColorDefault = mx::Color3(0.0f); // not given by spec
       setSrgbTextureInput(nodeGraph, sheenColorInput, sheen->sheen_color_texture, detail::makeMxColor3(sheen->sheen_color_factor), sheenColorDefault);
 
-      mx::InputPtr sheenRoughnessInput = shaderNode->addInput("sheen_roughness", "float");
+      mx::InputPtr sheenRoughnessInput = shaderNode->addInput("sheen_roughness", MTLX_TYPE_FLOAT);
       auto sheenRoughnessDefault = 0.0f; // not given by spec
       setFloatTextureInput(nodeGraph, sheenRoughnessInput, sheen->sheen_roughness_texture, 3, sheen->sheen_roughness_factor, sheenRoughnessDefault);
     }
@@ -595,7 +606,7 @@ namespace guc
     // We don't seem to need this if we flatten the glTF PBR node.
     if (material->alpha_mode != cgltf_alpha_mode_opaque && m_hdstormCompat && !m_flattenNodes)
     {
-      mx::InputPtr transmissionInput = shaderNode->addInput("transmission", "float");
+      mx::InputPtr transmissionInput = shaderNode->addInput("transmission", MTLX_TYPE_FLOAT);
       if (!transmissionInput->hasValue() || (transmissionInput->getValue()->isA<float>() && transmissionInput->getValue()->asA<float>() == 0.0f))
       {
         float valueCloseToZero = std::nextafter(0.0f, 1.0f);
@@ -609,15 +620,15 @@ namespace guc
                                                           const cgltf_texture_view& textureView,
                                                           const mx::Color3& factor)
   {
-    mx::NodePtr multiplyNode1 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, "color3");
+    mx::NodePtr multiplyNode1 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_COLOR3);
     {
-      mx::InputPtr input1 = multiplyNode1->addInput("in1", "color3");
+      mx::InputPtr input1 = multiplyNode1->addInput("in1", MTLX_TYPE_COLOR3);
       auto defaultValue = mx::Value::createValue(mx::Vector3(1.0f, 1.0f, 1.0f));
 
-      auto geompropNode = makeGeompropValueNode(nodeGraph, "displayColor", "color3", defaultValue);
+      auto geompropNode = makeGeompropValueNode(nodeGraph, "displayColor", MTLX_TYPE_COLOR3, defaultValue);
       input1->setNodeName(geompropNode->getName());
 
-      mx::InputPtr input2 = multiplyNode1->addInput("in2", "color3");
+      mx::InputPtr input2 = multiplyNode1->addInput("in2", MTLX_TYPE_COLOR3);
       input2->setValue(factor);
     }
 
@@ -631,12 +642,12 @@ namespace guc
     auto defaultValue = mx::Value::createValue(mx::Color3(1.0f, 1.0f, 1.0f)); // spec sec. 5.22.2
     mx::NodePtr textureNode = addFloat3TextureNodes(nodeGraph, textureView, uri, true, defaultValue);
 
-    mx::NodePtr multiplyNode2 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, "color3");
+    mx::NodePtr multiplyNode2 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_COLOR3);
     {
-      auto input1 = multiplyNode2->addInput("in1", "color3");
+      auto input1 = multiplyNode2->addInput("in1", MTLX_TYPE_COLOR3);
       input1->setNodeName(multiplyNode1->getName());
 
-      auto input2 = multiplyNode2->addInput("in2", "color3");
+      auto input2 = multiplyNode2->addInput("in2", MTLX_TYPE_COLOR3);
       input2->setNodeName(textureNode->getName());
     }
 
@@ -648,15 +659,15 @@ namespace guc
                                                         const cgltf_texture_view& textureView,
                                                         float factor)
   {
-    mx::NodePtr multiplyNode1 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, "float");
+    mx::NodePtr multiplyNode1 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
     {
-      mx::InputPtr input1 = multiplyNode1->addInput("in1", "float");
+      mx::InputPtr input1 = multiplyNode1->addInput("in1", MTLX_TYPE_FLOAT);
       auto defaultOpacity = mx::Value::createValue(1.0f);
 
-      auto geompropNode = makeGeompropValueNode(nodeGraph, "displayOpacity", "float", defaultOpacity);
+      auto geompropNode = makeGeompropValueNode(nodeGraph, "displayOpacity", MTLX_TYPE_FLOAT, defaultOpacity);
       input1->setNodeName(geompropNode->getName());
 
-      mx::InputPtr input2 = multiplyNode1->addInput("in2", "float");
+      mx::InputPtr input2 = multiplyNode1->addInput("in2", MTLX_TYPE_FLOAT);
       input2->setValue(factor);
     }
 
@@ -670,12 +681,12 @@ namespace guc
     auto defaultValue = 1.0f; // spec sec. 5.22.2
     mx::NodePtr valueNode = addFloatTextureNodes(nodeGraph, textureView, uri, 3, defaultValue);
 
-    mx::NodePtr multiplyNode2 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, "float");
+    mx::NodePtr multiplyNode2 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
     {
-      auto input1 = multiplyNode2->addInput("in1", "float");
+      auto input1 = multiplyNode2->addInput("in1", MTLX_TYPE_FLOAT);
       input1->setNodeName(multiplyNode1->getName());
 
-      auto input2 = multiplyNode2->addInput("in2", "float");
+      auto input2 = multiplyNode2->addInput("in2", MTLX_TYPE_FLOAT);
       input2->setNodeName(valueNode->getName());
     }
 
@@ -695,44 +706,44 @@ namespace guc
     mx::ValuePtr defaultValue = mx::Value::createValue(mx::Vector3(0.5f, 0.5f, 1.0f));
     mx::NodePtr textureNode = addFloat3TextureNodes(nodeGraph, textureView, uri, false, defaultValue);
 
-    auto normalNode = nodeGraph->addNode("normal", mx::EMPTY_STRING, "vector3");
+    auto normalNode = nodeGraph->addNode("normal", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
     {
-      auto spaceInput = normalNode->addInput("space", "string");
+      auto spaceInput = normalNode->addInput("space", MTLX_TYPE_STRING);
       spaceInput->setValue("world");
     }
-    auto tangentNode = nodeGraph->addNode("tangent", mx::EMPTY_STRING, "vector3");
+    auto tangentNode = nodeGraph->addNode("tangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
     {
-      auto spaceInput = tangentNode->addInput("space", "string");
+      auto spaceInput = tangentNode->addInput("space", MTLX_TYPE_STRING);
       spaceInput->setValue("world");
     }
     // FIXME: currently, the world-space 'bitangent' geomprop node is not supported in USD.
     // Furthermore, the MaterialX 'normalmap' needs to be extended for this input. See:
     // https://github.com/AcademySoftwareFoundation/MaterialX/issues/945
 #ifdef ENABLE_BITANGENT
-    auto bitangentNode = nodeGraph->addNode("bitangent", mx::EMPTY_STRING, "vector3");
+    auto bitangentNode = nodeGraph->addNode("bitangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
     {
-      auto spaceInput = bitangentNode->addInput("space", "string");
+      auto spaceInput = bitangentNode->addInput("space", MTLX_TYPE_STRING);
       spaceInput->setValue("world");
     }
 #endif
 
-    mx::NodePtr normalmapNode = nodeGraph->addNode("normalmap", mx::EMPTY_STRING, "vector3");
+    mx::NodePtr normalmapNode = nodeGraph->addNode("normalmap", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
     {
-      auto inInput = normalmapNode->addInput("in", "vector3");
+      auto inInput = normalmapNode->addInput("in", MTLX_TYPE_VECTOR3);
       inInput->setNodeName(textureNode->getName());
 
       // multiply with scale according to glTF spec 2.0 3.9.3.
-      auto scaleInput = normalmapNode->addInput("scale", "float");
+      auto scaleInput = normalmapNode->addInput("scale", MTLX_TYPE_FLOAT);
       scaleInput->setValue(textureView.scale);
 
-      auto normalInput = normalmapNode->addInput("normal", "vector3");
+      auto normalInput = normalmapNode->addInput("normal", MTLX_TYPE_VECTOR3);
       normalInput->setNodeName(normalNode->getName());
 
-      auto tangentInput = normalmapNode->addInput("tangent", "vector3");
+      auto tangentInput = normalmapNode->addInput("tangent", MTLX_TYPE_VECTOR3);
       tangentInput->setNodeName(tangentNode->getName());
 
 #ifdef ENABLE_BITANGENT
-      auto bitangentInput = normalmapNode->addInput("bitangent", "vector3");
+      auto bitangentInput = normalmapNode->addInput("bitangent", MTLX_TYPE_VECTOR3);
       bitangentInput->setNodeName(bitangentNode->getName());
 #endif
     }
@@ -759,30 +770,30 @@ namespace guc
     auto defaultValue = 1.0f; // fall back to unoccluded area if texture is not found
     mx::NodePtr valueNode = addFloatTextureNodes(nodeGraph, textureView, uri, 0, defaultValue);
 
-    mx::NodePtr substractNode = nodeGraph->addNode("subtract", mx::EMPTY_STRING, "float");
+    mx::NodePtr substractNode = nodeGraph->addNode("subtract", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
     {
-      auto input1 = substractNode->addInput("in1", "float");
+      auto input1 = substractNode->addInput("in1", MTLX_TYPE_FLOAT);
       input1->setNodeName(valueNode->getName());
 
-      auto input2 = substractNode->addInput("in2", "float");
+      auto input2 = substractNode->addInput("in2", MTLX_TYPE_FLOAT);
       input2->setValue(1.0f);
     }
 
-    mx::NodePtr multiplyNode = nodeGraph->addNode("multiply", mx::EMPTY_STRING, "float");
+    mx::NodePtr multiplyNode = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
     {
-      auto input1 = multiplyNode->addInput("in1", "float");
+      auto input1 = multiplyNode->addInput("in1", MTLX_TYPE_FLOAT);
       input1->setValue(textureView.scale);
 
-      auto input2 = multiplyNode->addInput("in2", "float");
+      auto input2 = multiplyNode->addInput("in2", MTLX_TYPE_FLOAT);
       input2->setNodeName(substractNode->getName());
     }
 
-    mx::NodePtr addNode = nodeGraph->addNode("add", mx::EMPTY_STRING, "float");
+    mx::NodePtr addNode = nodeGraph->addNode("add", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
     {
-      auto input1 = addNode->addInput("in1", "float");
+      auto input1 = addNode->addInput("in1", MTLX_TYPE_FLOAT);
       input1->setValue(1.0f);
 
-      auto input2 = addNode->addInput("in2", "float");
+      auto input2 = addNode->addInput("in2", MTLX_TYPE_FLOAT);
       input2->setNodeName(multiplyNode->getName());
     }
 
@@ -871,7 +882,7 @@ namespace guc
 
     mx::NodePtr valueNode = addTextureNode(nodeGraph, uri, texValueType, false, textureView, defaultValuePtr);
 
-    if (texValueType != "float")
+    if (texValueType != MTLX_TYPE_FLOAT)
     {
       bool remapChannelToAlpha = false;
 
@@ -902,7 +913,7 @@ namespace guc
                                                                 bool color,
                                                                 mx::ValuePtr defaultValue)
   {
-    std::string desiredValueType = color ? "color3" : "vector3";
+    std::string desiredValueType = color ? MTLX_TYPE_COLOR3 : MTLX_TYPE_VECTOR3;
     std::string texValueType = getTextureValueType(textureView, color);
 
     bool isSrgbInUsd = m_hdstormCompat && isTextureSrgbInUsd(textureView);
@@ -918,7 +929,7 @@ namespace guc
     mx::NodePtr valueNode = addTextureNode(nodeGraph, uri, texValueType, color, textureView, defaultValue);
 
     // In case of RGBA, we need to drop one channel.
-    if (texValueType == "color4" || texValueType == "vector4")
+    if (texValueType == MTLX_TYPE_COLOR4 || texValueType == MTLX_TYPE_VECTOR4)
     {
       valueNode = detail::makeConversionNode(nodeGraph, valueNode, desiredValueType);
     }
@@ -926,11 +937,11 @@ namespace guc
     {
       // In case of a greyscale images, we want to convert channel 0 (float) to color3.
       // For greyscale images with an alpha channel, we additionally need an extraction node.
-      if (texValueType == "vector2")
+      if (texValueType == MTLX_TYPE_VECTOR2)
       {
         valueNode = detail::makeExtractChannelNode(nodeGraph, valueNode, 0);
       }
-      if (texValueType == "float" || texValueType == "vector2")
+      if (texValueType == MTLX_TYPE_FLOAT || texValueType == MTLX_TYPE_VECTOR2)
       {
         valueNode = detail::makeConversionNode(nodeGraph, valueNode, desiredValueType);
       }
@@ -974,11 +985,11 @@ namespace guc
   {
     mx::NodePtr node = nodeGraph->addNode("image", mx::EMPTY_STRING, textureType);
 
-    mx::InputPtr uvInput = node->addInput("texcoord", "vector2");
+    mx::InputPtr uvInput = node->addInput("texcoord", MTLX_TYPE_VECTOR2);
     int stIndex = textureView.texcoord;
 
 #ifdef MATERIALXVIEW_COMPAT
-    auto texcoordNode = nodeGraph->addNode("texcoord", mx::EMPTY_STRING, "vector2");
+    auto texcoordNode = nodeGraph->addNode("texcoord", mx::EMPTY_STRING, MTLX_TYPE_VECTOR2);
     {
       auto indexInput = texcoordNode->addInput("index");
       indexInput->setValue(stIndex);
@@ -986,15 +997,15 @@ namespace guc
       uvInput->setNodeName(texcoordNode->getName());
     }
 #else
-    auto geompropNode = makeGeompropValueNode(nodeGraph, makeStSetName(stIndex), "vector2");
+    auto geompropNode = makeGeompropValueNode(nodeGraph, makeStSetName(stIndex), MTLX_TYPE_VECTOR2);
     uvInput->setNodeName(geompropNode->getName());
 #endif
 
-    mx::InputPtr fileInput = node->addInput("file", "filename");
-    fileInput->setValue(uri, "filename");
+    mx::InputPtr fileInput = node->addInput("file", MTLX_TYPE_FILENAME);
+    fileInput->setValue(uri, MTLX_TYPE_FILENAME);
     if (!m_explicitColorSpaceTransforms)
     {
-      fileInput->setAttribute("colorspace", isSrgb ? COLORSPACE_SRGB : COLORSPACE_LINEAR);
+      fileInput->setAttribute("colorspace", isSrgb ? MTLX_COLORSPACE_SRGB : MTLX_COLORSPACE_LINEAR);
     }
 
     if (defaultValue)
@@ -1002,7 +1013,7 @@ namespace guc
       mx::InputPtr defaultInput = node->addInput("default", textureType);
       if (!m_explicitColorSpaceTransforms)
       {
-        defaultInput->setAttribute("colorspace", COLORSPACE_LINEAR);
+        defaultInput->setAttribute("colorspace", MTLX_COLORSPACE_LINEAR);
       }
 
       auto defaultValueString = detail::getTextureTypeAdjustedDefaultValueString(defaultValue, textureType);
@@ -1031,15 +1042,15 @@ namespace guc
 
       if (!filtertype.empty())
       {
-        auto filterInput = node->addInput("filtertype", "string");
+        auto filterInput = node->addInput("filtertype", MTLX_TYPE_STRING);
         filterInput->setValue(filtertype);
       }
     }
 
-    auto uaddressModeInput = node->addInput("uaddressmode", "string");
+    auto uaddressModeInput = node->addInput("uaddressmode", MTLX_TYPE_STRING);
     uaddressModeInput->setValue(sampler ? detail::getMtlxAddressMode(sampler->wrap_s) : "periodic");
 
-    auto vaddressModeInput = node->addInput("vaddressmode", "string");
+    auto vaddressModeInput = node->addInput("vaddressmode", MTLX_TYPE_STRING);
     vaddressModeInput->setValue(sampler ? detail::getMtlxAddressMode(sampler->wrap_t) : "periodic");
 
     return node;
@@ -1078,7 +1089,7 @@ namespace guc
 #else
     node = nodeGraph->addNode("geompropvalue", mx::EMPTY_STRING, geompropValueTypeName);
 
-    auto geompropInput = node->addInput("geomprop", "string");
+    auto geompropInput = node->addInput("geomprop", MTLX_TYPE_STRING);
     geompropInput->setValue(geompropName);
 
     if (defaultValue)
@@ -1090,7 +1101,7 @@ namespace guc
 
     if (!m_explicitColorSpaceTransforms && geompropName == "displayColor")
     {
-      node->setAttribute("colorspace", COLORSPACE_LINEAR);
+      node->setAttribute("colorspace", MTLX_COLORSPACE_LINEAR);
     }
 
     return node;
@@ -1181,20 +1192,20 @@ namespace guc
     if (channelCount == 3 || (m_hdstormCompat && channelCount == 1))
     {
       // USD promotes single-channel textures to RGB
-      return color ? "color3" : "vector3";
+      return color ? MTLX_TYPE_COLOR3 : MTLX_TYPE_VECTOR3;
     }
     else if (channelCount == 4 || (m_hdstormCompat && channelCount == 2))
     {
       // And for greyscale-alpha textures, to RGBA (with vec2[1] being alpha)
-      return color ? "color4" : "vector4";
+      return color ? MTLX_TYPE_COLOR4 : MTLX_TYPE_VECTOR4;
     }
     else if (channelCount == 2)
     {
-      return "vector2";
+      return MTLX_TYPE_VECTOR2;
     }
     else if (channelCount == 1)
     {
-      return "float";
+      return MTLX_TYPE_FLOAT;
     }
     else
     {

@@ -540,6 +540,8 @@ namespace guc
 
       const std::string& materialName = m_materialNames[materialIndex];
 
+      UsdShadeMaterialBindingAPI::Apply(submesh);
+
       UsdShadeMaterialBindingAPI(submesh).Bind(
         UsdShadeMaterial::Get(m_stage, makeUsdPreviewSurfaceMaterialPath(materialName)),
         UsdShadeTokens->fallbackStrength,

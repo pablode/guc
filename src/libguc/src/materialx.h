@@ -61,7 +61,7 @@ namespace guc
                               const cgltf_texture_view& textureView,
                               float factor);
 
-    void setNormalTextureInput(mx::NodeGraphPtr nodeGraph,
+    bool setNormalTextureInput(mx::NodeGraphPtr nodeGraph,
                                mx::InputPtr shaderInput,
                                const cgltf_texture_view& textureView);
 

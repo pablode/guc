@@ -476,7 +476,11 @@ namespace guc
     setSrgbTextureInput(nodeGraph, emissiveInput, material->emissive_texture, emissiveFactor, emissiveDefault);
 
     mx::InputPtr normalInput = shaderNode->addInput("normal", "vector3");
-    setNormalTextureInput(nodeGraph, normalInput, material->normal_texture);
+    if (!setNormalTextureInput(nodeGraph, normalInput, material->normal_texture))
+    {
+      // in case no texture has been found, fall back to the implicit declaration (defaultgeomprop="Nworld")
+      shaderNode->removeInput("normal");
+    }
 
     setOcclusionTextureInput(nodeGraph, occlusionInput, material->occlusion_texture);
 
@@ -520,7 +524,11 @@ namespace guc
       setFloatTextureInput(nodeGraph, clearcoatRoughnessInput, clearcoat->clearcoat_roughness_texture, 1, clearcoat->clearcoat_roughness_factor, clearcodeRoughnessDefault);
 
       mx::InputPtr clearcoatNormalInput = shaderNode->addInput("clearcoat_normal", "vector3");
-      setNormalTextureInput(nodeGraph, clearcoatNormalInput, clearcoat->clearcoat_normal_texture);
+      if (!setNormalTextureInput(nodeGraph, clearcoatNormalInput, clearcoat->clearcoat_normal_texture))
+      {
+        // in case no texture has been found, fall back to the implicit declaration (defaultgeomprop="Nworld")
+        shaderNode->removeInput("clearcoat_normal");
+      }
     }
 
     if (material->has_transmission)
@@ -674,14 +682,14 @@ namespace guc
     connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, multiplyNode2);
   }
 
-  void MaterialXMaterialConverter::setNormalTextureInput(mx::NodeGraphPtr nodeGraph,
+  bool MaterialXMaterialConverter::setNormalTextureInput(mx::NodeGraphPtr nodeGraph,
                                                          mx::InputPtr shaderInput,
                                                          const cgltf_texture_view& textureView)
   {
     std::string uri;
     if (!getTextureImageFileName(textureView, uri))
     {
-      return;
+      return false;
     }
 
     mx::ValuePtr defaultValue = mx::Value::createValue(mx::Vector3(0.5f, 0.5f, 1.0f));
@@ -730,6 +738,8 @@ namespace guc
     }
 
     connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, normalmapNode);
+
+    return true;
   }
 
   void MaterialXMaterialConverter::setOcclusionTextureInput(mx::NodeGraphPtr nodeGraph,

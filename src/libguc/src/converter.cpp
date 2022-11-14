@@ -569,8 +569,6 @@ namespace guc
         UsdShadeMaterialBindingAPI(submesh).Bind(
           UsdShadeMaterial::Get(m_stage, makeMtlxMaterialPath(materialName)),
           UsdShadeTokens->fallbackStrength,
-          // We don't use UsdShadeTokens->full here because the glTF PBR is lightweight to evaluate and
-          // usdview can actually fall back to allPurpose if the UsdPreviewSurface group has been disabled.
           UsdShadeTokens->allPurpose
         );
       }

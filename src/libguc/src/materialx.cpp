@@ -201,9 +201,8 @@ namespace detail
   mx::NodePtr makeClampNode(mx::NodeGraphPtr nodeGraph, mx::NodePtr srcNode)
   {
     mx::NodePtr node = nodeGraph->addNode("clamp", mx::EMPTY_STRING, srcNode->getType());
-    node->addInputsFromNodeDef();
 
-    auto inInput = node->getInput("in");
+    auto inInput = node->addInput("in", srcNode->getType());
     inInput->setNodeName(srcNode->getName());
 
     return node;
@@ -217,12 +216,10 @@ namespace detail
 
     mx::NodePtr leftBranch = nodeGraph->addNode("divide", mx::EMPTY_STRING, "float");
     {
-      leftBranch->addInputsFromNodeDef();
-
-      auto in1Input = leftBranch->getInput("in1");
+      auto in1Input = leftBranch->addInput("in1", "float");
       in1Input->setNodeName(srcNode->getName());
 
-      auto in2Input = leftBranch->getInput("in2");
+      auto in2Input = leftBranch->addInput("in2", "float");
       in2Input->setValue(12.92f);
     }
 
@@ -230,49 +227,41 @@ namespace detail
     {
       mx::NodePtr addNode = nodeGraph->addNode("add", mx::EMPTY_STRING, "float");
       {
-        addNode->addInputsFromNodeDef();
-
-        auto in1Input = addNode->getInput("in1");
+        auto in1Input = addNode->addInput("in1", "float");
         in1Input->setNodeName(srcNode->getName());
 
-        auto in2Input = addNode->getInput("in2");
+        auto in2Input = addNode->addInput("in2", "float");
         in2Input->setValue(0.055f);
       }
 
       mx::NodePtr divideNode = nodeGraph->addNode("divide", mx::EMPTY_STRING, "float");
       {
-        divideNode->addInputsFromNodeDef();
-
-        auto in1Input = divideNode->getInput("in1");
+        auto in1Input = divideNode->addInput("in1", "float");
         in1Input->setNodeName(addNode->getName());
 
-        auto in2Input = divideNode->getInput("in2");
+        auto in2Input = divideNode->addInput("in2", "float");
         in2Input->setValue(1.055f);
       }
 
-      rightBranch->addInputsFromNodeDef();
-
-      auto in1Input = rightBranch->getInput("in1");
+      auto in1Input = rightBranch->addInput("in1", "float");
       in1Input->setNodeName(divideNode->getName());
 
-      auto in2Input = rightBranch->getInput("in2");
+      auto in2Input = rightBranch->addInput("in2", "float");
       in2Input->setValue(2.4f);
     }
 
     mx::NodePtr ifGrEqNode = nodeGraph->addNode("ifgreatereq", mx::EMPTY_STRING, "float");
     {
-      ifGrEqNode->addInputsFromNodeDef();
-
-      auto value1Input = ifGrEqNode->getInput("value1");
+      auto value1Input = ifGrEqNode->addInput("value1", "float");
       value1Input->setValue(0.04045f);
 
-      auto value2Input = ifGrEqNode->getInput("value2");
+      auto value2Input = ifGrEqNode->addInput("value2", "float");
       value2Input->setNodeName(srcNode->getName());
 
-      auto in1Input = ifGrEqNode->getInput("in1");
+      auto in1Input = ifGrEqNode->addInput("in1", "float");
       in1Input->setNodeName(leftBranch->getName());
 
-      auto in2Input = ifGrEqNode->getInput("in2");
+      auto in2Input = ifGrEqNode->addInput("in2", "float");
       in2Input->setNodeName(rightBranch->getName());
     }
 
@@ -285,12 +274,10 @@ namespace detail
 
     mx::NodePtr leftBranch = nodeGraph->addNode("multiply", mx::EMPTY_STRING, "float");
     {
-      leftBranch->addInputsFromNodeDef();
-
-      auto in1Input = leftBranch->getInput("in1");
+      auto in1Input = leftBranch->addInput("in1", "float");
       in1Input->setNodeName(srcNode->getName());
 
-      auto in2Input = leftBranch->getInput("in2");
+      auto in2Input = leftBranch->addInput("in2", "float");
       in2Input->setValue(12.92f);
     }
 
@@ -298,49 +285,41 @@ namespace detail
     {
       mx::NodePtr powerNode = nodeGraph->addNode("power", mx::EMPTY_STRING, "float");
       {
-        powerNode->addInputsFromNodeDef();
-
-        auto in1Input = powerNode->getInput("in1");
+        auto in1Input = powerNode->addInput("in1", "float");
         in1Input->setNodeName(srcNode->getName());
 
-        auto in2Input = powerNode->getInput("in2");
+        auto in2Input = powerNode->addInput("in2", "float");
         in2Input->setValue(1.0f / 2.4f);
       }
 
       mx::NodePtr multiplyNode = nodeGraph->addNode("multiply", mx::EMPTY_STRING, "float");
       {
-        multiplyNode->addInputsFromNodeDef();
-
-        auto in1Input = multiplyNode->getInput("in1");
+        auto in1Input = multiplyNode->addInput("in1", "float");
         in1Input->setNodeName(powerNode->getName());
 
-        auto in2Input = multiplyNode->getInput("in2");
+        auto in2Input = multiplyNode->addInput("in2", "float");
         in2Input->setValue(1.055f);
       }
 
-      rightBranch->addInputsFromNodeDef();
-
-      auto in1Input = rightBranch->getInput("in1");
+      auto in1Input = rightBranch->addInput("in1", "float");
       in1Input->setNodeName(multiplyNode->getName());
 
-      auto in2Input = rightBranch->getInput("in2");
+      auto in2Input = rightBranch->addInput("in2", "float");
       in2Input->setValue(0.055f);
     }
 
     mx::NodePtr ifGrEqNode = nodeGraph->addNode("ifgreatereq", mx::EMPTY_STRING, "float");
     {
-      ifGrEqNode->addInputsFromNodeDef();
-
-      auto value1Input = ifGrEqNode->getInput("value1");
+      auto value1Input = ifGrEqNode->addInput("value1", "float");
       value1Input->setValue(0.0031308f);
 
-      auto value2Input = ifGrEqNode->getInput("value2");
+      auto value2Input = ifGrEqNode->addInput("value2", "float");
       value2Input->setNodeName(srcNode->getName());
 
-      auto in1Input = ifGrEqNode->getInput("in1");
+      auto in1Input = ifGrEqNode->addInput("in1", "float");
       in1Input->setNodeName(leftBranch->getName());
 
-      auto in2Input = ifGrEqNode->getInput("in2");
+      auto in2Input = ifGrEqNode->addInput("in2", "float");
       in2Input->setNodeName(rightBranch->getName());
     }
 
@@ -350,13 +329,12 @@ namespace detail
   mx::NodePtr makeExtractChannelNode(mx::NodeGraphPtr nodeGraph, mx::NodePtr srcNode, int index)
   {
     mx::NodePtr node = nodeGraph->addNode("extract", mx::EMPTY_STRING, "float");
-    node->addInputsFromNodeDef();
 
-    auto input = node->getInput("in");
+    auto input = node->addInput("in", "float");
     input->setNodeName(srcNode->getName());
     input->setType(srcNode->getType());
 
-    auto indexInput = node->getInput("index");
+    auto indexInput = node->addInput("index", "integer");
     indexInput->setValue(index);
 
     return node;
@@ -365,11 +343,9 @@ namespace detail
   mx::NodePtr makeConversionNode(mx::NodeGraphPtr nodeGraph, mx::NodePtr srcNode, const std::string& destType)
   {
     mx::NodePtr node = nodeGraph->addNode("convert", mx::EMPTY_STRING, destType);
-    node->addInputsFromNodeDef();
 
-    auto input = node->getInput("in");
+    auto input = node->addInput("in", srcNode->getType());
     input->setNodeName(srcNode->getName());
-    input->setType(srcNode->getType());
 
     return node;
   }
@@ -377,16 +353,14 @@ namespace detail
   mx::NodePtr makeVectorToWorldSpaceNode(mx::NodeGraphPtr nodeGraph, mx::NodePtr srcNode)
   {
     mx::NodePtr node = nodeGraph->addNode("transformvector", mx::EMPTY_STRING, srcNode->getType());
-    node->addInputsFromNodeDef();
 
-    auto input = node->getInput("in");
+    auto input = node->addInput("in", srcNode->getType());
     input->setNodeName(srcNode->getName());
-    input->setType(srcNode->getType());
 
-    auto fromspaceInput = node->getInput("fromspace");
+    auto fromspaceInput = node->addInput("fromspace", "string");
     fromspaceInput->setValueString("object");
 
-    auto tospaceInput = node->getInput("tospace");
+    auto tospaceInput = node->addInput("tospace", "string");
     tospaceInput->setValueString("world");
 
     return node;
@@ -395,9 +369,8 @@ namespace detail
   mx::NodePtr makeNormalizeNode(mx::NodeGraphPtr nodeGraph, mx::NodePtr srcNode)
   {
     mx::NodePtr node = nodeGraph->addNode("normalize", mx::EMPTY_STRING, "vector3");
-    node->addInputsFromNodeDef();
 
-    auto input = node->getInput("in");
+    auto input = node->addInput("in", "vector3");
     input->setNodeName(srcNode->getName());
 
     return node;
@@ -437,8 +410,6 @@ namespace guc
     mx::NodeGraphPtr nodeGraph = m_doc->addNodeGraph(nodegraphName);
     mx::GraphElementPtr shaderNodeRoot = m_flattenNodes ? std::static_pointer_cast<mx::GraphElement>(nodeGraph) : std::static_pointer_cast<mx::GraphElement>(m_doc);
     mx::NodePtr shaderNode = shaderNodeRoot->addNode("gltf_pbr", shaderName, "surfaceshader");
-
-    shaderNode->addInputsFromNodeDef();
 
     // Fill nodegraph with helper nodes (e.g. textures) and set glTF PBR node params.
     setGltfPbrInputs(material, nodeGraph, shaderNode);
@@ -485,11 +456,11 @@ namespace guc
                                                     mx::NodeGraphPtr nodeGraph,
                                                     mx::NodePtr shaderNode)
   {
-    mx::InputPtr baseColorInput = shaderNode->getInput("base_color");
-    mx::InputPtr alphaInput = shaderNode->getInput("alpha");
-    mx::InputPtr occlusionInput = shaderNode->getInput("occlusion");
-    mx::InputPtr metallicInput = shaderNode->getInput("metallic");
-    mx::InputPtr roughnessInput = shaderNode->getInput("roughness");
+    mx::InputPtr baseColorInput = shaderNode->addInput("base_color", "color3");
+    mx::InputPtr alphaInput = shaderNode->addInput("alpha", "float");
+    mx::InputPtr occlusionInput = shaderNode->addInput("occlusion", "float");
+    mx::InputPtr metallicInput = shaderNode->addInput("metallic", "float");
+    mx::InputPtr roughnessInput = shaderNode->addInput("roughness", "float");
 
     // FIXME: overwrite default values for the following inputs, as they are incorrect in
     //        MaterialX 1.38.4. Remove this in later versions (see MaterialX PR #971).
@@ -499,22 +470,22 @@ namespace guc
     metallicInput->setValue(1.0f);
     roughnessInput->setValue(1.0f);
 
-    mx::InputPtr emissiveInput = shaderNode->getInput("emissive");
+    mx::InputPtr emissiveInput = shaderNode->addInput("emissive", "color3");
     mx::Color3 emissiveFactor = detail::makeMxColor3(material->emissive_factor);
     auto emissiveDefault = mx::Color3(1.0f, 1.0f, 1.0f); // spec sec. 5.19.7
     setSrgbTextureInput(nodeGraph, emissiveInput, material->emissive_texture, emissiveFactor, emissiveDefault);
 
-    mx::InputPtr normalInput = shaderNode->getInput("normal");
+    mx::InputPtr normalInput = shaderNode->addInput("normal", "vector3");
     setNormalTextureInput(nodeGraph, normalInput, material->normal_texture);
 
     setOcclusionTextureInput(nodeGraph, occlusionInput, material->occlusion_texture);
 
-    mx::InputPtr alphaModeInput = shaderNode->getInput("alpha_mode");
+    mx::InputPtr alphaModeInput = shaderNode->addInput("alpha_mode", "integer");
     alphaModeInput->setValue(int(material->alpha_mode));
 
     if (material->alpha_mode == cgltf_alpha_mode_mask)
     {
-      mx::InputPtr alphaCutoffInput = shaderNode->getInput("alpha_cutoff");
+      mx::InputPtr alphaCutoffInput = shaderNode->addInput("alpha_cutoff", "float");
       alphaCutoffInput->setValue(material->alpha_cutoff);
     }
 
@@ -540,15 +511,15 @@ namespace guc
     {
       const cgltf_clearcoat* clearcoat = &material->clearcoat;
 
-      mx::InputPtr clearcoatInput = shaderNode->getInput("clearcoat");
+      mx::InputPtr clearcoatInput = shaderNode->addInput("clearcoat", "float");
       auto clearcoatDefault = 1.0f; // according to spec
       setFloatTextureInput(nodeGraph, clearcoatInput, clearcoat->clearcoat_texture, 0, clearcoat->clearcoat_factor, clearcoatDefault);
 
-      mx::InputPtr clearcoatRoughnessInput = shaderNode->getInput("clearcoat_roughness");
+      mx::InputPtr clearcoatRoughnessInput = shaderNode->addInput("clearcoat_roughness", "float");
       auto clearcodeRoughnessDefault = 1.0f; // according to spec
       setFloatTextureInput(nodeGraph, clearcoatRoughnessInput, clearcoat->clearcoat_roughness_texture, 1, clearcoat->clearcoat_roughness_factor, clearcodeRoughnessDefault);
 
-      mx::InputPtr clearcoatNormalInput = shaderNode->getInput("clearcoat_normal");
+      mx::InputPtr clearcoatNormalInput = shaderNode->addInput("clearcoat_normal", "vector3");
       setNormalTextureInput(nodeGraph, clearcoatNormalInput, clearcoat->clearcoat_normal_texture);
     }
 
@@ -556,7 +527,7 @@ namespace guc
     {
       const cgltf_transmission* transmission = &material->transmission;
 
-      mx::InputPtr transmissionInput = shaderNode->getInput("transmission");
+      mx::InputPtr transmissionInput = shaderNode->addInput("transmission", "float");
       auto transmissionDefault = 0.0f; // not given by spec
       setFloatTextureInput(nodeGraph, transmissionInput, transmission->transmission_texture, 0, transmission->transmission_factor, transmissionDefault);
     }
@@ -565,14 +536,14 @@ namespace guc
     {
       const cgltf_volume* volume = &material->volume;
 
-      mx::InputPtr thicknessInput = shaderNode->getInput("thickness");
+      mx::InputPtr thicknessInput = shaderNode->addInput("thickness", "float");
       auto thicknessDefault = 0.0f; // not given by spec
       setFloatTextureInput(nodeGraph, thicknessInput, volume->thickness_texture, 1, volume->thickness_factor, thicknessDefault);
 
-      mx::InputPtr attenuationDistanceInput = shaderNode->getInput("attenuation_distance");
+      mx::InputPtr attenuationDistanceInput = shaderNode->addInput("attenuation_distance", "float");
       attenuationDistanceInput->setValue(volume->attenuation_distance);
 
-      mx::InputPtr attenuationColorInput = shaderNode->getInput("attenuation_color");
+      mx::InputPtr attenuationColorInput = shaderNode->addInput("attenuation_color", "color3");
       attenuationColorInput->setValue(detail::makeMxColor3(volume->attenuation_color));
     }
 
@@ -580,7 +551,7 @@ namespace guc
     {
       const cgltf_ior* ior = &material->ior;
 
-      mx::InputPtr iorInput = shaderNode->getInput("ior");
+      mx::InputPtr iorInput = shaderNode->addInput("ior", "float");
       iorInput->setValue(ior->ior);
     }
 
@@ -588,11 +559,11 @@ namespace guc
     {
       const cgltf_specular* specular = &material->specular;
 
-      mx::InputPtr specularInput = shaderNode->getInput("specular");
+      mx::InputPtr specularInput = shaderNode->addInput("specular", "float");
       auto specularDefault = 1.0f; // not given by spec
       setFloatTextureInput(nodeGraph, specularInput, specular->specular_texture, 3, specular->specular_factor, specularDefault);
 
-      mx::InputPtr specularColorInput = shaderNode->getInput("specular_color");
+      mx::InputPtr specularColorInput = shaderNode->addInput("specular_color", "color3");
       auto specularColorDefault = mx::Color3(1.0f); // not given by spec
       setSrgbTextureInput(nodeGraph, specularColorInput, specular->specular_color_texture, detail::makeMxColor3(specular->specular_color_factor), specularColorDefault);
     }
@@ -601,11 +572,11 @@ namespace guc
     {
       const cgltf_sheen* sheen = &material->sheen;
 
-      mx::InputPtr sheenColorInput = shaderNode->getInput("sheen_color");
+      mx::InputPtr sheenColorInput = shaderNode->addInput("sheen_color", "color3");
       auto sheenColorDefault = mx::Color3(0.0f); // not given by spec
       setSrgbTextureInput(nodeGraph, sheenColorInput, sheen->sheen_color_texture, detail::makeMxColor3(sheen->sheen_color_factor), sheenColorDefault);
 
-      mx::InputPtr sheenRoughnessInput = shaderNode->getInput("sheen_roughness");
+      mx::InputPtr sheenRoughnessInput = shaderNode->addInput("sheen_roughness", "float");
       auto sheenRoughnessDefault = 0.0f; // not given by spec
       setFloatTextureInput(nodeGraph, sheenRoughnessInput, sheen->sheen_roughness_texture, 3, sheen->sheen_roughness_factor, sheenRoughnessDefault);
     }
@@ -616,7 +587,7 @@ namespace guc
     // We don't seem to need this if we flatten the glTF PBR node.
     if (material->alpha_mode != cgltf_alpha_mode_opaque && m_hdstormCompat && !m_flattenNodes)
     {
-      mx::InputPtr transmissionInput = shaderNode->getInput("transmission");
+      mx::InputPtr transmissionInput = shaderNode->addInput("transmission", "float");
       if (!transmissionInput->hasValue() || (transmissionInput->getValue()->isA<float>() && transmissionInput->getValue()->asA<float>() == 0.0f))
       {
         float valueCloseToZero = std::nextafter(0.0f, 1.0f);
@@ -632,15 +603,13 @@ namespace guc
   {
     mx::NodePtr multiplyNode1 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, "color3");
     {
-      multiplyNode1->addInputsFromNodeDef();
-
-      mx::InputPtr input1 = multiplyNode1->getInput("in1");
+      mx::InputPtr input1 = multiplyNode1->addInput("in1", "color3");
       auto defaultValue = mx::Value::createValue(mx::Vector3(1.0f, 1.0f, 1.0f));
 
       auto geompropNode = makeGeompropValueNode(nodeGraph, "displayColor", "color3", defaultValue);
       input1->setNodeName(geompropNode->getName());
 
-      mx::InputPtr input2 = multiplyNode1->getInput("in2");
+      mx::InputPtr input2 = multiplyNode1->addInput("in2", "color3");
       input2->setValue(factor);
     }
 
@@ -656,12 +625,10 @@ namespace guc
 
     mx::NodePtr multiplyNode2 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, "color3");
     {
-      multiplyNode2->addInputsFromNodeDef();
-
-      auto input1 = multiplyNode2->getInput("in1");
+      auto input1 = multiplyNode2->addInput("in1", "color3");
       input1->setNodeName(multiplyNode1->getName());
 
-      auto input2 = multiplyNode2->getInput("in2");
+      auto input2 = multiplyNode2->addInput("in2", "color3");
       input2->setNodeName(textureNode->getName());
     }
 
@@ -675,15 +642,13 @@ namespace guc
   {
     mx::NodePtr multiplyNode1 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, "float");
     {
-      multiplyNode1->addInputsFromNodeDef();
-
-      mx::InputPtr input1 = multiplyNode1->getInput("in1");
+      mx::InputPtr input1 = multiplyNode1->addInput("in1", "float");
       auto defaultOpacity = mx::Value::createValue(1.0f);
 
       auto geompropNode = makeGeompropValueNode(nodeGraph, "displayOpacity", "float", defaultOpacity);
       input1->setNodeName(geompropNode->getName());
 
-      mx::InputPtr input2 = multiplyNode1->getInput("in2");
+      mx::InputPtr input2 = multiplyNode1->addInput("in2", "float");
       input2->setValue(factor);
     }
 
@@ -699,12 +664,10 @@ namespace guc
 
     mx::NodePtr multiplyNode2 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, "float");
     {
-      multiplyNode2->addInputsFromNodeDef();
-
-      auto input1 = multiplyNode2->getInput("in1");
+      auto input1 = multiplyNode2->addInput("in1", "float");
       input1->setNodeName(multiplyNode1->getName());
 
-      auto input2 = multiplyNode2->getInput("in2");
+      auto input2 = multiplyNode2->addInput("in2", "float");
       input2->setNodeName(valueNode->getName());
     }
 
@@ -726,12 +689,12 @@ namespace guc
 
     auto normalNode = nodeGraph->addNode("normal", mx::EMPTY_STRING, "vector3");
     {
-      auto spaceInput = normalNode->addInput("space");
+      auto spaceInput = normalNode->addInput("space", "string");
       spaceInput->setValue("world");
     }
     auto tangentNode = nodeGraph->addNode("tangent", mx::EMPTY_STRING, "vector3");
     {
-      auto spaceInput = tangentNode->addInput("space");
+      auto spaceInput = tangentNode->addInput("space", "string");
       spaceInput->setValue("world");
     }
     // FIXME: currently, the world-space 'bitangent' geomprop node is not supported in USD.
@@ -740,30 +703,28 @@ namespace guc
 #ifdef ENABLE_BITANGENT
     auto bitangentNode = nodeGraph->addNode("bitangent", mx::EMPTY_STRING, "vector3");
     {
-      auto spaceInput = bitangentNode->addInput("space");
+      auto spaceInput = bitangentNode->addInput("space", "string");
       spaceInput->setValue("world");
     }
 #endif
 
     mx::NodePtr normalmapNode = nodeGraph->addNode("normalmap", mx::EMPTY_STRING, "vector3");
     {
-      normalmapNode->addInputsFromNodeDef();
-
-      auto inInput = normalmapNode->getInput("in");
+      auto inInput = normalmapNode->addInput("in", "vector3");
       inInput->setNodeName(textureNode->getName());
 
       // multiply with scale according to glTF spec 2.0 3.9.3.
-      auto scaleInput = normalmapNode->getInput("scale");
+      auto scaleInput = normalmapNode->addInput("scale", "float");
       scaleInput->setValue(textureView.scale);
 
-      auto normalInput = normalmapNode->getInput("normal");
+      auto normalInput = normalmapNode->addInput("normal", "vector3");
       normalInput->setNodeName(normalNode->getName());
 
-      auto tangentInput = normalmapNode->getInput("tangent");
+      auto tangentInput = normalmapNode->addInput("tangent", "vector3");
       tangentInput->setNodeName(tangentNode->getName());
 
 #ifdef ENABLE_BITANGENT
-      auto bitangentInput = normalmapNode->addInput("bitangent");
+      auto bitangentInput = normalmapNode->addInput("bitangent", "vector3");
       bitangentInput->setNodeName(bitangentNode->getName());
 #endif
     }
@@ -790,34 +751,28 @@ namespace guc
 
     mx::NodePtr substractNode = nodeGraph->addNode("subtract", mx::EMPTY_STRING, "float");
     {
-      substractNode->addInputsFromNodeDef();
-
-      auto input1 = substractNode->getInput("in1");
+      auto input1 = substractNode->addInput("in1", "float");
       input1->setNodeName(valueNode->getName());
 
-      auto input2 = substractNode->getInput("in2");
+      auto input2 = substractNode->addInput("in2", "float");
       input2->setValue(1.0f);
     }
 
     mx::NodePtr multiplyNode = nodeGraph->addNode("multiply", mx::EMPTY_STRING, "float");
     {
-      multiplyNode->addInputsFromNodeDef();
-
-      auto input1 = multiplyNode->getInput("in1");
+      auto input1 = multiplyNode->addInput("in1", "float");
       input1->setValue(textureView.scale);
 
-      auto input2 = multiplyNode->getInput("in2");
+      auto input2 = multiplyNode->addInput("in2", "float");
       input2->setNodeName(substractNode->getName());
     }
 
     mx::NodePtr addNode = nodeGraph->addNode("add", mx::EMPTY_STRING, "float");
     {
-      addNode->addInputsFromNodeDef();
-
-      auto input1 = addNode->getInput("in1");
+      auto input1 = addNode->addInput("in1", "float");
       input1->setValue(1.0f);
 
-      auto input2 = addNode->getInput("in2");
+      auto input2 = addNode->addInput("in2", "float");
       input2->setNodeName(multiplyNode->getName());
     }
 
@@ -840,12 +795,10 @@ namespace guc
 
       mx::NodePtr multiplyNode = nodeGraph->addNode("multiply", mx::EMPTY_STRING, valueNode->getType());
       {
-        multiplyNode->addInputsFromNodeDef();
-
-        auto input1 = multiplyNode->getInput("in1");
+        auto input1 = multiplyNode->addInput("in1", valueNode->getType());
         input1->setValueString(valueString);
 
-        auto input2 = multiplyNode->getInput("in2");
+        auto input2 = multiplyNode->addInput("in2", valueNode->getType());
         input2->setNodeName(valueNode->getName());
       }
 
@@ -873,12 +826,10 @@ namespace guc
 
       mx::NodePtr multiplyNode = nodeGraph->addNode("multiply", mx::EMPTY_STRING, valueNode->getType());
       {
-        multiplyNode->addInputsFromNodeDef();
-
-        auto input1 = multiplyNode->getInput("in1");
+        auto input1 = multiplyNode->addInput("in1", valueNode->getType());
         input1->setValueString(valueString);
 
-        auto input2 = multiplyNode->getInput("in2");
+        auto input2 = multiplyNode->addInput("in2", valueNode->getType());
         input2->setNodeName(valueNode->getName());
       }
 
@@ -988,15 +939,13 @@ namespace guc
 
       auto combineNode = nodeGraph->addNode("combine3", mx::EMPTY_STRING, desiredValueType);
       {
-        combineNode->addInputsFromNodeDef();
-
-        auto input1 = combineNode->getInput("in1");
+        auto input1 = combineNode->addInput("in1", channel1Node->getType());
         input1->setNodeName(channel1Node->getName());
 
-        auto input2 = combineNode->getInput("in2");
+        auto input2 = combineNode->addInput("in2", channel2Node->getType());
         input2->setNodeName(channel2Node->getName());
 
-        auto input3 = combineNode->getInput("in3");
+        auto input3 = combineNode->addInput("in3", channel3Node->getType());
         input3->setNodeName(channel3Node->getName());
       }
 
@@ -1014,17 +963,14 @@ namespace guc
                                                          mx::ValuePtr defaultValue)
   {
     mx::NodePtr node = nodeGraph->addNode("image", mx::EMPTY_STRING, textureType);
-    node->addInputsFromNodeDef();
 
-    mx::InputPtr uvInput = node->getInput("texcoord");
+    mx::InputPtr uvInput = node->addInput("texcoord", "vector2");
     int stIndex = textureView.texcoord;
 
 #ifdef MATERIALXVIEW_COMPAT
     auto texcoordNode = nodeGraph->addNode("texcoord", mx::EMPTY_STRING, "vector2");
     {
-      texcoordNode->addInputsFromNodeDef();
-
-      auto indexInput = texcoordNode->getInput("index");
+      auto indexInput = texcoordNode->addInput("index");
       indexInput->setValue(stIndex);
 
       uvInput->setNodeName(texcoordNode->getName());
@@ -1034,7 +980,7 @@ namespace guc
     uvInput->setNodeName(geompropNode->getName());
 #endif
 
-    mx::InputPtr fileInput = node->getInput("file");
+    mx::InputPtr fileInput = node->addInput("file", "filename");
     fileInput->setValue(uri, "filename");
     if (!m_explicitColorSpaceTransforms)
     {
@@ -1043,7 +989,7 @@ namespace guc
 
     if (defaultValue)
     {
-      mx::InputPtr defaultInput = node->getInput("default");
+      mx::InputPtr defaultInput = node->addInput("default", textureType);
       if (!m_explicitColorSpaceTransforms)
       {
         defaultInput->setAttribute("colorspace", COLORSPACE_LINEAR);
@@ -1075,15 +1021,15 @@ namespace guc
 
       if (!filtertype.empty())
       {
-        auto filterInput = node->getInput("filtertype");
+        auto filterInput = node->addInput("filtertype", "string");
         filterInput->setValue(filtertype);
       }
     }
 
-    auto uaddressModeInput = node->getInput("uaddressmode");
+    auto uaddressModeInput = node->addInput("uaddressmode", "string");
     uaddressModeInput->setValue(sampler ? detail::getMtlxAddressMode(sampler->wrap_s) : "periodic");
 
-    auto vaddressModeInput = node->getInput("vaddressmode");
+    auto vaddressModeInput = node->addInput("vaddressmode", "string");
     vaddressModeInput->setValue(sampler ? detail::getMtlxAddressMode(sampler->wrap_t) : "periodic");
 
     return node;
@@ -1097,7 +1043,6 @@ namespace guc
     mx::NodePtr node;
 #ifdef MATERIALXVIEW_COMPAT
     node = nodeGraph->addNode("constant", mx::EMPTY_STRING, geompropValueTypeName);
-    node->addInputsFromNodeDef();
 
     mx::ValuePtr valuePtr = defaultValue;
     if (!defaultValue)
@@ -1118,18 +1063,17 @@ namespace guc
       }
     }
 
-    auto valueInput = node->getInput("value");
+    auto valueInput = node->addInput("value", geompropValueTypeName);
     valueInput->setValueString(valuePtr->getValueString());
 #else
     node = nodeGraph->addNode("geompropvalue", mx::EMPTY_STRING, geompropValueTypeName);
-    node->addInputsFromNodeDef();
 
-    auto geompropInput = node->getInput("geomprop");
+    auto geompropInput = node->addInput("geomprop", "string");
     geompropInput->setValue(geompropName);
 
     if (defaultValue)
     {
-      auto defaultInput = node->getInput("default");
+      auto defaultInput = node->addInput("default", geompropValueTypeName);
       defaultInput->setValueString(defaultValue->getValueString());
     }
 #endif

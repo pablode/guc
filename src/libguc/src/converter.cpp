@@ -198,9 +198,9 @@ namespace guc
 
   bool Converter::convert()
   {
-    auto scope = UsdGeomScope::Define(m_stage, SdfPath("/Geom"));
+    auto rootXForm = UsdGeomXform::Define(m_stage, SdfPath("/Geom"));
 
-    auto defaultPrim = scope.GetPrim();
+    auto defaultPrim = rootXForm.GetPrim();
     m_stage->SetDefaultPrim(defaultPrim);
     m_stage->SetMetadata(SdfFieldKeys->Documentation, TfStringPrintf("Converted from glTF with guc %s", GUC_VERSION_STRING));
 

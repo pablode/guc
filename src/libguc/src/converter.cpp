@@ -329,7 +329,7 @@ namespace guc
         // Otherwise, write the document as XML to a separate file
         mx::XmlWriteOptions writeOptions;
         writeOptions.elementPredicate = [](mx::ConstElementPtr elem) {
-          return !elem->hasSourceUri(); // UsdMtlx doesn't support MaterialX namespaces
+          return !elem->hasSourceUri();
         };
         auto mtlxFilePath = m_dstDir / m_mtlxFileName;
         TF_DEBUG(GUC).Msg("writing mtlx file %s\n", mtlxFilePath.string().c_str());

@@ -267,7 +267,7 @@ namespace guc
   {
     bool exportMtlxDoc = m_params.emit_mtlx && m_data->materials_count > 0;
 
-    if (exportMtlxDoc)
+    if (exportMtlxDoc && !m_params.mtlx_as_usdshade)
     {
       mx::FilePathVec libFolders = { "libraries" };
       mx::FileSearchPath searchPath;

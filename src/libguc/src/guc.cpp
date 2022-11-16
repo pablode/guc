@@ -32,58 +32,6 @@
 using namespace guc;
 namespace fs = std::filesystem;
 
-bool loadGltf(const char* gltfPath, cgltf_data** data)
-{
-  cgltf_result result;
-  cgltf_options options = {};
-
-  result = cgltf_parse_file(&options, gltfPath, data);
-  if (result != cgltf_result_success)
-  {
-    TF_RUNTIME_ERROR("unable to parse glTF: %s\n", cgltf_error_string(result));
-    return false;
-  }
-
-  result = cgltf_load_buffers(&options, *data, gltfPath);
-  if (result != cgltf_result_success)
-  {
-    cgltf_free(*data);
-    TF_RUNTIME_ERROR("unable to load glTF buffers: %s\n", cgltf_error_string(result));
-    return false;
-  }
-
-  result = cgltf_validate(*data);
-  if (result != cgltf_result_success)
-  {
-    cgltf_free(*data);
-    TF_RUNTIME_ERROR("unable to validate glTF: %s\n", cgltf_error_string(result));
-    return false;
-  }
-
-  for (int i = 0; i < (*data)->extensions_required_count; i++)
-  {
-    const char* ext = (*data)->extensions_required[i];
-    TF_DEBUG(GUC).Msg("extension required: %s\n", ext);
-
-    if (strcmp(ext, "KHR_materials_pbrSpecularGlossiness") == 0 ||
-        strcmp(ext, "KHR_lights_punctual") == 0 ||
-        strcmp(ext, "KHR_materials_clearcoat") == 0 ||
-        strcmp(ext, "KHR_materials_ior") == 0 ||
-        strcmp(ext, "KHR_materials_sheen") == 0 ||
-        strcmp(ext, "KHR_materials_specular") == 0 ||
-        strcmp(ext, "KHR_materials_transmission") == 0 ||
-        strcmp(ext, "KHR_materials_volume") == 0)
-    {
-      continue;
-    }
-
-    TF_RUNTIME_ERROR("extension %s not supported\n", ext);
-    return false;
-  }
-
-  return true;
-}
-
 bool guc_convert(const char* gltf_path,
                  const char* usd_path,
                  const guc_params* params)
@@ -91,7 +39,7 @@ bool guc_convert(const char* gltf_path,
   TF_VERIFY(params);
 
   cgltf_data* data = nullptr;
-  if (!loadGltf(gltf_path, &data))
+  if (!load_gltf(gltf_path, &data))
   {
     TF_RUNTIME_ERROR("unable to load glTF at %s", gltf_path);
     return false;

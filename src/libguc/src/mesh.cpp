@@ -27,16 +27,16 @@
 namespace guc
 {
   bool createGeometryRepresentation(const cgltf_primitive* prim,
-                                    const VtArray<int>& inIndices,
-                                    VtArray<int>& outIndices,
-                                    VtArray<int>& faceVertexCounts)
+                                    const VtIntArray& inIndices,
+                                    VtIntArray& outIndices,
+                                    VtIntArray& faceVertexCounts)
   {
     const char* INDICES_MISMATCH_ERROR_MSG = "indices count does not match primitive type";
 
     switch (prim->type)
     {
     case cgltf_primitive_type_points: {
-      faceVertexCounts = VtArray<int>(inIndices.size(), 1);
+      faceVertexCounts = VtIntArray(inIndices.size(), 1);
       outIndices = inIndices;
       break;
     }
@@ -46,7 +46,7 @@ namespace guc
         TF_RUNTIME_ERROR("%s", INDICES_MISMATCH_ERROR_MSG);
         return false;
       }
-      faceVertexCounts = VtArray<int>(inIndices.size() / 2, 2);
+      faceVertexCounts = VtIntArray(inIndices.size() / 2, 2);
       outIndices = inIndices;
       break;
     }
@@ -56,7 +56,7 @@ namespace guc
         TF_RUNTIME_ERROR("%s", INDICES_MISMATCH_ERROR_MSG);
         return false;
       }
-      faceVertexCounts = VtArray<int>(inIndices.size() / 3, 3);
+      faceVertexCounts = VtIntArray(inIndices.size() / 3, 3);
       outIndices = inIndices;
       break;
     }
@@ -66,7 +66,7 @@ namespace guc
         TF_RUNTIME_ERROR("%s", INDICES_MISMATCH_ERROR_MSG);
         return false;
       }
-      faceVertexCounts = VtArray<int>(inIndices.size() - 1, 2);
+      faceVertexCounts = VtIntArray(inIndices.size() - 1, 2);
       outIndices.resize(faceVertexCounts.size() * 2);
       for (int i = 0; i < faceVertexCounts.size(); i++)
       {
@@ -81,7 +81,7 @@ namespace guc
         TF_RUNTIME_ERROR("%s", INDICES_MISMATCH_ERROR_MSG);
         return false;
       }
-      faceVertexCounts = VtArray<int>(inIndices.size(), 2);
+      faceVertexCounts = VtIntArray(inIndices.size(), 2);
       outIndices.resize(inIndices.size() * 2);
       int i;
       for (i = 0; i < inIndices.size() - 1; i++)
@@ -99,7 +99,7 @@ namespace guc
         TF_RUNTIME_ERROR("%s", INDICES_MISMATCH_ERROR_MSG);
         return false;
       }
-      faceVertexCounts = VtArray<int>(inIndices.size() - 2, 3);
+      faceVertexCounts = VtIntArray(inIndices.size() - 2, 3);
       outIndices.resize(faceVertexCounts.size() * 3);
       bool forward = true;
       for (int i = 0; i < faceVertexCounts.size(); i++)
@@ -120,7 +120,7 @@ namespace guc
         TF_RUNTIME_ERROR("%s", INDICES_MISMATCH_ERROR_MSG);
         return false;
       }
-      faceVertexCounts = VtArray<int>(inIndices.size() - 2, 3);
+      faceVertexCounts = VtIntArray(inIndices.size() - 2, 3);
       outIndices.resize(faceVertexCounts.size() * 3);
       for (int i = 0; i < faceVertexCounts.size(); i++)
       {
@@ -137,9 +137,9 @@ namespace guc
     return true;
   }
 
-  void createFlatNormals(const VtArray<int>& indices,
-                         const VtArray<GfVec3f>& positions,
-                         VtArray<GfVec3f>& normals)
+  void createFlatNormals(const VtIntArray& indices,
+                         const VtVec3fArray& positions,
+                         VtVec3fArray& normals)
   {
     TF_VERIFY((indices.size() % 3) == 0);
     normals.resize(positions.size());
@@ -168,12 +168,12 @@ namespace guc
     }
   }
 
-  bool createTangents(const VtArray<int>& indices,
-                      const VtArray<GfVec3f>& positions,
-                      const VtArray<GfVec3f>& normals,
-                      const VtArray<GfVec2f>& texcoords,
-                      VtArray<float>& unindexedSigns,
-                      VtArray<GfVec3f>& unindexedTangents)
+  bool createTangents(const VtIntArray& indices,
+                      const VtVec3fArray& positions,
+                      const VtVec3fArray& normals,
+                      const VtVec2fArray& texcoords,
+                      VtFloatArray& unindexedSigns,
+                      VtVec3fArray& unindexedTangents)
   {
     TF_VERIFY(!texcoords.empty());
 
@@ -182,12 +182,12 @@ namespace guc
     unindexedSigns.resize(vertexCount);
 
     struct UserData {
-      const VtArray<int>& indices;
-      const VtArray<GfVec3f>& positions;
-      const VtArray<GfVec3f>& normals;
-      const VtArray<GfVec2f>& texcoords;
-      VtArray<float>& unindexedSigns;
-      VtArray<GfVec3f>& unindexedTangents;
+      const VtIntArray& indices;
+      const VtVec3fArray& positions;
+      const VtVec3fArray& normals;
+      const VtVec2fArray& texcoords;
+      VtFloatArray& unindexedSigns;
+      VtVec3fArray& unindexedTangents;
     } userData = {
       indices, positions, normals, texcoords, unindexedSigns, unindexedTangents
     };
@@ -252,10 +252,10 @@ namespace guc
     return genTangSpaceDefault(&context);
   }
 
-  bool createBitangents(const VtArray<GfVec3f>& normals,
-                        const VtArray<GfVec3f>& tangents,
-                        const VtArray<float>& signs,
-                        VtArray<GfVec3f>& bitangents)
+  bool createBitangents(const VtVec3fArray& normals,
+                        const VtVec3fArray& tangents,
+                        const VtFloatArray& signs,
+                        VtVec3fArray& bitangents)
   {
     if (normals.size() != tangents.size())
     {

@@ -160,7 +160,7 @@ namespace detail
   }
 
   template<typename T>
-  void deindexVtArray(VtArray<int> indices, VtArray<T>& arr)
+  void deindexVtArray(VtIntArray indices, VtArray<T>& arr)
   {
     int newVertexCount = indices.size();
 
@@ -582,7 +582,7 @@ namespace guc
     const cgltf_material* material = primitiveData->material;
 
     // Indices
-    VtArray<int> indices;
+    VtIntArray indices;
     {
       const cgltf_accessor* accessor = primitiveData->indices;
       if (accessor)
@@ -592,8 +592,8 @@ namespace guc
     }
 
     // Points
-    VtArray<GfVec3f> points;
-    VtArray<int> faceVertexCounts;
+    VtVec3fArray points;
+    VtIntArray faceVertexCounts;
     {
       const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "POSITION");
 
@@ -611,7 +611,7 @@ namespace guc
         }
       }
 
-      VtArray<int> newIndices;
+      VtIntArray newIndices;
       if (!createGeometryRepresentation(primitiveData, indices, newIndices, faceVertexCounts))
       {
         TF_RUNTIME_ERROR("unable to create geometric representation");
@@ -622,7 +622,7 @@ namespace guc
 
     // Normals
     bool createNormals = true;
-    VtArray<GfVec3f> normals;
+    VtVec3fArray normals;
     {
       const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "NORMAL");
       if (accessor)
@@ -638,8 +638,8 @@ namespace guc
     }
 
     // Colors
-    VtArray<float> displayOpacities;
-    VtArray<GfVec3f> displayColors;
+    VtFloatArray displayOpacities;
+    VtVec3fArray displayColors;
     {
       // In the MaterialX material shading network, we multiply by the vertex color.
       // This is implemented by using the displayColor primvar. Hence, we need to
@@ -659,7 +659,7 @@ namespace guc
         }
         else if (accessor->type == cgltf_type_vec4)
         {
-          VtArray<GfVec4f> rgbaDisplayColors;
+          VtVec4fArray rgbaDisplayColors;
           if (detail::readVtArrayFromAccessor(accessor, rgbaDisplayColors))
           {
             displayColors.resize(rgbaDisplayColors.size());
@@ -694,7 +694,7 @@ namespace guc
     }
 
     // TexCoord sets
-    std::vector<VtArray<GfVec2f>> texCoordSets;
+    std::vector<VtVec2fArray> texCoordSets;
     while (true)
     {
       std::string name = "TEXCOORD_" + std::to_string(texCoordSets.size());
@@ -705,7 +705,7 @@ namespace guc
         break;
       }
 
-      VtArray<GfVec2f> texCoords;
+      VtVec2fArray texCoords;
       if (!detail::readVtArrayFromAccessor(accessor, texCoords))
       {
         continue;
@@ -721,16 +721,16 @@ namespace guc
     }
 
     // Tangents and Bitangents
-    VtArray<GfVec3f> tangents;
-    VtArray<GfVec3f> bitangents;
+    VtVec3fArray tangents;
+    VtVec3fArray bitangents;
     if (!createNormals) // according to glTF spec 3.7.2.1, tangents must be ignored if normals are missing
     {
-      VtArray<float> signs;
+      VtFloatArray signs;
 
       const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "TANGENT");
       if (accessor)
       {
-        VtArray<GfVec4f> tangentsWithW;
+        VtVec4fArray tangentsWithW;
         detail::readVtArrayFromAccessor(accessor, tangentsWithW);
 
         tangents.resize(tangentsWithW.size());
@@ -752,14 +752,14 @@ namespace guc
           {
             TF_DEBUG(GUC).Msg("generating tangents\n");
 
-            const VtArray<GfVec2f>& texCoords = texCoordSets[textureView.texcoord];
+            const VtVec2fArray& texCoords = texCoordSets[textureView.texcoord];
             createTangents(indices, points, normals, texCoords, signs, tangents);
 
             // The generated tangents are unindexed, which means that we
             // have to deindex all other primvars and reindex the mesh.
             detail::deindexVtArray(indices, points);
             detail::deindexVtArray(indices, normals);
-            for (VtArray<GfVec2f>& texCoords : texCoordSets)
+            for (VtVec2fArray& texCoords : texCoordSets)
             {
               detail::deindexVtArray(indices, texCoords);
             }

@@ -814,6 +814,16 @@ namespace guc
       mesh.SetNormalsInterpolation(UsdGeomTokens->vertex);
     }
 
+    VtVec3fArray extent;
+    if (UsdGeomPointBased::ComputeExtent(points, &extent))
+    {
+      mesh.CreateExtentAttr(VtValue(extent));
+    }
+    else
+    {
+      TF_WARN("Unable to compute extent for mesh");
+    }
+
     // There is no formal schema for tangents and bitangents, so we just define primvars
     if (!tangents.empty())
     {

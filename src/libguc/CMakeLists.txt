@@ -1,7 +1,14 @@
-add_library(
-  libguc
-  include/guc.h
-  src/guc.cpp
+#
+# In this CMakeLists.txt file, two targets are defined:
+# 1. libguc, a library with a USD-independent C-API
+# 2. usdGlTF, the USD SDF plugin that gets installed as a DLL only
+#
+# Both projects share most source files and dependencies. They differ in some
+# additionally included file, their build config, installation properties and
+# whether a header include dir is installed, or not.
+#
+
+set(LIBGUC_SHARED_SRCS
   src/cgltf_util.h
   src/cgltf_util.cpp
   src/usdpreviewsurface.h
@@ -20,54 +27,95 @@ add_library(
   src/image.cpp
 )
 
+add_library(
+  libguc
+  ${LIBGUC_SHARED_SRCS}
+  include/guc_params.h
+  include/guc.h
+  src/guc.cpp
+)
+
+add_library(
+  usdGlTF SHARED
+  ${LIBGUC_SHARED_SRCS}
+  include/guc_params.h
+  src/file_format.h
+  src/file_format.cpp
+)
+
+set(LIBGUC_SHARED_LIBRARIES
+  cgltf
+  MikkTSpace
+  usd
+  usdGeom
+  usdLux
+  usdShade
+  usdUtils
+  usdMtlx
+  MaterialXCore
+  MaterialXFormat
+  OpenImageIO::OpenImageIO
+)
+
 target_link_libraries(
   libguc
   PRIVATE
-    cgltf
-    MikkTSpace
-    usd
-    usdGeom
-    usdLux
-    usdShade
-    usdUtils
-    usdMtlx
-    MaterialXCore
-    MaterialXFormat
-    OpenImageIO::OpenImageIO
+    ${LIBGUC_SHARED_LIBRARIES}
 )
 
-target_include_directories(
-  libguc
+target_link_libraries(
+  usdGlTF
   PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    sdf
   PRIVATE
-    src
+    ${LIBGUC_SHARED_LIBRARIES}
+)
+
+target_include_directories(libguc PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_include_directories(usdGlTF PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+set(LIBGUC_VERSION_DEFINES
+  GUC_VERSION_MAJOR=${CMAKE_PROJECT_VERSION_MAJOR}
+  GUC_VERSION_MINOR=${CMAKE_PROJECT_VERSION_MINOR}
+  GUC_VERSION_PATCH=${CMAKE_PROJECT_VERSION_PATCH}
+  GUC_VERSION_STRING="${CMAKE_PROJECT_VERSION}"
 )
 
 target_compile_definitions(
   libguc
   PUBLIC
-    GUC_VERSION_MAJOR=${CMAKE_PROJECT_VERSION_MAJOR}
-    GUC_VERSION_MINOR=${CMAKE_PROJECT_VERSION_MINOR}
-    GUC_VERSION_PATCH=${CMAKE_PROJECT_VERSION_PATCH}
-    GUC_VERSION_STRING="${CMAKE_PROJECT_VERSION}"
+    ${LIBGUC_VERSION_DEFINES}
   PRIVATE
     # Workaround for https://github.com/PixarAnimationStudios/USD/issues/1471#issuecomment-799813477
     "$<$<OR:$<CONFIG:>,$<CONFIG:Debug>>:TBB_USE_DEBUG>"
 )
 
-set_target_properties(
-  libguc
-  PROPERTIES
-    # We don't want 'liblibguc' on Linux/Unix
-    PREFIX ""
+target_compile_definitions(
+  usdGlTF
+  PRIVATE
+    ${LIBGUC_VERSION_DEFINES}
+    # Workaround for https://github.com/PixarAnimationStudios/USD/issues/1471#issuecomment-799813477
+    "$<$<OR:$<CONFIG:>,$<CONFIG:Debug>>:TBB_USE_DEBUG>"
 )
+
+# We don't want 'liblibguc' on Linux/Unix
+set_target_properties(libguc PROPERTIES PREFIX "")
+set_target_properties(usdGlTF PROPERTIES PREFIX "")
 
 if(WIN32 AND BUILD_SHARED_LIBS)
   set_target_properties(libguc PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 endif()
 
+install(TARGETS libguc COMPONENT libguc)
+# Is installed to "plugins/usd" dir; remove the default "lib" folder prefix.
+install(TARGETS usdGlTF COMPONENT usdGlTF DESTINATION ".")
+
+set(PLUGINFO_PATH "${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json")
+set(PLUG_INFO_LIBRARY_PATH "../usdGlTF${CMAKE_SHARED_LIBRARY_SUFFIX}")
+configure_file(plugInfo.json.in "${PLUGINFO_PATH}" @ONLY)
+
 install(
-  TARGETS libguc
-  COMPONENT libguc
+  FILES "${PLUGINFO_PATH}"
+  DESTINATION "usdGlTF/resources"
+  COMPONENT usdGlTF
 )

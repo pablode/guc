@@ -183,12 +183,14 @@ namespace guc
                        const fs::path& srcDir,
                        const fs::path& dstDir,
                        const fs::path& mtlxFileName,
+                       bool copyImageFiles,
                        const guc_params& params)
     : m_data(data)
     , m_stage(stage)
     , m_srcDir(srcDir)
     , m_dstDir(dstDir)
     , m_mtlxFileName(mtlxFileName)
+    , m_copyImageFiles(copyImageFiles)
     , m_params(params)
     , m_mtlxDoc(mx::createDocument())
     , m_mtlxConverter(m_mtlxDoc, m_imgMetadata, params.flatten_nodes, params.explicit_colorspace_transforms, params.hdstorm_compat)
@@ -223,7 +225,7 @@ namespace guc
     }
 
     // Step 1: export images
-    exportImages(m_data->images, m_data->images_count, m_srcDir, m_dstDir, m_imgMetadata);
+    exportImages(m_data->images, m_data->images_count, m_srcDir, m_dstDir, m_copyImageFiles, m_imgMetadata);
 
     // Step 2: create materials
     if (m_data->materials_count > 0)

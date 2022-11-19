@@ -26,9 +26,6 @@
 #include "cgltf_util.h"
 #include "converter.h"
 
-#define CGLTF_IMPLEMENTATION
-#include <cgltf.h>
-
 using namespace guc;
 namespace fs = std::filesystem;
 
@@ -57,8 +54,9 @@ bool guc_convert(const char* gltf_path,
   fs::path dstDir = usdFsPath.parent_path();
   fs::path mtlxFileName = usdFsPath.filename();
   mtlxFileName.replace_extension(".mtlx");
+  bool copyImageFiles = true;
 
-  Converter converter(data, stage, srcDir, dstDir, mtlxFileName, *params);
+  Converter converter(data, stage, srcDir, dstDir, mtlxFileName, copyImageFiles, *params);
 
   bool result = converter.convert();
 

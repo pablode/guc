@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "guc.h"
+#include "guc_params.h"
 
 #include <cgltf.h>
 #include <pxr/usd/usd/prim.h>
@@ -44,6 +44,7 @@ namespace guc
               const fs::path& srcDir,
               const fs::path& dstDir,
               const fs::path& mtlxFileName,
+              bool copyImageFiles,
               const guc_params& params);
 
   public:
@@ -67,6 +68,7 @@ namespace guc
     const fs::path& m_srcDir;
     const fs::path& m_dstDir;
     const fs::path& m_mtlxFileName;
+    const bool m_copyImageFiles;
     const guc_params& m_params;
 
   private:

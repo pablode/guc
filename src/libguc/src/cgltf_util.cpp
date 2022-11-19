@@ -18,6 +18,9 @@
 
 #include <pxr/base/tf/diagnostic.h>
 
+#define CGLTF_IMPLEMENTATION
+#include <cgltf.h>
+
 #include <assert.h>
 #include <string.h>
 
@@ -120,27 +123,8 @@ namespace guc
     return nullptr;
   }
 
-  // NOTE: the following four functions are copied from the cgltf library and
+  // NOTE: the following three functions are copied from the cgltf library and
   // are therefore licensed under its accompanying MIT license.
-  cgltf_size cgltf_component_size(cgltf_component_type component_type)
-  {
-    switch (component_type)
-    {
-    case cgltf_component_type_r_8:
-    case cgltf_component_type_r_8u:
-      return 1;
-    case cgltf_component_type_r_16:
-    case cgltf_component_type_r_16u:
-      return 2;
-    case cgltf_component_type_r_32u:
-    case cgltf_component_type_r_32f:
-      return 4;
-    case cgltf_component_type_invalid:
-    default:
-      return 0;
-    }
-  }
-
   cgltf_size cgltf_calc_size(cgltf_type type, cgltf_component_type component_type)
   {
     cgltf_size component_size = cgltf_component_size(component_type);

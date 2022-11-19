@@ -43,5 +43,6 @@ namespace guc
                     size_t imageCount,
                     const fs::path& srcDir,
                     const fs::path& dstDir,
+                    bool copyImageFiles,
                     ImageMetadataMap& metadata);
 }

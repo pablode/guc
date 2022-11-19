@@ -164,7 +164,7 @@ namespace guc
     auto image = ImageInput::open(path);
     if (!image)
     {
-      TF_RUNTIME_ERROR("unable open file for reading: %s", path);
+      TF_RUNTIME_ERROR("unable to open file for reading: %s", path);
       return false;
     }
 
@@ -180,6 +180,7 @@ namespace guc
   std::optional<ImageMetadata> exportImage(const cgltf_image* image,
                                            const fs::path& srcDir,
                                            const fs::path& dstDir,
+                                           bool copyImageFile,
                                            std::unordered_set<std::string>& exportedImgFileNames)
   {
     std::vector<uint8_t> data;
@@ -229,30 +230,40 @@ namespace guc
       return std::nullopt;
     }
 
-    std::string srcFileName = fs::path(srcFilePath).filename().string();
-    std::string dstFileName = makeUniqueImageFileName(image->name, srcFileName, fileExt, exportedImgFileNames);
-    if (dstFileName.empty())
+    std::string dstFilePath;
+    if (!srcFilePath.empty() && !copyImageFile)
     {
-      return std::nullopt;
+      dstFilePath = srcFilePath;
     }
-
-    std::string dstFilePath = (dstDir / fs::path(dstFileName)).string();
-    TF_DEBUG(GUC).Msg("writing img %s\n", dstFilePath.c_str());
-    if (!writeImageData(dstFilePath.c_str(), data))
+    else
     {
-      return std::nullopt;
+      std::string srcFileName = fs::path(srcFilePath).filename().string();
+      std::string dstFileName = makeUniqueImageFileName(image->name, srcFileName, fileExt, exportedImgFileNames);
+      if (dstFileName.empty())
+      {
+        return std::nullopt;
+      }
+
+      std::string writeFilePath = (dstDir / fs::path(dstFileName)).string();
+      TF_DEBUG(GUC).Msg("writing img %s\n", writeFilePath.c_str());
+      if (!writeImageData(writeFilePath.c_str(), data))
+      {
+        return std::nullopt;
+      }
+
+      exportedImgFileNames.insert(dstFileName);
+      dstFilePath = copyImageFile ? dstFileName : writeFilePath;
     }
 
     // Now that an image is guaranteed to exist, read the metadata required for MaterialX shading network creation
     ImageMetadata metadata;
-    metadata.exportedFileName = dstFileName;
+    metadata.exportedFileName = dstFilePath; // FIXME: rename field; can now also be file path
     if (!readImageMetadata(dstFilePath.c_str(), metadata.channelCount, metadata.isSrgbInUSD))
     {
       TF_RUNTIME_ERROR("unable to read metadata from image %s", dstFilePath.c_str());
       return std::nullopt;
     }
 
-    exportedImgFileNames.insert(dstFileName);
     return metadata;
   }
 
@@ -260,6 +271,7 @@ namespace guc
                     size_t imageCount,
                     const fs::path& srcDir,
                     const fs::path& dstDir,
+                    bool copyImageFiles,
                     ImageMetadataMap& metadata)
   {
     std::unordered_set<std::string> exportedImgFileNames;
@@ -268,7 +280,7 @@ namespace guc
     {
       const cgltf_image* image = &images[i];
 
-      auto meta = exportImage(image, srcDir, dstDir, exportedImgFileNames);
+      auto meta = exportImage(image, srcDir, dstDir, copyImageFiles, exportedImgFileNames);
 
       if (meta.has_value())
       {

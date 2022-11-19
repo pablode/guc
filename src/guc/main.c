@@ -27,11 +27,11 @@ void print_usage()
   fprintf(stderr, "Usage: guc <gltf_path> <usd_path> [options]\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "Options:\n");
-  fprintf(stderr, "--emit-mtlx                       Emit MaterialX materials in addition to UsdPreviewSurfaces\n");
-  fprintf(stderr, "--mtlx-as-usdshade                Convert and inline MaterialX materials with UsdMtlx\n");
-  fprintf(stderr, "--flatten-nodes                   Flatten MaterialX glTF PBR nodes to stdlib and pbrlib nodes\n");
-  fprintf(stderr, "--explicit-colorspace-transforms  Explicitly transform colorspaces using MaterialX nodes\n");
-  fprintf(stderr, "--hdstorm-compat                  Apply compatibility tweaks for the USD hdStorm renderer\n");
+  fprintf(stderr, "--emit-mtlx                             Emit MaterialX materials in addition to UsdPreviewSurfaces\n");
+  fprintf(stderr, "--mtlx-as-usdshade                      Convert and inline MaterialX materials with UsdMtlx\n");
+  fprintf(stderr, "--explicit-colorspace-transforms        Explicitly transform colorspaces using MaterialX nodes\n");
+  fprintf(stderr, "--gltf-pbr-impl runtime|file|flattened  How the MaterialX glTF PBR is provided. Default: runtime\n");
+  fprintf(stderr, "--hdstorm-compat                        Apply compatibility tweaks for the USD hdStorm renderer\n");
 }
 
 int main(int argc, const char* argv[])
@@ -48,8 +48,8 @@ int main(int argc, const char* argv[])
   struct guc_params params;
   params.emit_mtlx = false;
   params.mtlx_as_usdshade = false;
-  params.flatten_nodes = false;
   params.explicit_colorspace_transforms = false;
+  params.gltf_pbr_impl = GUC_GLTF_PBR_IMPL_RUNTIME;
   params.hdstorm_compat = false;
 
   for (int i = 3; i < argc; i++)
@@ -70,15 +70,29 @@ int main(int argc, const char* argv[])
         params.mtlx_as_usdshade = true;
         continue;
       }
-      else if (!strcmp(arg, "flatten-nodes"))
-      {
-        params.flatten_nodes = true;
-        continue;
-      }
       else if (!strcmp(arg, "explicit-colorspace-transforms"))
       {
         params.explicit_colorspace_transforms = true;
         continue;
+      }
+      else if (!strcmp(arg, "gltf-pbr-impl") && ++i < argc)
+      {
+        const char* val = argv[i];
+        if (!strcmp(val, "runtime"))
+        {
+          // default value
+          continue;
+        }
+        else if (!strcmp(val, "file"))
+        {
+          params.gltf_pbr_impl = GUC_GLTF_PBR_IMPL_FILE;
+          continue;
+        }
+        else if (!strcmp(val, "flattened"))
+        {
+          params.gltf_pbr_impl = GUC_GLTF_PBR_IMPL_FLATTENED;
+          continue;
+        }
       }
       else if (!strcmp(arg, "hdstorm-compat"))
       {

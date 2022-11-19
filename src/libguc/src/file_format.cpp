@@ -109,8 +109,8 @@ bool UsdGlTFFileFormat::Read(SdfLayer* layer,
   guc_params params = {};
   params.emit_mtlx = TfGetEnvSetting(USDGLTF_ENABLE_MTLX);
   params.mtlx_as_usdshade = true;
-  params.flatten_nodes = false;
   params.explicit_colorspace_transforms = false;
+  params.gltf_pbr_impl = GUC_GLTF_PBR_IMPL_RUNTIME;
   params.hdstorm_compat = false;
 
   fs::path srcDir = fs::path(resolvedPath).parent_path();

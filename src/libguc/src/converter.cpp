@@ -58,6 +58,8 @@ TF_DEFINE_PRIVATE_TOKENS(
   (bitangents)
 );
 
+const static char* MTLX_GLTF_PBR_FILE_NAME = "gltf_pbr.mtlx";
+
 namespace detail
 {
   using namespace guc;
@@ -174,6 +176,30 @@ namespace detail
 
     arr = newArr;
   }
+
+  bool findMtlxGltfPbrFilePath(fs::path& path)
+  {
+    const NdrStringVec& searchPaths = UsdMtlxSearchPaths();
+
+    for (const auto& searchDir : searchPaths)
+    {
+      for (const auto& fileEntry : fs::recursive_directory_iterator(searchDir))
+      {
+        const auto& filePath = fileEntry.path();
+        const auto& fileName = filePath.filename();
+
+        if (fileName != MTLX_GLTF_PBR_FILE_NAME)
+        {
+          continue;
+        }
+
+        path = fs::absolute(filePath);
+        return true;
+      }
+    }
+
+    return false;
+  }
 }
 
 namespace guc
@@ -193,7 +219,9 @@ namespace guc
     , m_copyImageFiles(copyImageFiles)
     , m_params(params)
     , m_mtlxDoc(mx::createDocument())
-    , m_mtlxConverter(m_mtlxDoc, m_imgMetadata, params.flatten_nodes, params.explicit_colorspace_transforms, params.hdstorm_compat)
+    , m_mtlxConverter(m_mtlxDoc, m_imgMetadata,
+        params.gltf_pbr_impl == GUC_GLTF_PBR_IMPL_FLATTENED,
+        params.explicit_colorspace_transforms, params.hdstorm_compat)
     , m_usdPreviewSurfaceConverter(m_stage, m_imgMetadata)
   {
   }
@@ -313,35 +341,63 @@ namespace guc
       }
     }
 
-    if (exportMtlxDoc)
+    if (!exportMtlxDoc)
     {
-      std::string validationErrMsg;
-      if (!m_mtlxDoc->validate(&validationErrMsg))
-      {
-        TF_CODING_ERROR("MaterialX document is invalid: %s", validationErrMsg.c_str());
-      }
+      return true;
+    }
 
-      // Let UsdMtlx convert the document to UsdShade
-      if (m_params.mtlx_as_usdshade)
+    if (m_params.gltf_pbr_impl == GUC_GLTF_PBR_IMPL_FILE)
+    {
+      fs::path implFilePath;
+      if (!detail::findMtlxGltfPbrFilePath(implFilePath))
       {
-        UsdMtlxRead(m_mtlxDoc, m_stage, SdfPath("/Materials/MaterialX"));
+        TF_RUNTIME_ERROR("Can't find %s - portable node impl not possible", MTLX_GLTF_PBR_FILE_NAME);
       }
       else
       {
-        // Otherwise, write the document as XML to a separate file
-        mx::XmlWriteOptions writeOptions;
-        writeOptions.elementPredicate = [](mx::ConstElementPtr elem) {
-          return !elem->hasSourceUri();
-        };
-        auto mtlxFilePath = m_dstDir / m_mtlxFileName;
-        TF_DEBUG(GUC).Msg("writing mtlx file %s\n", mtlxFilePath.string().c_str());
-        mx::writeToXmlFile(m_mtlxDoc, mx::FilePath(mtlxFilePath.string()), &writeOptions);
+        fs::path dstFilePath = m_dstDir / MTLX_GLTF_PBR_FILE_NAME;
 
-        // And create a reference to it
-        auto over = m_stage->OverridePrim(SdfPath("/Materials/MaterialX"));
-        auto references = over.GetPrim().GetReferences();
-        TF_VERIFY(references.AddReference(m_mtlxFileName.string(), SdfPath("/MaterialX")));
+        TF_DEBUG(GUC).Msg("copying glTF PBR mtlx file from %s to %s\n",
+          implFilePath.string().c_str(), dstFilePath.string().c_str());
+
+        if (!fs::copy_file(implFilePath, dstFilePath, fs::copy_options::overwrite_existing))
+        {
+          TF_RUNTIME_ERROR("Can't copy %s to destination path - portable node impl not possible", MTLX_GLTF_PBR_FILE_NAME);
+        }
+        else
+        {
+          mx::prependXInclude(m_mtlxDoc, mx::FilePath(MTLX_GLTF_PBR_FILE_NAME));
+        }
       }
+    }
+
+    std::string validationErrMsg;
+    if (!m_mtlxDoc->validate(&validationErrMsg))
+    {
+      TF_CODING_ERROR("MaterialX document is invalid: %s", validationErrMsg.c_str());
+    }
+
+    // Let UsdMtlx convert the document to UsdShade
+    if (m_params.mtlx_as_usdshade)
+    {
+      UsdMtlxRead(m_mtlxDoc, m_stage, SdfPath("/Materials/MaterialX"));
+    }
+    else
+    {
+      // Otherwise, write the document as XML to a separate file
+      mx::XmlWriteOptions writeOptions;
+      writeOptions.elementPredicate = [](mx::ConstElementPtr elem) {
+        // Prevent imported libraries (pbrlib etc.) from being emitted as XML includes
+        return !elem->hasSourceUri() || elem->getSourceUri() == MTLX_GLTF_PBR_FILE_NAME;
+      };
+      auto mtlxFilePath = m_dstDir / m_mtlxFileName;
+      TF_DEBUG(GUC).Msg("writing mtlx file %s\n", mtlxFilePath.string().c_str());
+      mx::writeToXmlFile(m_mtlxDoc, mx::FilePath(mtlxFilePath.string()), &writeOptions);
+
+      // And create a reference to it
+      auto over = m_stage->OverridePrim(SdfPath("/Materials/MaterialX"));
+      auto references = over.GetPrim().GetReferences();
+      TF_VERIFY(references.AddReference(m_mtlxFileName.string(), SdfPath("/MaterialX")));
     }
 
     return true;

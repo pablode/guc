@@ -335,8 +335,8 @@ namespace guc
                                                           const GfVec4f* fallback,
                                                           UsdShadeShader& node)
   {
-    std::string filePathString;
-    if (!getTextureFileName(textureView, filePathString))
+    std::string filePath;
+    if (!getTextureFilePath(textureView, filePath))
     {
       return false;
     }
@@ -346,7 +346,7 @@ namespace guc
     node.CreateIdAttr(VtValue(_tokens->UsdUVTexture));
 
     auto fileInput = node.CreateInput(_tokens->file, SdfValueTypeNames->Asset);
-    fileInput.Set(SdfAssetPath(filePathString));
+    fileInput.Set(SdfAssetPath(filePath));
 
     if (scale)
     {
@@ -420,14 +420,14 @@ namespace guc
     return true;
   }
 
-  bool UsdPreviewSurfaceMaterialConverter::getTextureFileName(const cgltf_texture_view& textureView, std::string& fileName) const
+  bool UsdPreviewSurfaceMaterialConverter::getTextureFilePath(const cgltf_texture_view& textureView, std::string& fileName) const
   {
     ImageMetadata metadata;
     if (!getTextureMetadata(textureView, metadata))
     {
       return false;
     }
-    fileName = metadata.exportedFileName;
+    fileName = metadata.exportedFilePath;
     return true;
   }
 

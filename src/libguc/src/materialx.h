@@ -110,18 +110,18 @@ namespace guc
     //
     mx::NodePtr addFloatTextureNodes(mx::NodeGraphPtr nodeGraph,
                                      const cgltf_texture_view& textureView,
-                                     std::string& uri,
+                                     std::string& filePath,
                                      int channelIndex,
                                      float defaultValue);
 
     mx::NodePtr addFloat3TextureNodes(mx::NodeGraphPtr nodeGraph,
                                       const cgltf_texture_view& textureView,
-                                      std::string& uri,
+                                      std::string& filePath,
                                       bool color,
                                       mx::ValuePtr defaultValue);
 
     mx::NodePtr addTextureNode(mx::NodeGraphPtr nodeGraph,
-                               const std::string& uri,
+                               const std::string& filePath,
                                const std::string& textureType,
                                bool isSrgb,
                                const cgltf_texture_view& textureView,
@@ -136,7 +136,7 @@ namespace guc
 
   private:
     bool getTextureMetadata(const cgltf_texture_view& textureView, ImageMetadata& metadata) const;
-    bool getTextureImageFileName(const cgltf_texture_view& textureView, std::string& fileName) const;
+    bool getTextureFilePath(const cgltf_texture_view& textureView, std::string& filePath) const;
     bool isTextureSrgbInUsd(const cgltf_texture_view& textureView) const;
     int getTextureChannelCount(const cgltf_texture_view& textureView) const;
 

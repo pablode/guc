@@ -75,7 +75,7 @@ namespace guc
     cgltf_result result = cgltf_load_buffer_base64(&options, size, base64Str, &rawData);
     if (result != cgltf_result_success)
     {
-      TF_CODING_ERROR("unable to read base64-encoded data");
+      TF_RUNTIME_ERROR("unable to read base64-encoded data");
       return false;
     }
 
@@ -257,7 +257,7 @@ namespace guc
 
     // Now that an image is guaranteed to exist, read the metadata required for MaterialX shading network creation
     ImageMetadata metadata;
-    metadata.exportedFileName = dstFilePath; // FIXME: rename field; can now also be file path
+    metadata.exportedFilePath = dstFilePath;
     if (!readImageMetadata(dstFilePath.c_str(), metadata.channelCount, metadata.isSrgbInUSD))
     {
       TF_RUNTIME_ERROR("unable to read metadata from image %s", dstFilePath.c_str());

@@ -83,7 +83,7 @@ namespace guc
 
   private:
     bool getTextureMetadata(const cgltf_texture_view& textureView, ImageMetadata& metadata) const;
-    bool getTextureFileName(const cgltf_texture_view& textureView, std::string& fileName) const;
+    bool getTextureFilePath(const cgltf_texture_view& textureView, std::string& filePath) const;
     int getTextureChannelCount(const cgltf_texture_view& textureView) const;
   };
 }

@@ -632,15 +632,15 @@ namespace guc
       input2->setValue(factor);
     }
 
-    std::string uri;
-    if (!getTextureImageFileName(textureView, uri))
+    std::string filePath;
+    if (!getTextureFilePath(textureView, filePath))
     {
       connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, multiplyNode1);
       return;
     }
 
     auto defaultValue = mx::Value::createValue(mx::Color3(1.0f, 1.0f, 1.0f)); // spec sec. 5.22.2
-    mx::NodePtr textureNode = addFloat3TextureNodes(nodeGraph, textureView, uri, true, defaultValue);
+    mx::NodePtr textureNode = addFloat3TextureNodes(nodeGraph, textureView, filePath, true, defaultValue);
 
     mx::NodePtr multiplyNode2 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_COLOR3);
     {
@@ -671,15 +671,15 @@ namespace guc
       input2->setValue(factor);
     }
 
-    std::string uri;
-    if (!getTextureImageFileName(textureView, uri))
+    std::string filePath;
+    if (!getTextureFilePath(textureView, filePath))
     {
       connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, multiplyNode1);
       return;
     }
 
     auto defaultValue = 1.0f; // spec sec. 5.22.2
-    mx::NodePtr valueNode = addFloatTextureNodes(nodeGraph, textureView, uri, 3, defaultValue);
+    mx::NodePtr valueNode = addFloatTextureNodes(nodeGraph, textureView, filePath, 3, defaultValue);
 
     mx::NodePtr multiplyNode2 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
     {
@@ -697,14 +697,14 @@ namespace guc
                                                          mx::InputPtr shaderInput,
                                                          const cgltf_texture_view& textureView)
   {
-    std::string uri;
-    if (!getTextureImageFileName(textureView, uri))
+    std::string filePath;
+    if (!getTextureFilePath(textureView, filePath))
     {
       return false;
     }
 
     mx::ValuePtr defaultValue = mx::Value::createValue(mx::Vector3(0.5f, 0.5f, 1.0f));
-    mx::NodePtr textureNode = addFloat3TextureNodes(nodeGraph, textureView, uri, false, defaultValue);
+    mx::NodePtr textureNode = addFloat3TextureNodes(nodeGraph, textureView, filePath, false, defaultValue);
 
     auto normalNode = nodeGraph->addNode("normal", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
     {
@@ -757,8 +757,8 @@ namespace guc
                                                             mx::InputPtr shaderInput,
                                                             const cgltf_texture_view& textureView)
   {
-    std::string uri;
-    if (!getTextureImageFileName(textureView, uri))
+    std::string filePath;
+    if (!getTextureFilePath(textureView, filePath))
     {
       return;
     }
@@ -768,7 +768,7 @@ namespace guc
     //     1.0 + strength * (occlusionTexture - 1.0)
 
     auto defaultValue = 1.0f; // fall back to unoccluded area if texture is not found
-    mx::NodePtr valueNode = addFloatTextureNodes(nodeGraph, textureView, uri, 0, defaultValue);
+    mx::NodePtr valueNode = addFloatTextureNodes(nodeGraph, textureView, filePath, 0, defaultValue);
 
     mx::NodePtr substractNode = nodeGraph->addNode("subtract", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
     {
@@ -808,11 +808,11 @@ namespace guc
   {
     std::string valueString = mx::Value::createValue(factorValue)->getValueString();
 
-    std::string uri;
-    if (getTextureImageFileName(textureView, uri))
+    std::string filePath;
+    if (getTextureFilePath(textureView, filePath))
     {
       auto defaultValuePtr = mx::Value::createValue(defaultValue);
-      mx::NodePtr valueNode = addFloat3TextureNodes(nodeGraph, textureView, uri, true, defaultValuePtr);
+      mx::NodePtr valueNode = addFloat3TextureNodes(nodeGraph, textureView, filePath, true, defaultValuePtr);
 
       mx::NodePtr multiplyNode = nodeGraph->addNode("multiply", mx::EMPTY_STRING, valueNode->getType());
       {
@@ -840,10 +840,10 @@ namespace guc
   {
     std::string valueString = mx::Value::createValue(factorValue)->getValueString();
 
-    std::string uri;
-    if (getTextureImageFileName(textureView, uri))
+    std::string filePath;
+    if (getTextureFilePath(textureView, filePath))
     {
-      mx::NodePtr valueNode = addFloatTextureNodes(nodeGraph, textureView, uri, channelIndex, defaultValue);
+      mx::NodePtr valueNode = addFloatTextureNodes(nodeGraph, textureView, filePath, channelIndex, defaultValue);
 
       mx::NodePtr multiplyNode = nodeGraph->addNode("multiply", mx::EMPTY_STRING, valueNode->getType());
       {
@@ -864,7 +864,7 @@ namespace guc
 
   mx::NodePtr MaterialXMaterialConverter::addFloatTextureNodes(mx::NodeGraphPtr nodeGraph,
                                                                const cgltf_texture_view& textureView,
-                                                               std::string& uri,
+                                                               std::string& filePath,
                                                                int channelIndex,
                                                                float defaultValue)
   {
@@ -880,7 +880,7 @@ namespace guc
     }
     auto defaultValuePtr = mx::Value::createValue(defaultValue);
 
-    mx::NodePtr valueNode = addTextureNode(nodeGraph, uri, texValueType, false, textureView, defaultValuePtr);
+    mx::NodePtr valueNode = addTextureNode(nodeGraph, filePath, texValueType, false, textureView, defaultValuePtr);
 
     if (texValueType != MTLX_TYPE_FLOAT)
     {
@@ -909,7 +909,7 @@ namespace guc
 
   mx::NodePtr MaterialXMaterialConverter::addFloat3TextureNodes(mx::NodeGraphPtr nodeGraph,
                                                                 const cgltf_texture_view& textureView,
-                                                                std::string& uri,
+                                                                std::string& filePath,
                                                                 bool color,
                                                                 mx::ValuePtr defaultValue)
   {
@@ -926,7 +926,7 @@ namespace guc
       defaultValue = detail::convertFloat3ValueToSrgb(defaultValue);
     }
 
-    mx::NodePtr valueNode = addTextureNode(nodeGraph, uri, texValueType, color, textureView, defaultValue);
+    mx::NodePtr valueNode = addTextureNode(nodeGraph, filePath, texValueType, color, textureView, defaultValue);
 
     // In case of RGBA, we need to drop one channel.
     if (texValueType == MTLX_TYPE_COLOR4 || texValueType == MTLX_TYPE_VECTOR4)
@@ -977,7 +977,7 @@ namespace guc
   }
 
   mx::NodePtr MaterialXMaterialConverter::addTextureNode(mx::NodeGraphPtr nodeGraph,
-                                                         const std::string& uri,
+                                                         const std::string& filePath,
                                                          const std::string& textureType,
                                                          bool isSrgb,
                                                          const cgltf_texture_view& textureView,
@@ -1002,7 +1002,7 @@ namespace guc
 #endif
 
     mx::InputPtr fileInput = node->addInput("file", MTLX_TYPE_FILENAME);
-    fileInput->setValue(uri, MTLX_TYPE_FILENAME);
+    fileInput->setValue(filePath, MTLX_TYPE_FILENAME);
     if (!m_explicitColorSpaceTransforms)
     {
       fileInput->setAttribute("colorspace", isSrgb ? MTLX_COLORSPACE_SRGB : MTLX_COLORSPACE_LINEAR);
@@ -1153,14 +1153,14 @@ namespace guc
     return true;
   }
 
-  bool MaterialXMaterialConverter::getTextureImageFileName(const cgltf_texture_view& textureView, std::string& fileName) const
+  bool MaterialXMaterialConverter::getTextureFilePath(const cgltf_texture_view& textureView, std::string& filePath) const
   {
     ImageMetadata metadata;
     if (!getTextureMetadata(textureView, metadata))
     {
       return false;
     }
-    fileName = metadata.exportedFileName;
+    filePath = metadata.exportedFilePath;
     return true;
   }
 

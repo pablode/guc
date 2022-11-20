@@ -56,13 +56,18 @@ namespace guc
   bool readImageDataFromBase64(const char* base64Str, std::vector<uint8_t>& data)
   {
     size_t size = strlen(base64Str);
-    size = size - (size / 4);
-    if (size >= 2)
+
+    size_t padding = 0;
+    if (size >= 2 && base64Str[size - 2] == '=')
     {
-      // remove padding bytes
-      if (base64Str[size - 2] == '=') { size--; }
-      if (base64Str[size - 1] == '=') { size--; }
+      padding = 2;
     }
+    else if (size >= 1 && base64Str[size - 1] == '=')
+    {
+      padding = 1;
+    }
+
+    size = (size / 4) * 3 - padding;
 
     if (size == 0)
     {

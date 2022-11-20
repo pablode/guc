@@ -114,7 +114,13 @@ namespace guc
     int64_t result = ArchPRead(file, data.data(), size, 0);
 
     ArchCloseFile(ArchFileNo(file));
-    return result != -1;
+
+    if (result == -1)
+    {
+      TF_RUNTIME_ERROR("unable to read from file %s", filePath);
+      return false;
+    }
+    return true;
   }
 
   bool writeImageData(const char* filePath, std::vector<uint8_t>& data)
@@ -129,7 +135,13 @@ namespace guc
     int64_t result = ArchPWrite(file, data.data(), data.size(), 0);
 
     ArchCloseFile(ArchFileNo(file));
-    return result != -1;
+
+    if (result == -1)
+    {
+      TF_RUNTIME_ERROR("unable to read from file %s", filePath);
+      return false;
+    }
+    return true;
   }
 
   bool readExtensionFromDataSignature(const std::vector<uint8_t>& data, std::string& extension)
@@ -228,6 +240,17 @@ namespace guc
     std::string fileExt;
     if (!readExtensionFromDataSignature(data, fileExt))
     {
+      // Doesn't matter what the mime type or path extension is if the image can not be read
+      const char* hint = image->name;
+      if (!srcFilePath.empty())
+      {
+        hint = srcFilePath.c_str();
+      }
+      if (!hint || !strcmp(hint, ""))
+      {
+        hint = "embedded";
+      }
+      TF_RUNTIME_ERROR("unable to determine image data type (hint: %s)", hint);
       return std::nullopt;
     }
 

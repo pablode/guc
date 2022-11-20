@@ -102,7 +102,7 @@ bool UsdGlTFFileFormat::Read(SdfLayer* layer,
   cgltf_data* data = nullptr;
   if (!load_gltf(resolvedPath.c_str(), &data))
   {
-    TF_RUNTIME_ERROR("unable to load glTF at %s", resolvedPath.c_str());
+    TF_RUNTIME_ERROR("unable to load glTF file %s", resolvedPath.c_str());
     return false;
   }
 

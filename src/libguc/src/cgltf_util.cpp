@@ -38,7 +38,7 @@ namespace guc
     result = cgltf_parse_file(&options, gltfPath, data);
     if (result != cgltf_result_success)
     {
-      TF_RUNTIME_ERROR("unable to parse glTF: %s\n", cgltf_error_string(result));
+      TF_RUNTIME_ERROR("unable to parse glTF file: %s", cgltf_error_string(result));
       return false;
     }
 
@@ -46,7 +46,7 @@ namespace guc
     if (result != cgltf_result_success)
     {
       cgltf_free(*data);
-      TF_RUNTIME_ERROR("unable to load glTF buffers: %s\n", cgltf_error_string(result));
+      TF_RUNTIME_ERROR("unable to load glTF buffers: %s", cgltf_error_string(result));
       return false;
     }
 
@@ -54,7 +54,7 @@ namespace guc
     if (result != cgltf_result_success)
     {
       cgltf_free(*data);
-      TF_RUNTIME_ERROR("unable to validate glTF: %s\n", cgltf_error_string(result));
+      TF_RUNTIME_ERROR("unable to validate glTF: %s", cgltf_error_string(result));
       return false;
     }
 
@@ -75,7 +75,7 @@ namespace guc
         continue;
       }
 
-      TF_RUNTIME_ERROR("extension %s not supported\n", ext);
+      TF_RUNTIME_ERROR("extension %s not supported", ext);
       return false;
     }
 

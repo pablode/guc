@@ -80,7 +80,7 @@ namespace detail
         unsigned int tmpUint = 0;
         if (!cgltf_accessor_read_uint(accessor, i, &tmpUint, elementSize))
         {
-          TF_RUNTIME_ERROR("unable to read accessor data\n");
+          TF_RUNTIME_ERROR("unable to read accessor data");
           return false;
         }
         item = (int) tmpUint;
@@ -91,7 +91,7 @@ namespace detail
       {
         if (!cgltf_accessor_read_float(accessor, i, item.data(), elementSize))
         {
-          TF_RUNTIME_ERROR("unable to read accessor data\n");
+          TF_RUNTIME_ERROR("unable to read accessor data");
           return false;
         }
       }
@@ -192,6 +192,8 @@ namespace detail
         {
           continue;
         }
+
+        TF_DEBUG(GUC).Msg("found MaterialX glTF PBR at %s\n", filePath.string().c_str());
 
         path = fs::absolute(filePath);
         return true;
@@ -358,7 +360,7 @@ namespace guc
       fs::path implFilePath;
       if (!detail::findMtlxGltfPbrFilePath(implFilePath))
       {
-        TF_RUNTIME_ERROR("Can't find %s - portable node impl not possible", MTLX_GLTF_PBR_FILE_NAME);
+        TF_RUNTIME_ERROR("can't find %s - portable node impl not possible", MTLX_GLTF_PBR_FILE_NAME);
       }
       else if (!m_copyExistingFiles)
       {
@@ -374,7 +376,7 @@ namespace guc
 
         if (!fs::copy_file(implFilePath, dstFilePath, fs::copy_options::overwrite_existing))
         {
-          TF_RUNTIME_ERROR("Can't copy %s to destination path - portable node impl not possible", MTLX_GLTF_PBR_FILE_NAME);
+          TF_RUNTIME_ERROR("can't copy %s to destination path - portable node impl not possible", MTLX_GLTF_PBR_FILE_NAME);
         }
         else
         {
@@ -387,7 +389,7 @@ namespace guc
     std::string validationErrMsg;
     if (!m_mtlxDoc->validate(&validationErrMsg))
     {
-      TF_CODING_ERROR("MaterialX document is invalid: %s", validationErrMsg.c_str());
+      TF_CODING_ERROR("invalid MaterialX document: %s", validationErrMsg.c_str());
     }
 
     // Let UsdMtlx convert the document to UsdShade
@@ -894,7 +896,7 @@ namespace guc
     }
     else
     {
-      TF_WARN("Unable to compute extent for mesh");
+      TF_WARN("unable to compute extent for mesh");
     }
 
     // There is no formal schema for tangents and bitangents, so we just define primvars

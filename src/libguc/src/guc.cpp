@@ -40,7 +40,7 @@ bool convertToUsd(fs::path src_dir,
   UsdStageRefPtr stage = UsdStage::CreateNew(usd_path.string());
   if (!stage)
   {
-    TF_RUNTIME_ERROR("Unable to open stage at %s", usd_path.string().c_str());
+    TF_RUNTIME_ERROR("unable to open stage at %s", usd_path.string().c_str());
     return false;
   }
 
@@ -84,7 +84,7 @@ bool guc_convert(const char* gltf_path,
 
     if (dst_dir.empty())
     {
-      TF_RUNTIME_ERROR("Unable to create temporary directory for USDZ contents");
+      TF_RUNTIME_ERROR("unable to create temporary directory for USDZ contents");
       return false;
     }
 
@@ -96,7 +96,7 @@ bool guc_convert(const char* gltf_path,
   cgltf_data* gltf_data = nullptr;
   if (!load_gltf(gltf_path, &gltf_data))
   {
-    TF_RUNTIME_ERROR("Unable to load glTF at %s", gltf_path);
+    TF_RUNTIME_ERROR("unable to load glTF file %s", gltf_path);
     return false;
   }
 
@@ -119,7 +119,7 @@ bool guc_convert(const char* gltf_path,
     auto usdz_dst_dir = fs::absolute(final_usd_path).parent_path();
     if (!fs::exists(usdz_dst_dir) && !fs::create_directories(usdz_dst_dir))
     {
-      TF_RUNTIME_ERROR("Unable to create destination directory");
+      TF_RUNTIME_ERROR("unable to create destination directory");
       return false;
     }
 
@@ -129,7 +129,7 @@ bool guc_convert(const char* gltf_path,
     TF_DEBUG(GUC).Msg("adding %s to USDZ archive at ./%s\n", base_usd_path.string().c_str(), base_usd_path.filename().string().c_str());
     if (writer.AddFile(base_usd_path.string(), base_usd_path.filename().string()) == "")
     {
-      TF_RUNTIME_ERROR("Unable to usdzip %s to %s", base_usd_path.string().c_str(), base_usd_path.filename().string().c_str());
+      TF_RUNTIME_ERROR("unable to usdzip %s to %s", base_usd_path.string().c_str(), base_usd_path.filename().string().c_str());
       return false; // Fatal error
     }
     for (const auto& fileExport : fileExports)
@@ -140,14 +140,14 @@ bool guc_convert(const char* gltf_path,
       TF_DEBUG(GUC).Msg("adding %s to USDZ archive at ./%s\n", srcPath.c_str(), dstPathInUsdz.c_str());
       if (writer.AddFile(srcPath, dstPathInUsdz) == "")
       {
-        TF_RUNTIME_ERROR("Unable to usdzip %s to %s", srcPath.c_str(), dstPathInUsdz.c_str());
+        TF_RUNTIME_ERROR("unable to usdzip %s to %s", srcPath.c_str(), dstPathInUsdz.c_str());
         // (non-fatal error)
       }
     }
 
     if (!writer.Save())
     {
-      TF_RUNTIME_ERROR("Unable to save USDZ file");
+      TF_RUNTIME_ERROR("unable to save USDZ file");
       return false;
     }
 

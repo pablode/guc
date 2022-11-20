@@ -39,8 +39,8 @@ add_library(
   usdGlTF SHARED
   ${LIBGUC_SHARED_SRCS}
   include/guc_params.h
-  src/file_format.h
-  src/file_format.cpp
+  src/fileFormat.h
+  src/fileFormat.cpp
 )
 
 set(LIBGUC_SHARED_LIBRARIES

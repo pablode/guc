@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-#include "file_format.h"
+#include "fileFormat.h"
 
 #include <pxr/base/arch/fileSystem.h>
 #include <pxr/base/tf/registryManager.h>

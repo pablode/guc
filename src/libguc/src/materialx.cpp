@@ -341,9 +341,8 @@ namespace detail
   {
     mx::NodePtr node = nodeGraph->addNode("extract", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
 
-    auto input = node->addInput("in", MTLX_TYPE_FLOAT);
+    auto input = node->addInput("in", srcNode->getType());
     input->setNodeName(srcNode->getName());
-    input->setType(srcNode->getType());
 
     auto indexInput = node->addInput("index", MTLX_TYPE_INTEGER);
     indexInput->setValue(index);
@@ -705,8 +704,48 @@ namespace guc
       return false;
     }
 
+    // here, we basically implement the normalmap node, but with variable handedness by using the bitangent
+    // https://github.com/AcademySoftwareFoundation/MaterialX/blob/main/libraries/stdlib/genglsl/mx_normalmap.glsl
+
     mx::ValuePtr defaultValue = mx::Value::createValue(mx::Vector3(0.5f, 0.5f, 1.0f));
     mx::NodePtr textureNode = addFloat3TextureNodes(nodeGraph, textureView, filePath, false, defaultValue);
+
+    // we need to remap the texture [0, 1] values to [-1, 1] values
+    mx::NodePtr multiplyNode1 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+    {
+      mx::InputPtr input1 = multiplyNode1->addInput("in1", MTLX_TYPE_VECTOR3);
+      input1->setNodeName(textureNode->getName());
+
+      mx::InputPtr input2 = multiplyNode1->addInput("in2", MTLX_TYPE_FLOAT);
+      input2->setValue(2.0f);
+    }
+
+    mx::NodePtr subtractNode = nodeGraph->addNode("subtract", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+    {
+      auto input1 = subtractNode->addInput("in1", MTLX_TYPE_VECTOR3);
+      input1->setNodeName(multiplyNode1->getName());
+
+      auto input2 = subtractNode->addInput("in2", MTLX_TYPE_FLOAT);
+      input2->setValue(1.0f);
+    }
+
+    // multiply with scale according to glTF spec sec. 3.9.3
+    mx::NodePtr multiplyNode2 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+    {
+      mx::InputPtr input1 = multiplyNode2->addInput("in1", MTLX_TYPE_VECTOR3);
+      input1->setNodeName(subtractNode->getName());
+
+      mx::InputPtr input2 = multiplyNode2->addInput("in2", MTLX_TYPE_VECTOR3);
+      input2->setValue(mx::Vector3(textureView.scale, textureView.scale, 1.0f));
+    }
+
+    // not done in the MaterialX normalmap impl, but required according to glTF spec sec. 3.9.3
+    mx::NodePtr normalizeNode1 = detail::makeNormalizeNode(nodeGraph, multiplyNode2);
+
+    // let's avoid separate3 due to multi-output support concerns
+    mx::NodePtr outx = detail::makeExtractChannelNode(nodeGraph, normalizeNode1, 0);
+    mx::NodePtr outy = detail::makeExtractChannelNode(nodeGraph, normalizeNode1, 1);
+    mx::NodePtr outz = detail::makeExtractChannelNode(nodeGraph, normalizeNode1, 2);
 
     auto normalNode = nodeGraph->addNode("normal", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
     {
@@ -718,10 +757,28 @@ namespace guc
       auto spaceInput = tangentNode->addInput("space", MTLX_TYPE_STRING);
       spaceInput->setValue("world");
     }
-    // FIXME: currently, the world-space 'bitangent' geomprop node is not supported in USD.
-    // Furthermore, the MaterialX 'normalmap' needs to be extended for this input. See:
-    // https://github.com/AcademySoftwareFoundation/MaterialX/issues/945
-#ifdef ENABLE_BITANGENT
+
+#ifndef MATERIALXVIEW_COMPAT
+    auto crossproductNode = nodeGraph->addNode("crossproduct", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+    {
+     auto input1 = crossproductNode->addInput("in1", MTLX_TYPE_VECTOR3);
+     input1->setNodeName(normalNode->getName());
+
+     auto input2 = crossproductNode->addInput("in2", MTLX_TYPE_VECTOR3);
+     input2->setNodeName(tangentNode->getName());
+    }
+
+    auto tangentSignNode = makeGeompropValueNode(nodeGraph, "tangentSigns", MTLX_TYPE_FLOAT);
+
+    auto bitangentNode = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+    {
+      auto input1 = bitangentNode->addInput("in1", MTLX_TYPE_VECTOR3);
+      input1->setNodeName(crossproductNode->getName());
+
+      auto input2 = bitangentNode->addInput("in2", MTLX_TYPE_FLOAT);
+      input2->setNodeName(tangentSignNode->getName());
+    }
+#else
     auto bitangentNode = nodeGraph->addNode("bitangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
     {
       auto spaceInput = bitangentNode->addInput("space", MTLX_TYPE_STRING);
@@ -729,28 +786,55 @@ namespace guc
     }
 #endif
 
-    mx::NodePtr normalmapNode = nodeGraph->addNode("normalmap", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+    // the next nodes implement multiplication with the TBN matrix
+    mx::NodePtr multiplyNode3 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
     {
-      auto inInput = normalmapNode->addInput("in", MTLX_TYPE_VECTOR3);
-      inInput->setNodeName(textureNode->getName());
+      mx::InputPtr input1 = multiplyNode3->addInput("in1", MTLX_TYPE_VECTOR3);
+      input1->setNodeName(tangentNode->getName());
 
-      // multiply with scale according to glTF spec 2.0 3.9.3.
-      auto scaleInput = normalmapNode->addInput("scale", MTLX_TYPE_FLOAT);
-      scaleInput->setValue(textureView.scale);
-
-      auto normalInput = normalmapNode->addInput("normal", MTLX_TYPE_VECTOR3);
-      normalInput->setNodeName(normalNode->getName());
-
-      auto tangentInput = normalmapNode->addInput("tangent", MTLX_TYPE_VECTOR3);
-      tangentInput->setNodeName(tangentNode->getName());
-
-#ifdef ENABLE_BITANGENT
-      auto bitangentInput = normalmapNode->addInput("bitangent", MTLX_TYPE_VECTOR3);
-      bitangentInput->setNodeName(bitangentNode->getName());
-#endif
+      mx::InputPtr input2 = multiplyNode3->addInput("in2", MTLX_TYPE_FLOAT);
+      input2->setNodeName(outx->getName());
     }
 
-    connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, normalmapNode);
+    mx::NodePtr multiplyNode4 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+    {
+      mx::InputPtr input1 = multiplyNode4->addInput("in1", MTLX_TYPE_VECTOR3);
+      input1->setNodeName(bitangentNode->getName());
+
+      mx::InputPtr input2 = multiplyNode4->addInput("in2", MTLX_TYPE_FLOAT);
+      input2->setNodeName(outy->getName());
+    }
+
+    mx::NodePtr multiplyNode5 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+    {
+      mx::InputPtr input1 = multiplyNode5->addInput("in1", MTLX_TYPE_VECTOR3);
+      input1->setNodeName(normalNode->getName());
+
+      mx::InputPtr input2 = multiplyNode5->addInput("in2", MTLX_TYPE_FLOAT);
+      input2->setNodeName(outz->getName());
+    }
+
+    mx::NodePtr addNode1 = nodeGraph->addNode("add", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+    {
+      mx::InputPtr input1 = addNode1->addInput("in1", MTLX_TYPE_VECTOR3);
+      input1->setNodeName(multiplyNode3->getName());
+
+      mx::InputPtr input2 = addNode1->addInput("in2", MTLX_TYPE_VECTOR3);
+      input2->setNodeName(multiplyNode4->getName());
+    }
+
+    mx::NodePtr addNode2 = nodeGraph->addNode("add", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+    {
+      mx::InputPtr input1 = addNode2->addInput("in1", MTLX_TYPE_VECTOR3);
+      input1->setNodeName(addNode1->getName());
+
+      mx::InputPtr input2 = addNode2->addInput("in2", MTLX_TYPE_VECTOR3);
+      input2->setNodeName(multiplyNode5->getName());
+    }
+
+    mx::NodePtr normalizeNode2 = detail::makeNormalizeNode(nodeGraph, addNode2);
+
+    connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, normalizeNode2);
 
     return true;
   }

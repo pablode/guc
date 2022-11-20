@@ -39,9 +39,4 @@ namespace guc
                       const VtVec2fArray& texcoords,
                       VtFloatArray& signs,
                       VtVec3fArray& tangents);
-
-  bool createBitangents(const VtVec3fArray& normals,
-                        const VtVec3fArray& tangents,
-                        const VtFloatArray& signs,
-                        VtVec3fArray& bitangents);
 }

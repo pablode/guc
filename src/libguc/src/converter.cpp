@@ -55,7 +55,7 @@ TF_DEFINE_PRIVATE_TOKENS(
   (generator)
   (version)
   (min_version)
-  (bitangents)
+  (tangentSigns)
 );
 
 const static char* MTLX_GLTF_PBR_FILE_NAME = "gltf_pbr.mtlx";
@@ -831,13 +831,11 @@ namespace guc
       texCoordSets.push_back(texCoords);
     }
 
-    // Tangents and Bitangents
+    // Tangents
     VtVec3fArray tangents;
-    VtVec3fArray bitangents;
+    VtFloatArray tangentSigns;
     if (!createNormals) // according to glTF spec 3.7.2.1, tangents must be ignored if normals are missing
     {
-      VtFloatArray signs;
-
       const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "TANGENT");
       if (accessor)
       {
@@ -845,12 +843,12 @@ namespace guc
         if (detail::readVtArrayFromAccessor(accessor, tangentsWithW))
         {
           tangents.resize(tangentsWithW.size());
-          signs.resize(tangentsWithW.size());
+          tangentSigns.resize(tangentsWithW.size());
 
           for (int i = 0; i < tangentsWithW.size(); i++)
           {
             tangents[i] = GfVec3f(tangentsWithW[i].data());
-            signs[i] = tangentsWithW[i][3];
+            tangentSigns[i] = tangentsWithW[i][3];
           }
         }
       }
@@ -865,7 +863,7 @@ namespace guc
             TF_DEBUG(GUC).Msg("generating tangents\n");
 
             const VtVec2fArray& texCoords = texCoordSets[textureView.texcoord];
-            createTangents(indices, points, normals, texCoords, signs, tangents);
+            createTangents(indices, points, normals, texCoords, tangentSigns, tangents);
 
             // The generated tangents are unindexed, which means that we
             // have to deindex all other primvars and reindex the mesh.
@@ -903,12 +901,6 @@ namespace guc
           }
         }
       }
-
-      // We bake the w component (sign) into the bitangents for correct handedness while having vec3 tangents
-      if (!tangents.empty())
-      {
-        createBitangents(normals, tangents, signs, bitangents);
-      }
     }
 
     // Create GPrim and assign values
@@ -945,16 +937,16 @@ namespace guc
       TF_WARN("unable to compute extent for mesh");
     }
 
-    // There is no formal schema for tangents and bitangents, so we just define primvars
+    // There is no formal schema for tangents and tangent signs/bitangents, so we define our own primvars
     if (!tangents.empty())
     {
       auto primvar = primvarsApi.CreatePrimvar(UsdGeomTokens->tangents, SdfValueTypeNames->Float3Array, UsdGeomTokens->vertex);
       primvar.Set(tangents);
     }
-    if (!bitangents.empty())
+    if (!tangentSigns.empty())
     {
-      auto primvar = primvarsApi.CreatePrimvar(_tokens->bitangents, SdfValueTypeNames->Float3Array, UsdGeomTokens->vertex);
-      primvar.Set(bitangents);
+      auto primvar = primvarsApi.CreatePrimvar(_tokens->tangentSigns, SdfValueTypeNames->FloatArray, UsdGeomTokens->vertex);
+      primvar.Set(tangentSigns);
     }
 
     for (int i = 0; i < texCoordSets.size(); i++)

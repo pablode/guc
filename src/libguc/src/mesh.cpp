@@ -251,26 +251,4 @@ namespace guc
 
     return genTangSpaceDefault(&context);
   }
-
-  bool createBitangents(const VtVec3fArray& normals,
-                        const VtVec3fArray& tangents,
-                        const VtFloatArray& signs,
-                        VtVec3fArray& bitangents)
-  {
-    if (normals.size() != tangents.size())
-    {
-      TF_RUNTIME_ERROR("tangent count does not match normal count");
-      return false;
-    }
-
-    bitangents.resize(normals.size());
-
-    for (int i = 0; i < normals.size(); i++)
-    {
-       float sign = signs.empty() ? 1.0f : signs[i];
-       bitangents[i] = GfCross(normals[i], tangents[i]) * sign;
-    }
-
-    return true;
-  }
 }

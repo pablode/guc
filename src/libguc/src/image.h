@@ -46,5 +46,6 @@ namespace guc
                     const fs::path& srcDir,
                     const fs::path& dstDir,
                     bool copyExistingFiles,
+                    bool genRelativePaths,
                     ImageMetadataMap& metadata);
 }

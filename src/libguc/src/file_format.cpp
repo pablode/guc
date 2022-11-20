@@ -117,10 +117,11 @@ bool UsdGlTFFileFormat::Read(SdfLayer* layer,
   fs::path dstDir = s_tmpDirHolder.makeDir();
   fs::path mtlxFileName = ""; // Emitted as UsdShade
   bool copyExistingFiles = false;
+  bool genRelativePaths = false;
 
   SdfLayerRefPtr tmpLayer = SdfLayer::CreateAnonymous(".usdc");
   UsdStageRefPtr stage = UsdStage::Open(tmpLayer);
-  Converter converter(data, stage, srcDir, dstDir, mtlxFileName, copyExistingFiles, params);
+  Converter converter(data, stage, srcDir, dstDir, mtlxFileName, copyExistingFiles, genRelativePaths, params);
 
   Converter::FileExports fileExports; // only used for USDZ
   bool result = converter.convert(fileExports);

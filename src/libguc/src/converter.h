@@ -45,6 +45,7 @@ namespace guc
               const fs::path& dstDir,
               const fs::path& mtlxFileName,
               bool copyExistingFiles,
+              bool genRelativePaths,
               const guc_params& params);
 
   public:
@@ -76,6 +77,7 @@ namespace guc
     const fs::path& m_dstDir;
     const fs::path& m_mtlxFileName;
     const bool m_copyExistingFiles;
+    const bool m_genRelativePaths;
     const guc_params& m_params;
 
   private:

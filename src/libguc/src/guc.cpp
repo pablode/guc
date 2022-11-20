@@ -33,6 +33,7 @@ namespace fs = std::filesystem;
 bool convertToUsd(fs::path src_dir,
                   const cgltf_data* gltf_data,
                   fs::path usd_path,
+                  bool copyExistingFiles,
                   const guc_params* params,
                   Converter::FileExports& fileExports)
 {
@@ -45,9 +46,9 @@ bool convertToUsd(fs::path src_dir,
 
   fs::path dst_dir = usd_path.parent_path();
   fs::path mtlx_file_name = usd_path.filename().replace_extension(".mtlx");
-  bool copyExistingFiles = true;
+  bool genRelativePaths = true;
 
-  Converter converter(gltf_data, stage, src_dir, dst_dir, mtlx_file_name, copyExistingFiles, *params);
+  Converter converter(gltf_data, stage, src_dir, dst_dir, mtlx_file_name, copyExistingFiles, genRelativePaths, *params);
 
   bool result = converter.convert(fileExports);
 
@@ -99,8 +100,10 @@ bool guc_convert(const char* gltf_path,
     return false;
   }
 
+  bool copyExistingFiles = !export_usdz; // Add source files directly to archive in case of USDZ
+
   Converter::FileExports fileExports;
-  bool result = convertToUsd(src_dir, gltf_data, base_usd_path, params, fileExports);
+  bool result = convertToUsd(src_dir, gltf_data, base_usd_path, copyExistingFiles, params, fileExports);
 
   cgltf_free(gltf_data);
 

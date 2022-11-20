@@ -210,6 +210,7 @@ namespace guc
                        const fs::path& dstDir,
                        const fs::path& mtlxFileName,
                        bool copyExistingFiles,
+                       bool genRelativePaths,
                        const guc_params& params)
     : m_data(data)
     , m_stage(stage)
@@ -217,6 +218,7 @@ namespace guc
     , m_dstDir(dstDir)
     , m_mtlxFileName(mtlxFileName)
     , m_copyExistingFiles(copyExistingFiles)
+    , m_genRelativePaths(genRelativePaths)
     , m_params(params)
     , m_mtlxDoc(mx::createDocument())
     , m_mtlxConverter(m_mtlxDoc, m_imgMetadata,
@@ -253,7 +255,7 @@ namespace guc
     }
 
     // Step 1: export images
-    exportImages(m_data->images, m_data->images_count, m_srcDir, m_dstDir, m_copyExistingFiles, m_imgMetadata);
+    exportImages(m_data->images, m_data->images_count, m_srcDir, m_dstDir, m_copyExistingFiles, m_genRelativePaths, m_imgMetadata);
 
     fileExports.reserve(m_imgMetadata.size());
     for (const auto& imgMetadataPair : m_imgMetadata)
@@ -360,7 +362,8 @@ namespace guc
       }
       else if (!m_copyExistingFiles)
       {
-        fileExports.push_back({ implFilePath, MTLX_GLTF_PBR_FILE_NAME });
+        const std::string& refPath = m_genRelativePaths ? MTLX_GLTF_PBR_FILE_NAME : implFilePath.string();
+        fileExports.push_back({ implFilePath.string(), refPath });
       }
       else
       {
@@ -376,7 +379,7 @@ namespace guc
         else
         {
           mx::prependXInclude(m_mtlxDoc, mx::FilePath(MTLX_GLTF_PBR_FILE_NAME));
-          fileExports.push_back({ dstFilePath, MTLX_GLTF_PBR_FILE_NAME });
+          fileExports.push_back({ dstFilePath.string(), MTLX_GLTF_PBR_FILE_NAME });
         }
       }
     }
@@ -409,7 +412,7 @@ namespace guc
       auto references = over.GetPrim().GetReferences();
       TF_VERIFY(references.AddReference(m_mtlxFileName.string(), SdfPath("/MaterialX")));
 
-      fileExports.push_back({ mtlxFilePath.string(), m_mtlxFileName });
+      fileExports.push_back({ mtlxFilePath.string(), m_mtlxFileName.string() });
     }
 
     return true;

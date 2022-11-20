@@ -181,7 +181,8 @@ namespace guc
                                            const fs::path& srcDir,
                                            const fs::path& dstDir,
                                            bool copyExistingFiles,
-                                           std::unordered_set<std::string>& exportedFileNames)
+                                           bool genRelativePaths,
+                                           std::unordered_set<std::string>& generatedFileNames)
   {
     std::vector<uint8_t> data;
     std::string srcFilePath;
@@ -230,44 +231,48 @@ namespace guc
       return std::nullopt;
     }
 
-    std::string dstFilePath;
-    std::string dstRefPath;
-    // When the usdGlTF plugin is used, we avoid copying images around
-    if (!srcFilePath.empty() && !copyExistingFiles)
-    {
-      dstFilePath = srcFilePath;
-      dstRefPath = srcFilePath;
-    }
-    else
-    {
-      // Otherwise, we give them a new name and copy them to the output dir
-      std::string srcFileName = fs::path(srcFilePath).filename().string();
-      std::string dstFileName = makeUniqueImageFileName(image->name, srcFileName, fileExt, exportedFileNames);
-      if (dstFileName.empty())
-      {
-        return std::nullopt;
-      }
+    bool genNewFileName = srcFilePath.empty() || genRelativePaths;
+    bool writeNewFile = srcFilePath.empty() || copyExistingFiles;
 
-      std::string writeFilePath = (dstDir / fs::path(dstFileName)).string();
+    std::string dstRefPath = srcFilePath;
+    if (genNewFileName)
+    {
+      std::string srcFileName = fs::path(srcFilePath).filename().string();
+      std::string dstFileName = makeUniqueImageFileName(image->name, srcFileName, fileExt, generatedFileNames);
+
+      generatedFileNames.insert(dstFileName);
+
+      dstRefPath = dstFileName;
+    }
+
+    std::string dstFilePath = srcFilePath;
+    if (writeNewFile)
+    {
+      TF_VERIFY(genNewFileName); // Makes no sense to write a file to its source path
+
+      std::string writeFilePath = (dstDir / fs::path(dstRefPath)).string();
       TF_DEBUG(GUC).Msg("writing img %s\n", writeFilePath.c_str());
       if (!writeImageData(writeFilePath.c_str(), data))
       {
         return std::nullopt;
       }
 
-      exportedFileNames.insert(dstFileName); // Keep track of generated names
-
       dstFilePath = writeFilePath;
-      dstRefPath = copyExistingFiles ? dstFileName : writeFilePath;
+
+      if (!genRelativePaths)
+      {
+        dstRefPath = writeFilePath;
+      }
     }
 
-    // Now that an image is guaranteed to exist, read the metadata required for MaterialX shading network creation
     ImageMetadata metadata;
     metadata.filePath = dstFilePath;
     metadata.refPath = dstRefPath;
+
+    // Read the metadata required for MaterialX shading network creation
     if (!readImageMetadata(dstFilePath.c_str(), metadata.channelCount, metadata.isSrgbInUSD))
     {
-      TF_RUNTIME_ERROR("unable to read metadata from image %s", dstFilePath.c_str());
+      TF_RUNTIME_ERROR("unable to read metadata of image %s", dstFilePath.c_str());
       return std::nullopt;
     }
 
@@ -279,15 +284,16 @@ namespace guc
                     const fs::path& srcDir,
                     const fs::path& dstDir,
                     bool copyExistingFiles,
+                    bool genRelativePaths,
                     ImageMetadataMap& metadata)
   {
-    std::unordered_set<std::string> exportedFileNames;
+    std::unordered_set<std::string> generatedFileNames;
 
     for (int i = 0; i < imageCount; i++)
     {
       const cgltf_image* image = &images[i];
 
-      auto meta = exportImage(image, srcDir, dstDir, copyExistingFiles, exportedFileNames);
+      auto meta = exportImage(image, srcDir, dstDir, copyExistingFiles, genRelativePaths, generatedFileNames);
 
       if (meta.has_value())
       {

@@ -427,7 +427,7 @@ namespace guc
     {
       return false;
     }
-    fileName = metadata.exportedFilePath;
+    fileName = metadata.refPath;
     return true;
   }
 

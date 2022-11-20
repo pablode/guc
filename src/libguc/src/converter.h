@@ -44,14 +44,21 @@ namespace guc
               const fs::path& srcDir,
               const fs::path& dstDir,
               const fs::path& mtlxFileName,
-              bool copyImageFiles,
+              bool copyExistingFiles,
               const guc_params& params);
 
   public:
-    bool convert();
+    struct FileExport
+    {
+      std::string filePath;
+      std::string refPath;
+    };
+    using FileExports = std::vector<FileExport>;
+
+    bool convert(FileExports& fileExports);
 
   private:
-    bool createMaterials();
+    bool createMaterials(FileExports& fileExports);
     bool createNodesRecursively(const cgltf_node* nodeData, SdfPath path);
     bool createOrOverCamera(const cgltf_camera* cameraData, SdfPath path);
     bool createOrOverLight(const cgltf_light* lightData, SdfPath path);
@@ -68,7 +75,7 @@ namespace guc
     const fs::path& m_srcDir;
     const fs::path& m_dstDir;
     const fs::path& m_mtlxFileName;
-    const bool m_copyImageFiles;
+    const bool m_copyExistingFiles;
     const guc_params& m_params;
 
   private:

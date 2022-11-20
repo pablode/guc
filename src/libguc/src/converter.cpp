@@ -209,14 +209,14 @@ namespace guc
                        const fs::path& srcDir,
                        const fs::path& dstDir,
                        const fs::path& mtlxFileName,
-                       bool copyImageFiles,
+                       bool copyExistingFiles,
                        const guc_params& params)
     : m_data(data)
     , m_stage(stage)
     , m_srcDir(srcDir)
     , m_dstDir(dstDir)
     , m_mtlxFileName(mtlxFileName)
-    , m_copyImageFiles(copyImageFiles)
+    , m_copyExistingFiles(copyExistingFiles)
     , m_params(params)
     , m_mtlxDoc(mx::createDocument())
     , m_mtlxConverter(m_mtlxDoc, m_imgMetadata,
@@ -226,7 +226,7 @@ namespace guc
   {
   }
 
-  bool Converter::convert()
+  bool Converter::convert(FileExports& fileExports)
   {
     auto rootXForm = UsdGeomXform::Define(m_stage, SdfPath("/Geom"));
 
@@ -253,14 +253,21 @@ namespace guc
     }
 
     // Step 1: export images
-    exportImages(m_data->images, m_data->images_count, m_srcDir, m_dstDir, m_copyImageFiles, m_imgMetadata);
+    exportImages(m_data->images, m_data->images_count, m_srcDir, m_dstDir, m_copyExistingFiles, m_imgMetadata);
+
+    fileExports.reserve(m_imgMetadata.size());
+    for (const auto& imgMetadataPair : m_imgMetadata)
+    {
+      const ImageMetadata& metadata = imgMetadataPair.second;
+      fileExports.push_back({ metadata.filePath, metadata.refPath });
+    }
 
     // Step 2: create materials
     if (m_data->materials_count > 0)
     {
       UsdGeomScope::Define(m_stage, SdfPath("/Materials"));
 
-      if (!createMaterials())
+      if (!createMaterials(fileExports))
       {
         return false;
       }
@@ -293,11 +300,9 @@ namespace guc
     return true;
   }
 
-  bool Converter::createMaterials()
+  bool Converter::createMaterials(FileExports& fileExports)
   {
-    bool exportMtlxDoc = m_params.emit_mtlx && m_data->materials_count > 0;
-
-    if (exportMtlxDoc && !m_params.mtlx_as_usdshade)
+    if (m_params.emit_mtlx && !m_params.mtlx_as_usdshade)
     {
       mx::FilePathVec libFolders = { "libraries" };
       mx::FileSearchPath searchPath;
@@ -341,7 +346,7 @@ namespace guc
       }
     }
 
-    if (!exportMtlxDoc)
+    if (!m_params.emit_mtlx)
     {
       return true;
     }
@@ -352,6 +357,10 @@ namespace guc
       if (!detail::findMtlxGltfPbrFilePath(implFilePath))
       {
         TF_RUNTIME_ERROR("Can't find %s - portable node impl not possible", MTLX_GLTF_PBR_FILE_NAME);
+      }
+      else if (!m_copyExistingFiles)
+      {
+        fileExports.push_back({ implFilePath, MTLX_GLTF_PBR_FILE_NAME });
       }
       else
       {
@@ -367,6 +376,7 @@ namespace guc
         else
         {
           mx::prependXInclude(m_mtlxDoc, mx::FilePath(MTLX_GLTF_PBR_FILE_NAME));
+          fileExports.push_back({ dstFilePath, MTLX_GLTF_PBR_FILE_NAME });
         }
       }
     }
@@ -398,6 +408,8 @@ namespace guc
       auto over = m_stage->OverridePrim(SdfPath("/Materials/MaterialX"));
       auto references = over.GetPrim().GetReferences();
       TF_VERIFY(references.AddReference(m_mtlxFileName.string(), SdfPath("/MaterialX")));
+
+      fileExports.push_back({ mtlxFilePath.string(), m_mtlxFileName });
     }
 
     return true;

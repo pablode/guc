@@ -180,8 +180,8 @@ namespace guc
   std::optional<ImageMetadata> exportImage(const cgltf_image* image,
                                            const fs::path& srcDir,
                                            const fs::path& dstDir,
-                                           bool copyImageFile,
-                                           std::unordered_set<std::string>& exportedImgFileNames)
+                                           bool copyExistingFiles,
+                                           std::unordered_set<std::string>& exportedFileNames)
   {
     std::vector<uint8_t> data;
     std::string srcFilePath;
@@ -231,14 +231,18 @@ namespace guc
     }
 
     std::string dstFilePath;
-    if (!srcFilePath.empty() && !copyImageFile)
+    std::string dstRefPath;
+    // When the usdGlTF plugin is used, we avoid copying images around
+    if (!srcFilePath.empty() && !copyExistingFiles)
     {
       dstFilePath = srcFilePath;
+      dstRefPath = srcFilePath;
     }
     else
     {
+      // Otherwise, we give them a new name and copy them to the output dir
       std::string srcFileName = fs::path(srcFilePath).filename().string();
-      std::string dstFileName = makeUniqueImageFileName(image->name, srcFileName, fileExt, exportedImgFileNames);
+      std::string dstFileName = makeUniqueImageFileName(image->name, srcFileName, fileExt, exportedFileNames);
       if (dstFileName.empty())
       {
         return std::nullopt;
@@ -251,13 +255,16 @@ namespace guc
         return std::nullopt;
       }
 
-      exportedImgFileNames.insert(dstFileName);
-      dstFilePath = copyImageFile ? dstFileName : writeFilePath;
+      exportedFileNames.insert(dstFileName); // Keep track of generated names
+
+      dstFilePath = writeFilePath;
+      dstRefPath = copyExistingFiles ? dstFileName : writeFilePath;
     }
 
     // Now that an image is guaranteed to exist, read the metadata required for MaterialX shading network creation
     ImageMetadata metadata;
-    metadata.exportedFilePath = dstFilePath;
+    metadata.filePath = dstFilePath;
+    metadata.refPath = dstRefPath;
     if (!readImageMetadata(dstFilePath.c_str(), metadata.channelCount, metadata.isSrgbInUSD))
     {
       TF_RUNTIME_ERROR("unable to read metadata from image %s", dstFilePath.c_str());
@@ -271,16 +278,16 @@ namespace guc
                     size_t imageCount,
                     const fs::path& srcDir,
                     const fs::path& dstDir,
-                    bool copyImageFiles,
+                    bool copyExistingFiles,
                     ImageMetadataMap& metadata)
   {
-    std::unordered_set<std::string> exportedImgFileNames;
+    std::unordered_set<std::string> exportedFileNames;
 
     for (int i = 0; i < imageCount; i++)
     {
       const cgltf_image* image = &images[i];
 
-      auto meta = exportImage(image, srcDir, dstDir, copyImageFiles, exportedImgFileNames);
+      auto meta = exportImage(image, srcDir, dstDir, copyExistingFiles, exportedFileNames);
 
       if (meta.has_value())
       {

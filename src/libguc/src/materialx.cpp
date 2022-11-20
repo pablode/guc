@@ -1160,7 +1160,7 @@ namespace guc
     {
       return false;
     }
-    filePath = metadata.exportedFilePath;
+    filePath = metadata.refPath;
     return true;
   }
 

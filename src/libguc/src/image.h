@@ -28,7 +28,9 @@ namespace guc
 {
   struct ImageMetadata
   {
-    std::string exportedFilePath;
+    std::string filePath;
+    std::string refPath;
+    // Needed to determine the type of MaterialX <image> nodes
     int channelCount;
     // USD makes an incorrect assumption that we have to work around by undoing an incorrect sRGB-to-linear transform in our MaterialX network gen:
     // https://github.com/PixarAnimationStudios/USD/blob/857ffda41f4f1553fe1019ac7c7b4f08c233a7bb/pxr/imaging/plugin/hioOiio/oiioImage.cpp#L470-L471
@@ -43,6 +45,6 @@ namespace guc
                     size_t imageCount,
                     const fs::path& srcDir,
                     const fs::path& dstDir,
-                    bool copyImageFiles,
+                    bool copyExistingFiles,
                     ImageMetadataMap& metadata);
 }

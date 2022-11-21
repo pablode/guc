@@ -893,6 +893,7 @@ namespace guc
 
     // Create GPrim and assign values
     auto mesh = UsdGeomMesh::Define(m_stage, path);
+    auto primvarsApi = UsdGeomPrimvarsAPI(mesh);
 
     mesh.CreateSubdivisionSchemeAttr(VtValue(UsdGeomTokens->none));
 
@@ -927,13 +928,11 @@ namespace guc
     // There is no formal schema for tangents and bitangents, so we just define primvars
     if (!tangents.empty())
     {
-      auto primvarsApi = UsdGeomPrimvarsAPI(mesh);
       auto primvar = primvarsApi.CreatePrimvar(UsdGeomTokens->tangents, SdfValueTypeNames->Float3Array, UsdGeomTokens->vertex);
       primvar.Set(tangents);
     }
     if (!bitangents.empty())
     {
-      auto primvarsApi = UsdGeomPrimvarsAPI(mesh);
       auto primvar = primvarsApi.CreatePrimvar(_tokens->bitangents, SdfValueTypeNames->Float3Array, UsdGeomTokens->vertex);
       primvar.Set(bitangents);
     }
@@ -945,7 +944,6 @@ namespace guc
       {
         continue;
       }
-      auto primvarsApi = UsdGeomPrimvarsAPI(mesh);
       auto primvarId = TfToken(makeStSetName(i));
       auto primvar = primvarsApi.CreatePrimvar(primvarId, SdfValueTypeNames->TexCoord2fArray, UsdGeomTokens->vertex);
       primvar.Set(texCoords);
@@ -953,8 +951,6 @@ namespace guc
 
     for (int i = 0; i < colorSets.size(); i++)
     {
-      auto primvarsApi = UsdGeomPrimvarsAPI(mesh);
-
       const VtVec3fArray& colors = colorSets[i];
       if (colors.empty())
       {

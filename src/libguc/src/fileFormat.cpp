@@ -60,7 +60,7 @@ public:
   std::string makeDir()
   {
     std::string dir = ArchMakeTmpSubdir(ArchGetTmpDir(), "usdGlTF");
-    TF_DEBUG(USDGLTF).Msg("created temp dir %s\n", dir.c_str());
+    TF_DEBUG(GUC).Msg("created temp dir %s\n", dir.c_str());
     m_dirPaths.push_back(dir);
     return dir;
   }
@@ -68,7 +68,7 @@ public:
   {
     for (const std::string& dir : m_dirPaths)
     {
-      TF_DEBUG(USDGLTF).Msg("deleting temp dir %s\n", dir.c_str());
+      TF_DEBUG(GUC).Msg("deleting temp dir %s\n", dir.c_str());
       fs::remove_all(fs::path(dir));
     }
   }

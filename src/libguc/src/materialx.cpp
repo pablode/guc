@@ -625,7 +625,8 @@ namespace guc
       mx::InputPtr input1 = multiplyNode1->addInput("in1", MTLX_TYPE_COLOR3);
       auto defaultValue = mx::Value::createValue(mx::Vector3(1.0f, 1.0f, 1.0f));
 
-      auto geompropNode = makeGeompropValueNode(nodeGraph, "displayColor", MTLX_TYPE_COLOR3, defaultValue);
+      std::string colorPrimvarName = makeColorSetName(0); // COLOR_0 according to spec sec. 3.9.2
+      auto geompropNode = makeGeompropValueNode(nodeGraph, colorPrimvarName, MTLX_TYPE_COLOR3, defaultValue);
       input1->setNodeName(geompropNode->getName());
 
       mx::InputPtr input2 = multiplyNode1->addInput("in2", MTLX_TYPE_COLOR3);
@@ -664,7 +665,8 @@ namespace guc
       mx::InputPtr input1 = multiplyNode1->addInput("in1", MTLX_TYPE_FLOAT);
       auto defaultOpacity = mx::Value::createValue(1.0f);
 
-      auto geompropNode = makeGeompropValueNode(nodeGraph, "displayOpacity", MTLX_TYPE_FLOAT, defaultOpacity);
+      std::string opacityPrimvarName = makeOpacitySetName(0); // COLOR_0 according to spec sec. 3.9.2
+      auto geompropNode = makeGeompropValueNode(nodeGraph, opacityPrimvarName, MTLX_TYPE_FLOAT, defaultOpacity);
       input1->setNodeName(geompropNode->getName());
 
       mx::InputPtr input2 = multiplyNode1->addInput("in2", MTLX_TYPE_FLOAT);

@@ -650,7 +650,11 @@ namespace guc
       const cgltf_accessor* accessor = primitiveData->indices;
       if (accessor)
       {
-        detail::readVtArrayFromAccessor(accessor, indices);
+        if (!detail::readVtArrayFromAccessor(accessor, indices))
+        {
+          TF_RUNTIME_ERROR("unable to read primitive indices");
+          return false;
+        }
       }
     }
 
@@ -701,59 +705,83 @@ namespace guc
     }
 
     // Colors
-    VtFloatArray displayOpacities;
-    VtVec3fArray displayColors;
+    std::vector<VtVec3fArray> colorSets;
+    std::vector<VtFloatArray> opacitySets;
+    while (true)
     {
-      // In the MaterialX material shading network, we multiply by the vertex color.
-      // This is implemented by using the displayColor primvar. Hence, we need to
-      // ensure that it exists - by filling it with fallback data, if necessary.
-      bool createOpacities = m_params.emit_mtlx;
-      bool createColors = m_params.emit_mtlx;
+      // The glTF PBR shading model which we implement using MaterialX requires us to
+      // multiply the material's base color with the individual vertex colors.
+      //
+      // We don't use the standardized 'displayColor' primvar for this purpose because of
+      // two reasons:
+      //  1) we can generate the display color from the material's base color or from
+      //     the base color image, and multiplying with this generated value in our
+      //     shading network would be incorrect.
+      //  2) there is only one 'displayColor' - it's not supposed to be indexed.
+      //
+      // I've therefore settled on using a separate primvar.
+      //
+      // There's also the question of having a single color4 primvar (combined color and
+      // opacity) vs. having separate ones. I've decided for the latter in order to be
+      // consistent with the displayColor and displayOpacity primvars.
 
-      const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "COLOR_0");
-      if (accessor)
+      TF_VERIFY(colorSets.size() == opacitySets.size());
+      std::string name = "COLOR_" + std::to_string(colorSets.size());
+
+      const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, name.c_str());
+      if (!accessor)
       {
-        if (accessor->type == cgltf_type_vec3)
-        {
-          if (detail::readVtArrayFromAccessor(accessor, displayColors))
-          {
-            createColors = false;
-          }
-        }
-        else if (accessor->type == cgltf_type_vec4)
-        {
-          VtVec4fArray rgbaDisplayColors;
-          if (detail::readVtArrayFromAccessor(accessor, rgbaDisplayColors))
-          {
-            displayColors.resize(rgbaDisplayColors.size());
-            displayOpacities.resize(rgbaDisplayColors.size());
-            for (int k = 0; k < rgbaDisplayColors.size(); k++)
-            {
-              displayColors[k] = GfVec3f(rgbaDisplayColors[k].data());
-              displayOpacities[k] = rgbaDisplayColors[k][3];
-            }
-            createColors = false;
-            createOpacities = false;
-          }
-        }
+        break;
       }
 
-      if (createColors)
+      VtVec3fArray colors;
+      VtFloatArray opacities;
+
+      if (accessor->type == cgltf_type_vec3)
       {
-        displayColors.resize(points.size());
-        for (GfVec3f& rgb : displayColors)
+        if (!detail::readVtArrayFromAccessor(accessor, colors))
         {
-          rgb = GfVec3f(1.0f, 1.0f, 1.0f);
+          TF_RUNTIME_ERROR("can't read %s attribute; ignoring", name.c_str());
+          continue;
         }
       }
-      if (createOpacities)
+      else if (accessor->type == cgltf_type_vec4)
       {
-        displayOpacities.resize(points.size());
-        for (float& a : displayOpacities)
+        VtVec4fArray rgbaColors;
+        if (!detail::readVtArrayFromAccessor(accessor, rgbaColors))
         {
-          a = 1.0f;
+          TF_RUNTIME_ERROR("can't read %s attribute; ignoring", name.c_str());
+          continue;
+        }
+
+        size_t colorCount = rgbaColors.size();
+        colors.resize(colorCount);
+        opacities.resize(colorCount);
+        for (int k = 0; k < colorCount; k++)
+        {
+          colors[k] = GfVec3f(rgbaColors[k].data());
+          opacities[k] = rgbaColors[k][3];
         }
       }
+      else
+      {
+        TF_RUNTIME_ERROR("invalid COLOR attribute type; ignoring");
+        continue;
+      }
+
+      colorSets.push_back(colors);
+      opacitySets.push_back(opacities);
+    }
+
+    // Display colors and opacities
+    VtVec3fArray displayColors;
+    VtFloatArray displayOpacities;
+    if (!colorSets.empty())
+    {
+      // FIXME: in case vertex colors do not exist, use a fallback value with constant
+      //        interpolation type extracted from material information (e.g. base color).
+      displayColors = colorSets[0];
+      displayOpacities = opacitySets[0];
     }
 
     // TexCoord sets
@@ -794,15 +822,16 @@ namespace guc
       if (accessor)
       {
         VtVec4fArray tangentsWithW;
-        detail::readVtArrayFromAccessor(accessor, tangentsWithW);
-
-        tangents.resize(tangentsWithW.size());
-        signs.resize(tangentsWithW.size());
-
-        for (int i = 0; i < tangentsWithW.size(); i++)
+        if (detail::readVtArrayFromAccessor(accessor, tangentsWithW))
         {
-          tangents[i] = GfVec3f(tangentsWithW[i].data());
-          signs[i] = tangentsWithW[i][3];
+          tangents.resize(tangentsWithW.size());
+          signs.resize(tangentsWithW.size());
+
+          for (int i = 0; i < tangentsWithW.size(); i++)
+          {
+            tangents[i] = GfVec3f(tangentsWithW[i].data());
+            signs[i] = tangentsWithW[i][3];
+          }
         }
       }
       else if (material)
@@ -825,6 +854,14 @@ namespace guc
             for (VtVec2fArray& texCoords : texCoordSets)
             {
               detail::deindexVtArray(indices, texCoords);
+            }
+            for (VtVec3fArray& colors : colorSets)
+            {
+              detail::deindexVtArray(indices, colors);
+            }
+            for (VtFloatArray& opacities : opacitySets)
+            {
+              detail::deindexVtArray(indices, opacities);
             }
             if (!displayColors.empty())
             {
@@ -903,10 +940,43 @@ namespace guc
 
     for (int i = 0; i < texCoordSets.size(); i++)
     {
+      const VtVec2fArray& texCoords = texCoordSets[i];
+      if (texCoords.empty())
+      {
+        continue;
+      }
       auto primvarsApi = UsdGeomPrimvarsAPI(mesh);
       auto primvarId = TfToken(makeStSetName(i));
       auto primvar = primvarsApi.CreatePrimvar(primvarId, SdfValueTypeNames->TexCoord2fArray, UsdGeomTokens->vertex);
-      primvar.Set(texCoordSets[i]);
+      primvar.Set(texCoords);
+    }
+
+    for (int i = 0; i < colorSets.size(); i++)
+    {
+      auto primvarsApi = UsdGeomPrimvarsAPI(mesh);
+
+      const VtVec3fArray& colors = colorSets[i];
+      if (colors.empty())
+      {
+        continue;
+      }
+      auto colorPrimvarId = TfToken(makeColorSetName(i));
+      auto colorPrimvar = primvarsApi.CreatePrimvar(colorPrimvarId, SdfValueTypeNames->Float3Array, UsdGeomTokens->vertex);
+      colorPrimvar.Set(colors);
+
+      // We do an emptyness check here instead of in the retrieval routine above
+      // in order to keep the color-opacity primvar index correspondence, e.g.:
+      //  color1, opacity1
+      //  color2, (missing)
+      //  color3, opacity3
+      const VtFloatArray& opacities = opacitySets[i];
+      if (opacities.empty())
+      {
+        continue;
+      }
+      auto opacityPrimvarId = TfToken(makeOpacitySetName(i));
+      auto opacityPrimvar = primvarsApi.CreatePrimvar(opacityPrimvarId, SdfValueTypeNames->FloatArray, UsdGeomTokens->vertex);
+      opacityPrimvar.Set(opacities);
     }
 
     if (!displayColors.empty())

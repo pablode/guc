@@ -33,6 +33,30 @@ namespace guc
     return uvSetBaseName + std::to_string(index);
   }
 
+  std::string makeColorSetName(int index)
+  {
+    // The primvar name for colors is not standardized. I have chosen 'color' for it,
+    // and give reasons against the other suggestions discussed in this forum thread:
+    // https://groups.google.com/g/usd-interest/c/VOkh0aj-8bU/m/zxrMQ-pJAgAJ
+    //
+    // 'colorSet': Maya seems to use this primvar name, however if there's a colorSet,
+    //             there should also be a texCoordSet / stSet.
+    // 'vertexColor': includes the interpolation mode, of which USD has a few. We don't
+    //                use "vertexTangents" etc., although we emit per-vertex tangents.
+    //
+    // Furthermore, 'color' maps directly to the COLOR_ glTF attribute name and goes well
+    // with the already existing 'displayColor' primvar. It's just not for the 'display'
+    // purpose, but rather part of the acutal data used for shading.
+    std::string colorSetBaseName = "color";
+    return colorSetBaseName + std::to_string(index);
+  }
+
+  std::string makeOpacitySetName(int index)
+  {
+    std::string opacitySetBaseName = "opacity";
+    return opacitySetBaseName + std::to_string(index);
+  }
+
   const static std::unordered_set<std::string> MTLX_TYPE_NAME_SET = {
     /* Basic data types */
     "integer", "boolean", "float", "color3", "color4", "vector2", "vector3",

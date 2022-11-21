@@ -25,6 +25,8 @@ using namespace PXR_NS;
 namespace guc
 {
   std::string makeStSetName(int index);
+  std::string makeColorSetName(int index);
+  std::string makeOpacitySetName(int index);
 
   std::string makeUniqueMaterialName(std::string baseName,
                                      const std::unordered_set<std::string>& existingNames);

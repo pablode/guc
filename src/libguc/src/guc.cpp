@@ -49,16 +49,12 @@ bool convertToUsd(fs::path src_dir,
   bool genRelativePaths = true;
 
   Converter converter(gltf_data, stage, src_dir, dst_dir, mtlx_file_name, copyExistingFiles, genRelativePaths, *params);
+  converter.convert(fileExports);
 
-  bool result = converter.convert(fileExports);
+  TF_DEBUG(GUC).Msg("saving stage to %s\n", usd_path.string().c_str());
+  stage->Save();
 
-  if (result)
-  {
-    TF_DEBUG(GUC).Msg("saving stage to %s\n", usd_path.string().c_str());
-    stage->Save();
-  }
-
-  return result;
+  return true;
 }
 
 bool guc_convert(const char* gltf_path,

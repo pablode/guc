@@ -230,7 +230,7 @@ namespace guc
   {
   }
 
-  bool Converter::convert(FileExports& fileExports)
+  void Converter::convert(FileExports& fileExports)
   {
     auto rootXForm = UsdGeomXform::Define(m_stage, SdfPath("/Geom"));
 
@@ -271,10 +271,7 @@ namespace guc
     {
       UsdGeomScope::Define(m_stage, SdfPath("/Materials"));
 
-      if (!createMaterials(fileExports))
-      {
-        return false;
-      }
+      createMaterials(fileExports);
     }
 
     // Step 3: create scene graph (nodes, meshes, lights, cameras, ...)
@@ -300,12 +297,12 @@ namespace guc
         createNodesRecursively(nodeData, nodePath);
       }
     }
-
-    return true;
   }
 
-  bool Converter::createMaterials(FileExports& fileExports)
+  void Converter::createMaterials(FileExports& fileExports)
   {
+    // We import the MaterialX bxdf/pbrlib/stdlib documents mainly for validation, but
+    // because UsdMtlx tries to output them, we only do so when not exporting UsdShade.
     if (m_params.emit_mtlx && !m_params.mtlx_as_usdshade)
     {
       mx::FilePathVec libFolders = { "libraries" };
@@ -352,7 +349,7 @@ namespace guc
 
     if (!m_params.emit_mtlx)
     {
-      return true;
+      return;
     }
 
     if (m_params.gltf_pbr_impl == GUC_GLTF_PBR_IMPL_FILE)
@@ -416,11 +413,9 @@ namespace guc
 
       fileExports.push_back({ mtlxFilePath.string(), m_mtlxFileName.string() });
     }
-
-    return true;
   }
 
-  bool Converter::createNodesRecursively(const cgltf_node* nodeData, SdfPath path)
+  void Converter::createNodesRecursively(const cgltf_node* nodeData, SdfPath path)
   {
     auto xform = UsdGeomXform::Define(m_stage, path);
 
@@ -464,10 +459,7 @@ namespace guc
       std::string meshName = nodeData->mesh->name ? std::string(nodeData->mesh->name) : "mesh";
       auto meshPath = makeUniqueStageSubpath(m_stage, path.GetAsString(), meshName);
 
-      if (!createOrOverMesh(nodeData->mesh, meshPath))
-      {
-        return false;
-      }
+      createOrOverMesh(nodeData->mesh, meshPath);
     }
 
     if (nodeData->camera)
@@ -475,10 +467,7 @@ namespace guc
       std::string camName = nodeData->camera->name ? std::string(nodeData->camera->name) : "cam";
       auto camPath = makeUniqueStageSubpath(m_stage, path.GetAsString(), camName);
 
-      if (!createOrOverCamera(nodeData->camera, camPath))
-      {
-        return false;
-      }
+      createOrOverCamera(nodeData->camera, camPath);
     }
 
     if (nodeData->light)
@@ -486,10 +475,7 @@ namespace guc
       std::string lightName = nodeData->light->name ? std::string(nodeData->light->name) : "light";
       auto lightPath = makeUniqueStageSubpath(m_stage, path.GetAsString(), lightName);
 
-      if (!createOrOverLight(nodeData->light, lightPath))
-      {
-        return false;
-      }
+      createOrOverLight(nodeData->light, lightPath);
     }
 
     for (int i = 0; i < nodeData->children_count; i++)
@@ -501,16 +487,14 @@ namespace guc
 
       createNodesRecursively(childNodeData, childNodePath);
     }
-
-    return true;
   }
 
-  bool Converter::createOrOverCamera(const cgltf_camera* cameraData, SdfPath path)
+  void Converter::createOrOverCamera(const cgltf_camera* cameraData, SdfPath path)
   {
     UsdPrim prim;
     if (overridePrimInPathMap((void*) cameraData, path, prim))
     {
-      return true;
+      return;
     }
 
     GfCamera gfCamera;
@@ -540,8 +524,9 @@ namespace guc
     }
     else
     {
+      TF_VERIFY(cameraData->type == cgltf_camera_type_invalid);
       TF_RUNTIME_ERROR("invalid camera type; skipping");
-      return false;
+      return;
     }
 
     auto camera = UsdGeomCamera::Define(m_stage, path);
@@ -553,15 +538,14 @@ namespace guc
     prim.RemoveProperty(TfToken("xformOpOrder"));
 
     m_uniquePaths[(void*) cameraData] = path;
-    return true;
   }
 
-  bool Converter::createOrOverLight(const cgltf_light* lightData, SdfPath path)
+  void Converter::createOrOverLight(const cgltf_light* lightData, SdfPath path)
   {
     UsdPrim prim;
     if (overridePrimInPathMap((void*) lightData, path, prim))
     {
-      return true;
+      return;
     }
 
     if (lightData->type == cgltf_light_type_directional)
@@ -571,7 +555,8 @@ namespace guc
       light.CreateIntensityAttr(VtValue(lightData->intensity));
       light.CreateColorAttr(VtValue(GfVec3f(lightData->color)));
     }
-    else
+    else if (lightData->type == cgltf_light_type_point ||
+             lightData->type == cgltf_light_type_spot)
     {
       auto light = UsdLuxSphereLight::Define(m_stage, path);
       light.CreateIntensityAttr(VtValue(lightData->intensity));
@@ -593,12 +578,17 @@ namespace guc
         shapingApi.CreateShapingConeAngleAttr(VtValue(lightData->spot_outer_cone_angle));
       }
     }
+    else
+    {
+      TF_VERIFY(lightData->type == cgltf_light_type_invalid);
+      TF_RUNTIME_ERROR("invalid light type; skipping");
+      return;
+    }
 
     m_uniquePaths[(void*) lightData] = path;
-    return true;
   }
 
-  bool Converter::createOrOverMesh(const cgltf_mesh* meshData, SdfPath path)
+  void Converter::createOrOverMesh(const cgltf_mesh* meshData, SdfPath path)
   {
     auto xform = UsdGeomXform::Define(m_stage, path);
 
@@ -648,8 +638,6 @@ namespace guc
         );
       }
     }
-
-    return true;
   }
 
   bool Converter::createPrimitive(const cgltf_primitive* primitiveData, SdfPath path, UsdPrim& prim)
@@ -854,7 +842,7 @@ namespace guc
           }
           else
           {
-            TF_RUNTIME_ERROR("invalid UV index for normalmap; can't calculate normals");
+            TF_RUNTIME_ERROR("invalid UV index for normalmap; can't calculate tangents");
           }
         }
       }

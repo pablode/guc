@@ -56,14 +56,14 @@ namespace guc
     };
     using FileExports = std::vector<FileExport>;
 
-    bool convert(FileExports& fileExports);
+    void convert(FileExports& fileExports);
 
   private:
-    bool createMaterials(FileExports& fileExports);
-    bool createNodesRecursively(const cgltf_node* nodeData, SdfPath path);
-    bool createOrOverCamera(const cgltf_camera* cameraData, SdfPath path);
-    bool createOrOverLight(const cgltf_light* lightData, SdfPath path);
-    bool createOrOverMesh(const cgltf_mesh* meshData, SdfPath path);
+    void createMaterials(FileExports& fileExports);
+    void createNodesRecursively(const cgltf_node* nodeData, SdfPath path);
+    void createOrOverCamera(const cgltf_camera* cameraData, SdfPath path);
+    void createOrOverLight(const cgltf_light* lightData, SdfPath path);
+    void createOrOverMesh(const cgltf_mesh* meshData, SdfPath path);
     bool createPrimitive(const cgltf_primitive* primitiveData, SdfPath path, UsdPrim& prim);
 
   private:

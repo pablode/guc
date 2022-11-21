@@ -99,8 +99,8 @@ bool UsdGlTFFileFormat::Read(SdfLayer* layer,
                              const std::string& resolvedPath,
                              bool metadataOnly) const
 {
-  cgltf_data* data = nullptr;
-  if (!load_gltf(resolvedPath.c_str(), &data))
+  cgltf_data* gltf_data = nullptr;
+  if (!load_gltf(resolvedPath.c_str(), &gltf_data))
   {
     TF_RUNTIME_ERROR("unable to load glTF file %s", resolvedPath.c_str());
     return false;
@@ -121,25 +121,24 @@ bool UsdGlTFFileFormat::Read(SdfLayer* layer,
 
   SdfLayerRefPtr tmpLayer = SdfLayer::CreateAnonymous(".usdc");
   UsdStageRefPtr stage = UsdStage::Open(tmpLayer);
-  Converter converter(data, stage, srcDir, dstDir, mtlxFileName, copyExistingFiles, genRelativePaths, params);
+
+  Converter converter(gltf_data, stage, srcDir, dstDir, mtlxFileName, copyExistingFiles, genRelativePaths, params);
 
   Converter::FileExports fileExports; // only used for USDZ
-  bool result = converter.convert(fileExports);
+  converter.convert(fileExports);
 
-  if (result)
-  {
-    layer->TransferContent(tmpLayer);
-  }
+  cgltf_free(gltf_data);
 
-  cgltf_free(data);
-  return result;
+  layer->TransferContent(tmpLayer);
+
+  return true;
 }
 
 bool UsdGlTFFileFormat::ReadFromString(SdfLayer* layer,
                                        const std::string& str) const
 {
   // glTF files often reference other files (e.g. a .bin payload or images).
-  // Hence, without a file location, most glTF files are not loaded correctly.
+  // Hence, without a file location, most glTF files can not be loaded correctly.
   return false;
 }
 

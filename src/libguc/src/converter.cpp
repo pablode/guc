@@ -776,12 +776,32 @@ namespace guc
     // Display colors and opacities
     VtVec3fArray displayColors;
     VtFloatArray displayOpacities;
+    bool isDisplayColorConstant = false;
+
     if (!colorSets.empty())
     {
-      // FIXME: in case vertex colors do not exist, use a fallback value with constant
-      //        interpolation type extracted from material information (e.g. base color).
       displayColors = colorSets[0];
       displayOpacities = opacitySets[0];
+    }
+    else if (material && material->has_pbr_metallic_roughness)
+    {
+      if (displayColors.empty())
+      {
+        displayColors = { GfVec3f(1.0f) };
+        displayOpacities = { 1.0f };
+        isDisplayColorConstant = true;
+      }
+
+      const cgltf_pbr_metallic_roughness* pbr_metallic_roughness = &material->pbr_metallic_roughness;
+
+      for (GfVec3f& c : displayColors)
+      {
+        c = GfCompMult(c, GfVec3f(pbr_metallic_roughness->base_color_factor));
+      }
+      for (float& o : displayOpacities)
+      {
+        o *= pbr_metallic_roughness->base_color_factor[3];
+      }
     }
 
     // TexCoord sets
@@ -863,11 +883,11 @@ namespace guc
             {
               detail::deindexVtArray(indices, opacities);
             }
-            if (!displayColors.empty())
+            if (!displayColors.empty() && !isDisplayColorConstant)
             {
               detail::deindexVtArray(indices, displayColors);
             }
-            if (!displayOpacities.empty())
+            if (!displayOpacities.empty() && !isDisplayColorConstant)
             {
               detail::deindexVtArray(indices, displayOpacities);
             }
@@ -975,14 +995,15 @@ namespace guc
       opacityPrimvar.Set(opacities);
     }
 
+    TfToken displayPrimvarInterpolation = isDisplayColorConstant ? UsdGeomTokens->constant : UsdGeomTokens->vertex;
     if (!displayColors.empty())
     {
-      auto primvar = mesh.CreateDisplayColorPrimvar(UsdGeomTokens->vertex);
+      auto primvar = mesh.CreateDisplayColorPrimvar(displayPrimvarInterpolation);
       primvar.Set(displayColors);
     }
     if (!displayOpacities.empty())
     {
-      auto primvar = mesh.CreateDisplayOpacityPrimvar(UsdGeomTokens->vertex);
+      auto primvar = mesh.CreateDisplayOpacityPrimvar(displayPrimvarInterpolation);
       primvar.Set(displayOpacities);
     }
 

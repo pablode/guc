@@ -41,11 +41,11 @@ namespace guc
 
   using ImageMetadataMap = std::unordered_map<const cgltf_image*, ImageMetadata>;
 
-  void exportImages(const cgltf_image* images,
-                    size_t imageCount,
-                    const fs::path& srcDir,
-                    const fs::path& dstDir,
-                    bool copyExistingFiles,
-                    bool genRelativePaths,
-                    ImageMetadataMap& metadata);
+  void processImages(const cgltf_image* images,
+                     size_t imageCount,
+                     const fs::path& srcDir,
+                     const fs::path& dstDir,
+                     bool copyExistingFiles,
+                     bool genRelativePaths,
+                     ImageMetadataMap& metadata);
 }

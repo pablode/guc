@@ -194,12 +194,12 @@ namespace guc
     return true;
   }
 
-  std::optional<ImageMetadata> exportImage(const cgltf_image* image,
-                                           const fs::path& srcDir,
-                                           const fs::path& dstDir,
-                                           bool copyExistingFiles,
-                                           bool genRelativePaths,
-                                           std::unordered_set<std::string>& generatedFileNames)
+  std::optional<ImageMetadata> processImage(const cgltf_image* image,
+                                            const fs::path& srcDir,
+                                            const fs::path& dstDir,
+                                            bool copyExistingFiles,
+                                            bool genRelativePaths,
+                                            std::unordered_set<std::string>& generatedFileNames)
   {
     std::vector<uint8_t> data;
     std::string srcFilePath;
@@ -307,13 +307,13 @@ namespace guc
     return metadata;
   }
 
-  void exportImages(const cgltf_image* images,
-                    size_t imageCount,
-                    const fs::path& srcDir,
-                    const fs::path& dstDir,
-                    bool copyExistingFiles,
-                    bool genRelativePaths,
-                    ImageMetadataMap& metadata)
+  void processImages(const cgltf_image* images,
+                     size_t imageCount,
+                     const fs::path& srcDir,
+                     const fs::path& dstDir,
+                     bool copyExistingFiles,
+                     bool genRelativePaths,
+                     ImageMetadataMap& metadata)
   {
     std::unordered_set<std::string> generatedFileNames;
 
@@ -321,7 +321,7 @@ namespace guc
     {
       const cgltf_image* image = &images[i];
 
-      auto meta = exportImage(image, srcDir, dstDir, copyExistingFiles, genRelativePaths, generatedFileNames);
+      auto meta = processImage(image, srcDir, dstDir, copyExistingFiles, genRelativePaths, generatedFileNames);
 
       if (meta.has_value())
       {
@@ -329,6 +329,6 @@ namespace guc
       }
     }
 
-    TF_DEBUG(GUC).Msg("exported %d images\n", int(metadata.size()));
+    TF_DEBUG(GUC).Msg("processed %d images\n", int(metadata.size()));
   }
 }

@@ -256,8 +256,8 @@ namespace guc
       defaultPrim.SetCustomDataByKey(_tokens->min_version, VtValue(std::string(asset.min_version)));
     }
 
-    // Step 1: export images
-    exportImages(m_data->images, m_data->images_count, m_srcDir, m_dstDir, m_copyExistingFiles, m_genRelativePaths, m_imgMetadata);
+    // Step 1: process images
+    processImages(m_data->images, m_data->images_count, m_srcDir, m_dstDir, m_copyExistingFiles, m_genRelativePaths, m_imgMetadata);
 
     fileExports.reserve(m_imgMetadata.size());
     for (const auto& imgMetadataPair : m_imgMetadata)

@@ -231,9 +231,7 @@ namespace guc
       UserData* userData = (UserData*) pContext->m_pUserData;
       int newVertexIndex = iFace * 3 + iVert;
       userData->unindexedTangents[newVertexIndex] = GfVec3f(fvTangent[0], fvTangent[1], fvTangent[2]);
-      // Need to additionally flip the sign:
-      // https://github.com/KhronosGroup/glTF-Sample-Models/issues/174
-      userData->unindexedSigns[newVertexIndex] = fSign * -1.0f;
+      userData->unindexedSigns[newVertexIndex] = fSign;
     };
 
     SMikkTSpaceInterface interface;

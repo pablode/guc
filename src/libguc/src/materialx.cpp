@@ -396,6 +396,8 @@ namespace guc
                                                          bool hdstorm_compat)
     : m_doc(doc)
     , m_imageMetadataMap(imageMetadataMap)
+    , m_defaultColorSetName(makeColorSetName(0))
+    , m_defaultOpacitySetName(makeOpacitySetName(0))
     , m_flattenNodes(flatten_nodes)
 #ifndef MATERIALXVIEW_COMPAT
     , m_explicitColorSpaceTransforms(explicit_colorspace_transforms || hdstorm_compat)
@@ -624,8 +626,8 @@ namespace guc
       mx::InputPtr input1 = multiplyNode1->addInput("in1", MTLX_TYPE_COLOR3);
       auto defaultValue = mx::Value::createValue(mx::Vector3(1.0f, 1.0f, 1.0f));
 
-      std::string colorPrimvarName = makeColorSetName(0); // COLOR_0 according to spec sec. 3.9.2
-      auto geompropNode = makeGeompropValueNode(nodeGraph, colorPrimvarName, MTLX_TYPE_COLOR3, defaultValue);
+      // COLOR_0 according to spec sec. 3.9.2
+      auto geompropNode = makeGeompropValueNode(nodeGraph, m_defaultColorSetName, MTLX_TYPE_COLOR3, defaultValue);
       input1->setNodeName(geompropNode->getName());
 
       mx::InputPtr input2 = multiplyNode1->addInput("in2", MTLX_TYPE_COLOR3);
@@ -1151,17 +1153,17 @@ namespace guc
 #ifdef MATERIALXVIEW_COMPAT
     node = nodeGraph->addNode("constant", mx::EMPTY_STRING, geompropValueTypeName);
 
+    // Workaround for MaterialXView not supporting geompropvalue node fallback values:
+    // https://github.com/AcademySoftwareFoundation/MaterialX/issues/941
     mx::ValuePtr valuePtr = defaultValue;
     if (!defaultValue)
     {
-      if (geompropName == "displayColor")
+      if (geompropName == m_defaultColorSetName)
       {
-        // FIXME: find out how handle different <geomcolor> value types
         valuePtr = mx::Value::createValue(mx::Color3(1.0f));
       }
-      else if (geompropName == "displayOpacity")
+      else if (geompropName == m_defaultOpacitySetName)
       {
-        // FIXME: extract from <geomcolor> when possible
         valuePtr = mx::Value::createValue(1.0f);
       }
       else
@@ -1185,7 +1187,7 @@ namespace guc
     }
 #endif
 
-    if (!m_explicitColorSpaceTransforms && geompropName == "displayColor")
+    if (!m_explicitColorSpaceTransforms && geompropName == m_defaultColorSetName)
     {
       node->setAttribute("colorspace", MTLX_COLORSPACE_LINEAR);
     }

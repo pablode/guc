@@ -40,6 +40,8 @@ namespace guc
   private:
     MaterialX::DocumentPtr m_doc;
     const ImageMetadataMap& m_imageMetadataMap;
+    std::string m_defaultColorSetName;
+    std::string m_defaultOpacitySetName;
 
     bool m_flattenNodes;
     bool m_explicitColorSpaceTransforms;

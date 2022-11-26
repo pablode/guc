@@ -56,6 +56,8 @@ TF_DEFINE_PRIVATE_TOKENS(
   (version)
   (min_version)
   (tangentSigns)
+  (guc)
+  (generated)
 );
 
 const static char* MTLX_GLTF_PBR_FILE_NAME = "gltf_pbr.mtlx";
@@ -201,6 +203,13 @@ namespace detail
     }
 
     return false;
+  }
+
+  void markAttributeAsGenerated(UsdAttribute attr)
+  {
+    VtDictionary customData;
+    customData[_tokens->generated] = true;
+    attr.SetCustomDataByKey(_tokens->guc, VtValue(customData));
   }
 }
 
@@ -688,16 +697,16 @@ namespace guc
     }
 
     // Normals
-    bool createNormals = true;
+    bool generatedNormals = true;
     VtVec3fArray normals;
     {
       const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "NORMAL");
       if (accessor)
       {
-        createNormals = !detail::readVtArrayFromAccessor(accessor, normals);
+        generatedNormals = !detail::readVtArrayFromAccessor(accessor, normals);
       }
     }
-    if (createNormals) // spec sec. 3.7.2.1
+    if (generatedNormals) // spec sec. 3.7.2.1
     {
       TF_DEBUG(GUC).Msg("normals do not exist; calculating flat normals\n");
 
@@ -777,6 +786,7 @@ namespace guc
     VtVec3fArray displayColors;
     VtFloatArray displayOpacities;
     bool isDisplayColorConstant = false;
+    bool generatedDisplayColors = false;
 
     if (!colorSets.empty())
     {
@@ -802,6 +812,8 @@ namespace guc
       {
         o *= pbr_metallic_roughness->base_color_factor[3];
       }
+
+      generatedDisplayColors = true;
     }
 
     // TexCoord sets
@@ -834,7 +846,8 @@ namespace guc
     // Tangents
     VtVec3fArray tangents;
     VtFloatArray tangentSigns;
-    if (!createNormals) // according to glTF spec 3.7.2.1, tangents must be ignored if normals are missing
+    bool generatedTangents = false;
+    if (!generatedNormals) // according to glTF spec 3.7.2.1, tangents must be ignored if normals are missing
     {
       const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "TANGENT");
       if (accessor)
@@ -894,6 +907,8 @@ namespace guc
             {
               indices[i] = i;
             }
+
+            generatedTangents = true;
           }
           else
           {
@@ -916,15 +931,29 @@ namespace guc
 
     if (!indices.empty())
     {
-      mesh.CreateFaceVertexIndicesAttr(VtValue(indices));
+      auto attr = mesh.CreateFaceVertexIndicesAttr(VtValue(indices));
+
+      // If we generated tangents, we have re-indexed the mesh. This also means that
+      // we have de-indexed all other primvars; but unlike the indices, their data
+      // still exists and is just encoded in a different way. This is why we only add
+      // the "generated" custom data to the indices (when we generate tangents).
+      if (generatedTangents)
+      {
+        detail::markAttributeAsGenerated(attr);
+      }
     }
     mesh.CreatePointsAttr(VtValue(points));
     mesh.CreateFaceVertexCountsAttr(VtValue(faceVertexCounts));
 
     if (!normals.empty())
     {
-      mesh.CreateNormalsAttr(VtValue(normals));
+      auto attr = mesh.CreateNormalsAttr(VtValue(normals));
       mesh.SetNormalsInterpolation(UsdGeomTokens->vertex);
+
+      if (generatedNormals)
+      {
+        detail::markAttributeAsGenerated(attr);
+      }
     }
 
     VtVec3fArray extent;
@@ -942,11 +971,21 @@ namespace guc
     {
       auto primvar = primvarsApi.CreatePrimvar(UsdGeomTokens->tangents, SdfValueTypeNames->Float3Array, UsdGeomTokens->vertex);
       primvar.Set(tangents);
+
+      if (generatedTangents)
+      {
+        detail::markAttributeAsGenerated(primvar);
+      }
     }
     if (!tangentSigns.empty())
     {
       auto primvar = primvarsApi.CreatePrimvar(_tokens->tangentSigns, SdfValueTypeNames->FloatArray, UsdGeomTokens->vertex);
       primvar.Set(tangentSigns);
+
+      if (generatedTangents)
+      {
+        detail::markAttributeAsGenerated(primvar);
+      }
     }
 
     for (int i = 0; i < texCoordSets.size(); i++)
@@ -992,11 +1031,21 @@ namespace guc
     {
       auto primvar = mesh.CreateDisplayColorPrimvar(displayPrimvarInterpolation);
       primvar.Set(displayColors);
+
+      if (generatedDisplayColors)
+      {
+        detail::markAttributeAsGenerated(primvar);
+      }
     }
     if (!displayOpacities.empty())
     {
       auto primvar = mesh.CreateDisplayOpacityPrimvar(displayPrimvarInterpolation);
       primvar.Set(displayOpacities);
+
+      if (generatedDisplayColors)
+      {
+        detail::markAttributeAsGenerated(primvar);
+      }
     }
 
     prim = mesh.GetPrim();

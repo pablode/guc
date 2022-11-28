@@ -18,6 +18,7 @@ find_package(MaterialX REQUIRED HINTS ${pxr_DIR})
 find_package(OpenImageIO REQUIRED HINTS ${pxr_DIR})
 
 option(GUC_BUILD_EXECUTABLE "Build the guc executable." ON)
+option(GUC_BUILD_USDGLTF "Build the Sdf file format plugin." ON)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")

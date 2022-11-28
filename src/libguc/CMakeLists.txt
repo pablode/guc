@@ -27,22 +27,6 @@ set(LIBGUC_SHARED_SRCS
   src/image.cpp
 )
 
-add_library(
-  libguc
-  ${LIBGUC_SHARED_SRCS}
-  include/guc_params.h
-  include/guc.h
-  src/guc.cpp
-)
-
-add_library(
-  usdGlTF SHARED
-  ${LIBGUC_SHARED_SRCS}
-  include/guc_params.h
-  src/fileFormat.h
-  src/fileFormat.cpp
-)
-
 set(LIBGUC_SHARED_LIBRARIES
   cgltf
   MikkTSpace
@@ -57,23 +41,6 @@ set(LIBGUC_SHARED_LIBRARIES
   OpenImageIO::OpenImageIO
 )
 
-target_link_libraries(
-  libguc
-  PRIVATE
-    ${LIBGUC_SHARED_LIBRARIES}
-)
-
-target_link_libraries(
-  usdGlTF
-  PUBLIC
-    sdf
-  PRIVATE
-    ${LIBGUC_SHARED_LIBRARIES}
-)
-
-target_include_directories(libguc PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_include_directories(usdGlTF PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-
 set(LIBGUC_VERSION_DEFINES
   GUC_VERSION_MAJOR=${CMAKE_PROJECT_VERSION_MAJOR}
   GUC_VERSION_MINOR=${CMAKE_PROJECT_VERSION_MINOR}
@@ -81,6 +48,17 @@ set(LIBGUC_VERSION_DEFINES
   GUC_VERSION_STRING="${CMAKE_PROJECT_VERSION}"
 )
 
+add_library(
+  libguc
+  ${LIBGUC_SHARED_SRCS}
+  include/guc_params.h
+  include/guc.h
+  src/guc.cpp
+)
+
+target_link_libraries(libguc PRIVATE ${LIBGUC_SHARED_LIBRARIES})
+target_include_directories(libguc PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
 target_compile_definitions(
   libguc
   PUBLIC
@@ -90,32 +68,55 @@ target_compile_definitions(
     "$<$<OR:$<CONFIG:>,$<CONFIG:Debug>>:TBB_USE_DEBUG>"
 )
 
-target_compile_definitions(
-  usdGlTF
-  PRIVATE
-    ${LIBGUC_VERSION_DEFINES}
-    # Workaround for https://github.com/PixarAnimationStudios/USD/issues/1471#issuecomment-799813477
-    "$<$<OR:$<CONFIG:>,$<CONFIG:Debug>>:TBB_USE_DEBUG>"
-)
-
 # We don't want 'liblibguc' on Linux/Unix
 set_target_properties(libguc PROPERTIES PREFIX "")
-set_target_properties(usdGlTF PROPERTIES PREFIX "")
 
 if(WIN32 AND BUILD_SHARED_LIBS)
   set_target_properties(libguc PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 endif()
 
 install(TARGETS libguc COMPONENT libguc)
-# Is installed to "plugins/usd" dir; remove the default "lib" folder prefix.
-install(TARGETS usdGlTF COMPONENT usdGlTF DESTINATION ".")
 
-set(PLUGINFO_PATH "${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json")
-set(PLUG_INFO_LIBRARY_PATH "../usdGlTF${CMAKE_SHARED_LIBRARY_SUFFIX}")
-configure_file(plugInfo.json.in "${PLUGINFO_PATH}" @ONLY)
+if(GUC_BUILD_USDGLTF)
+  add_library(
+    usdGlTF SHARED
+    ${LIBGUC_SHARED_SRCS}
+    include/guc_params.h
+    src/fileFormat.h
+    src/fileFormat.cpp
+  )
 
-install(
-  FILES "${PLUGINFO_PATH}"
-  DESTINATION "usdGlTF/resources"
-  COMPONENT usdGlTF
-)
+  target_link_libraries(
+    usdGlTF
+    PUBLIC
+      sdf
+    PRIVATE
+      ${LIBGUC_SHARED_LIBRARIES}
+  )
+
+  target_include_directories(usdGlTF PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+  target_compile_definitions(
+    usdGlTF
+    PRIVATE
+      ${LIBGUC_VERSION_DEFINES}
+      # Workaround for https://github.com/PixarAnimationStudios/USD/issues/1471#issuecomment-799813477
+      "$<$<OR:$<CONFIG:>,$<CONFIG:Debug>>:TBB_USE_DEBUG>"
+  )
+
+  # We don't want 'liblibguc' on Linux/Unix
+  set_target_properties(usdGlTF PROPERTIES PREFIX "")
+
+  # Is installed to "plugins/usd" dir; remove the default "lib" folder prefix.
+  install(TARGETS usdGlTF COMPONENT usdGlTF DESTINATION ".")
+
+  set(PLUGINFO_PATH "${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json")
+  set(PLUG_INFO_LIBRARY_PATH "../usdGlTF${CMAKE_SHARED_LIBRARY_SUFFIX}")
+  configure_file(plugInfo.json.in "${PLUGINFO_PATH}" @ONLY)
+
+  install(
+    FILES "${PLUGINFO_PATH}"
+    DESTINATION "usdGlTF/resources"
+    COMPONENT usdGlTF
+  )
+endif()

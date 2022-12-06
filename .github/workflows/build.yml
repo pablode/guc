@@ -1,0 +1,77 @@
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+      build-config:
+        required: true
+        type: string
+      # Must match CI installation path (see USD issue #1025)
+      usd-download-url:
+        required: true
+        type: string
+      usd-install-path:
+        required: true
+        type: string
+      archive-file-name:
+        required: true
+        type: string
+
+    outputs:
+      archive-name:
+        description: "Name of the archive containing the build artifacts."
+        value: ${{ jobs.env.archive-name }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ inputs.image }}
+
+    env:
+      archive-name: build-${{ inputs.build-config }}-${{ github.sha }}
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Fetch USD binaries
+      run: curl ${{ inputs.usd-download-url }} -L -v -o USD.tar.gz
+
+    - name: Unpack USD binaries
+      run: mkdir -p ${{ inputs.usd-install-path }} && tar -xvf USD.tar.gz -C ${{ inputs.usd-install-path }}
+
+    - name: Create temporary folders
+      run: mkdir BUILD INSTALL
+
+    - name: Generate build system files using CMake
+      working-directory: BUILD
+      run: cmake .. -Dpxr_DIR=${{ inputs.usd-install-path }} -DCMAKE_BUILD_TYPE=${{ inputs.build-config }}
+
+    - name: Build guc
+      working-directory: BUILD
+      run: cmake --build . --config ${{ inputs.build-config }} -j 2
+
+    - name: Install guc
+      working-directory: BUILD
+      run: |
+        cmake --install . --component guc --prefix "$PWD/../INSTALL"
+        cmake --install . --component libguc --prefix "$PWD/../INSTALL"
+        cmake --install . --component usdGlTF --prefix "$PWD/../INSTALL/plugin/usd"
+
+    - name: Create archive
+      working-directory: INSTALL
+      run: tar -zcvf ${{ inputs.archive-file-name }} *
+
+    - name: Upload archive
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.archive-name }}
+        path: INSTALL/${{ inputs.archive-file-name }}
+        retention-days: 1

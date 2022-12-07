@@ -1,0 +1,50 @@
+name: Run Tests
+
+on:
+  workflow_dispatch:
+  push:
+
+env:
+  usd-download-url: "https://github.com/pablode/USD/releases/download/v22.11-ci-release/USD22.11_Linux_x64_Python3.8.tar.gz"
+  usd-install-path: /home/runner/work/USD/USD/INSTALL
+  guc-artifact-name: guc_USD22.11_Linux_x64_Debug.tar.gz
+
+jobs:
+  build:
+    name: Build guc for USD v22.11
+    uses: ./.github/workflows/build-usd22.11.yml
+    with:
+      build-config: Debug
+
+  run-tests:
+    name: Run Tests
+    # We require debug builds for all major os families to succeed with the
+    # warnings-as-errors flag enabled, but only use the Linux image for tests.
+    needs: build
+    runs-on: ubuntu-20.04
+
+    steps:
+    - name: Fetch USD binaries
+      run: curl ${{ env.usd-download-url }} -L -v -o USD.tar.gz
+
+    - name: Install USD binaries
+      run: mkdir -p ${{ env.usd-install-path }} && tar -xvf USD.tar.gz -C ${{ env.usd-install-path }}
+
+    - name: Download guc artifacts
+      id: download-guc
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ needs.build.outputs.archive-name }}
+
+    - name: Install guc
+      # Install guc to the USD installation so that we can use the usdGlTF Sdf plugin
+      run: tar -xvf ${{ env.guc-artifact-name }} -C ${{ env.usd-install-path }}
+
+    - name: Set up environment variables
+      run: |
+        echo "${{ env.usd-install-path }}/bin" >> $GITHUB_PATH
+        echo "LD_LIBRARY_PATH=${{ env.usd-install-path }}/lib" >> $GITHUB_ENV
+        echo "PYTHONPATH=${{ env.usd-install-path }}/lib/python" >> $GITHUB_ENV
+
+    - name: Print guc help
+      run: guc || [ $? -eq 1 ]

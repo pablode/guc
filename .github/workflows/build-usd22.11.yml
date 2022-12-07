@@ -5,6 +5,11 @@ on:
         required: true
         type: string
 
+    outputs:
+      archive-name:
+        description: "Name of the archive containing the build artifacts."
+        value: build-${{ inputs.build-config }}-${{ github.sha }}
+
 jobs:
   build:
     name: Build ${{ matrix.os-family }} ${{ matrix.build-config }}
@@ -33,4 +38,5 @@ jobs:
       build-config: ${{ inputs.build-config }}
       usd-download-url: ${{ matrix.usd-download-url }}
       usd-install-path: ${{ matrix.usd-install-path }}
+      archive-name: build-${{ inputs.build-config }}-${{ github.sha }}
       archive-file-name: guc_USD22.11_${{ matrix.os-family }}_x64_${{ inputs.build-config }}.tar.gz

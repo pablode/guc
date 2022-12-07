@@ -14,14 +14,12 @@ on:
       usd-install-path:
         required: true
         type: string
+      archive-name:
+        required: true
+        type: string
       archive-file-name:
         required: true
         type: string
-
-    outputs:
-      archive-name:
-        description: "Name of the archive containing the build artifacts."
-        value: ${{ jobs.env.archive-name }}
 
 defaults:
   run:
@@ -31,9 +29,6 @@ jobs:
   build:
     name: Build
     runs-on: ${{ inputs.image }}
-
-    env:
-      archive-name: build-${{ inputs.build-config }}-${{ github.sha }}
 
     steps:
     - name: Check out repository
@@ -61,9 +56,9 @@ jobs:
     - name: Install guc
       working-directory: BUILD
       run: |
-        cmake --install . --component guc --prefix "$PWD/../INSTALL"
-        cmake --install . --component libguc --prefix "$PWD/../INSTALL"
-        cmake --install . --component usdGlTF --prefix "$PWD/../INSTALL/plugin/usd"
+        cmake --install . --config ${{ inputs.build-config }} --component guc --prefix "$PWD/../INSTALL"
+        cmake --install . --config ${{ inputs.build-config }} --component libguc --prefix "$PWD/../INSTALL"
+        cmake --install . --config ${{ inputs.build-config }} --component usdGlTF --prefix "$PWD/../INSTALL/plugin/usd"
 
     - name: Create archive
       working-directory: INSTALL
@@ -72,6 +67,6 @@ jobs:
     - name: Upload archive
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ env.archive-name }}
+        name: ${{ inputs.archive-name }}
         path: INSTALL/${{ inputs.archive-file-name }}
         retention-days: 1

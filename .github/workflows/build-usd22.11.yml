@@ -1,0 +1,36 @@
+on:
+  workflow_call:
+    inputs:
+      build-config:
+        required: true
+        type: string
+
+jobs:
+  build:
+    name: Build ${{ matrix.os-family }} ${{ matrix.build-config }}
+
+    strategy:
+      matrix:
+        include:
+        - os-family: Linux
+          image: ubuntu-20.04
+          usd-download-url: "https://github.com/pablode/USD/releases/download/v22.11-ci-release/USD22.11_Linux_x64_Python3.8.tar.gz"
+          usd-install-path: /home/runner/work/USD/USD/INSTALL
+
+        - os-family: MacOS
+          image: macos-12
+          usd-download-url: "https://github.com/pablode/USD/releases/download/v22.11-ci-release/USD22.11_MacOS_x64_Python2.7.tar.gz"
+          usd-install-path: /Users/runner/work/USD/USD/INSTALL
+
+        - os-family: Windows
+          image: windows-2019
+          usd-download-url: "https://github.com/pablode/USD/releases/download/v22.11-ci-release/USD22.11_Windows_x64_Python3.7.tar.gz"
+          usd-install-path: C:/INSTALL
+
+    uses: ./.github/workflows/build.yml
+    with:
+      image: ${{ matrix.image }}
+      build-config: ${{ inputs.build-config }}
+      usd-download-url: ${{ matrix.usd-download-url }}
+      usd-install-path: ${{ matrix.usd-install-path }}
+      archive-file-name: guc_USD22.11_${{ matrix.os-family }}_x64_${{ inputs.build-config }}.tar.gz

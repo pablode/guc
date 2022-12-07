@@ -317,7 +317,7 @@ namespace guc
   {
     std::unordered_set<std::string> generatedFileNames;
 
-    for (int i = 0; i < imageCount; i++)
+    for (size_t i = 0; i < imageCount; i++)
     {
       const cgltf_image* image = &images[i];
 

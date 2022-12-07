@@ -68,7 +68,7 @@ namespace guc
       }
       faceVertexCounts = VtIntArray(inIndices.size() - 1, 2);
       outIndices.resize(faceVertexCounts.size() * 2);
-      for (int i = 0; i < faceVertexCounts.size(); i++)
+      for (size_t i = 0; i < faceVertexCounts.size(); i++)
       {
         outIndices[i * 2 + 0] = inIndices[i + 0];
         outIndices[i * 2 + 1] = inIndices[i + 1];
@@ -83,7 +83,7 @@ namespace guc
       }
       faceVertexCounts = VtIntArray(inIndices.size(), 2);
       outIndices.resize(inIndices.size() * 2);
-      int i;
+      size_t i;
       for (i = 0; i < inIndices.size() - 1; i++)
       {
         outIndices[i * 2 + 0] = inIndices[i + 0];
@@ -102,7 +102,7 @@ namespace guc
       faceVertexCounts = VtIntArray(inIndices.size() - 2, 3);
       outIndices.resize(faceVertexCounts.size() * 3);
       bool forward = true;
-      for (int i = 0; i < faceVertexCounts.size(); i++)
+      for (size_t i = 0; i < faceVertexCounts.size(); i++)
       {
         int i0 = i + 0;
         int i1 = forward ? (i + 1) : (i + 2);
@@ -122,7 +122,7 @@ namespace guc
       }
       faceVertexCounts = VtIntArray(inIndices.size() - 2, 3);
       outIndices.resize(faceVertexCounts.size() * 3);
-      for (int i = 0; i < faceVertexCounts.size(); i++)
+      for (size_t i = 0; i < faceVertexCounts.size(); i++)
       {
         outIndices[i * 3 + 0] = inIndices[0];
         outIndices[i * 3 + 1] = inIndices[i + 1];
@@ -144,7 +144,7 @@ namespace guc
     TF_VERIFY((indices.size() % 3) == 0);
     normals.resize(positions.size());
 
-    for (int i = 0; i < indices.size(); i += 3)
+    for (size_t i = 0; i < indices.size(); i += 3)
     {
       int i0 = indices[i + 0];
       int i1 = indices[i + 1];

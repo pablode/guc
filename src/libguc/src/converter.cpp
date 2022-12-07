@@ -73,7 +73,7 @@ namespace detail
 
     array.resize(accessor->count);
 
-    for (int i = 0; i < accessor->count; i++)
+    for (size_t i = 0; i < accessor->count; i++)
     {
       T& item = array[i];
 
@@ -123,7 +123,7 @@ namespace detail
         return false;
       }
 
-      for (int i = 0; i < accessor->count; i++)
+      for (size_t i = 0; i < accessor->count; i++)
       {
         if constexpr (std::is_same<T, GfVec2f>())
         {
@@ -284,7 +284,7 @@ namespace guc
     }
 
     // Step 3: create scene graph (nodes, meshes, lights, cameras, ...)
-    for (int i = 0; i < m_data->scenes_count; i++)
+    for (size_t i = 0; i < m_data->scenes_count; i++)
     {
       const cgltf_scene* sceneData = &m_data->scenes[i];
 
@@ -296,7 +296,7 @@ namespace guc
       }
 
       auto prim = m_stage->DefinePrim(scenePath);
-      for (int i = 0; i < sceneData->nodes_count; i++)
+      for (size_t i = 0; i < sceneData->nodes_count; i++)
       {
         const cgltf_node* nodeData = sceneData->nodes[i];
 
@@ -336,7 +336,7 @@ namespace guc
     std::unordered_set<std::string> materialNameSet;
     m_materialNames.resize(m_data->materials_count);
 
-    for (int i = 0; i < m_data->materials_count; i++)
+    for (size_t i = 0; i < m_data->materials_count; i++)
     {
       const cgltf_material* gmat = &m_data->materials[i];
 
@@ -487,7 +487,7 @@ namespace guc
       createOrOverLight(nodeData->light, lightPath);
     }
 
-    for (int i = 0; i < nodeData->children_count; i++)
+    for (size_t i = 0; i < nodeData->children_count; i++)
     {
       const cgltf_node* childNodeData = nodeData->children[i];
 
@@ -601,7 +601,7 @@ namespace guc
   {
     auto xform = UsdGeomXform::Define(m_stage, path);
 
-    for (int i = 0; i < meshData->primitives_count; i++)
+    for (size_t i = 0; i < meshData->primitives_count; i++)
     {
       const cgltf_primitive* primitiveData = &meshData->primitives[i];
 
@@ -681,7 +681,7 @@ namespace guc
 
       if (indices.empty())
       {
-        for (int i = 0; i < accessor->count; i++)
+        for (size_t i = 0; i < accessor->count; i++)
         {
           indices.push_back(i);
         }
@@ -766,7 +766,7 @@ namespace guc
         size_t colorCount = rgbaColors.size();
         colors.resize(colorCount);
         opacities.resize(colorCount);
-        for (int k = 0; k < colorCount; k++)
+        for (size_t k = 0; k < colorCount; k++)
         {
           colors[k] = GfVec3f(rgbaColors[k].data());
           opacities[k] = rgbaColors[k][3];
@@ -858,7 +858,7 @@ namespace guc
           tangents.resize(tangentsWithW.size());
           tangentSigns.resize(tangentsWithW.size());
 
-          for (int i = 0; i < tangentsWithW.size(); i++)
+          for (size_t i = 0; i < tangentsWithW.size(); i++)
           {
             tangents[i] = GfVec3f(tangentsWithW[i].data());
             tangentSigns[i] = tangentsWithW[i][3];
@@ -871,7 +871,9 @@ namespace guc
 
         if (isValidTexture(textureView))
         {
-          if (textureView.texcoord < texCoordSets.size())
+          int texCoordSetCount = int(texCoordSets.size());
+
+          if (textureView.texcoord < texCoordSetCount)
           {
             TF_DEBUG(GUC).Msg("generating tangents\n");
 
@@ -903,7 +905,7 @@ namespace guc
               detail::deindexVtArray(indices, displayOpacities);
             }
 
-            for (int i = 0; i < indices.size(); i++)
+            for (size_t i = 0; i < indices.size(); i++)
             {
               indices[i] = i;
             }
@@ -988,7 +990,7 @@ namespace guc
       }
     }
 
-    for (int i = 0; i < texCoordSets.size(); i++)
+    for (size_t i = 0; i < texCoordSets.size(); i++)
     {
       const VtVec2fArray& texCoords = texCoordSets[i];
       if (texCoords.empty())
@@ -1000,7 +1002,7 @@ namespace guc
       primvar.Set(texCoords);
     }
 
-    for (int i = 0; i < colorSets.size(); i++)
+    for (size_t i = 0; i < colorSets.size(); i++)
     {
       const VtVec3fArray& colors = colorSets[i];
       if (colors.empty())

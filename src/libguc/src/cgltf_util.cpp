@@ -58,7 +58,7 @@ namespace guc
       return false;
     }
 
-    for (int i = 0; i < (*data)->extensions_required_count; i++)
+    for (size_t i = 0; i < (*data)->extensions_required_count; i++)
     {
       const char* ext = (*data)->extensions_required[i];
       TF_DEBUG(GUC).Msg("extension required: %s\n", ext);
@@ -110,7 +110,7 @@ namespace guc
   const cgltf_accessor* cgltf_find_accessor(const cgltf_primitive* primitive,
                                             const char* name)
   {
-    for (int j = 0; j < primitive->attributes_count; j++)
+    for (size_t j = 0; j < primitive->attributes_count; j++)
     {
       const cgltf_attribute* attribute = &primitive->attributes[j];
 

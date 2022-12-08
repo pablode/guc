@@ -4,6 +4,9 @@ on:
       build-config:
         required: true
         type: string
+      extra-cmake-flags:
+        required: false
+        type: string
 
     outputs:
       archive-name:
@@ -40,3 +43,4 @@ jobs:
       usd-install-path: ${{ matrix.usd-install-path }}
       archive-name: build-${{ inputs.build-config }}-${{ github.sha }}
       archive-file-name: guc_USD22.11_${{ matrix.os-family }}_x64_${{ inputs.build-config }}.tar.gz
+      extra-cmake-flags: ${{ inputs.extra-cmake-flags }}

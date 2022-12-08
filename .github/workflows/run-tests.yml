@@ -15,6 +15,7 @@ jobs:
     uses: ./.github/workflows/build-usd22.11.yml
     with:
       build-config: Debug
+      extra-cmake-flags: -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
 
   run-tests:
     name: Run Tests

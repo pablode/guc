@@ -20,6 +20,9 @@ on:
       archive-file-name:
         required: true
         type: string
+      extra-cmake-flags:
+        required: false
+        type: string
 
 defaults:
   run:
@@ -47,7 +50,7 @@ jobs:
 
     - name: Generate build system files using CMake
       working-directory: BUILD
-      run: cmake .. -Dpxr_DIR=${{ inputs.usd-install-path }} -DCMAKE_BUILD_TYPE=${{ inputs.build-config }} -DGUC_BUILD_USDGLTF=ON
+      run: cmake .. -Dpxr_DIR=${{ inputs.usd-install-path }} -DCMAKE_BUILD_TYPE=${{ inputs.build-config }} -DGUC_BUILD_USDGLTF=ON ${{ inputs.extra-cmake-flags }} 
 
     - name: Build guc
       working-directory: BUILD

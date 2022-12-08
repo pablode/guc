@@ -16,6 +16,7 @@
 
 #include "converter.h"
 
+#include <pxr/base/tf/envSetting.h>
 #include <pxr/base/gf/matrix4f.h>
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usdGeom/camera.h>
@@ -61,6 +62,11 @@ TF_DEFINE_PRIVATE_TOKENS(
 );
 
 const static char* MTLX_GLTF_PBR_FILE_NAME = "gltf_pbr.mtlx";
+
+#ifndef NDEBUG
+TF_DEFINE_ENV_SETTING(GUC_DISABLE_PREVIEW_MATERIAL_BINDINGS, false,
+                      "Don't emit preview material bindings. This is used by the test suite.")
+#endif
 
 namespace detail
 {
@@ -632,11 +638,16 @@ namespace guc
 
       UsdShadeMaterialBindingAPI::Apply(submesh);
 
-      UsdShadeMaterialBindingAPI(submesh).Bind(
-        UsdShadeMaterial::Get(m_stage, makeUsdPreviewSurfaceMaterialPath(materialName)),
-        UsdShadeTokens->fallbackStrength,
-        UsdShadeTokens->preview
-      );
+#ifndef NDEBUG
+      if (!TfGetEnvSetting(GUC_DISABLE_PREVIEW_MATERIAL_BINDINGS))
+#endif
+      {
+        UsdShadeMaterialBindingAPI(submesh).Bind(
+          UsdShadeMaterial::Get(m_stage, makeUsdPreviewSurfaceMaterialPath(materialName)),
+          UsdShadeTokens->fallbackStrength,
+          UsdShadeTokens->preview
+        );
+      }
 
       if (m_params.emit_mtlx)
       {

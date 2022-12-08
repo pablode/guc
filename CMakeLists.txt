@@ -31,6 +31,12 @@ foreach(CONFIG_TYPE ${CMAKE_CONFIGURATION_TYPES})
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG_TYPE} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endforeach()
 
+if(MSVC)
+  # Disable "macro expansion producing 'defined' has undefined behavior" warning
+  # introduced by indirect inclusion of Windows headers in guc and MikkTSpace.
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd5105")
+endif()
+
 add_subdirectory(extern)
 
 include(cmake/UsdDefaults.cmake)

@@ -127,13 +127,13 @@ namespace guc
   }
 
   SdfPath makeUniqueStageSubpath(UsdStageRefPtr stage,
-                                 const std::string& root,
+                                 const SdfPath& root,
                                  const std::string& baseName,
                                  const std::string& delimiter)
   {
-    std::string basePath = root + "/" + TfMakeValidIdentifier(baseName);
+    SdfPath finalPath = root.AppendElementString(TfMakeValidIdentifier(baseName));
 
-    auto finalPath = SdfPath(basePath);
+    std::string basePath = finalPath.GetAsString();
     // FIXME: evaluate performance impact of GetObjectAtPath compared to simple hashmap
     for (int i = 1; stage->GetObjectAtPath(finalPath); i++)
     {

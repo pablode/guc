@@ -298,7 +298,7 @@ namespace guc
       if (m_data->scenes_count > 1)
       {
         std::string name(sceneData->name ? sceneData->name : "scene");
-        scenePath = makeUniqueStageSubpath(m_stage, "/Geom", name);
+        scenePath = makeUniqueStageSubpath(m_stage, scenePath, name);
       }
 
       auto prim = m_stage->DefinePrim(scenePath);
@@ -307,7 +307,7 @@ namespace guc
         const cgltf_node* nodeData = sceneData->nodes[i];
 
         std::string baseName(nodeData->name ? nodeData->name : "node");
-        SdfPath nodePath = makeUniqueStageSubpath(m_stage, scenePath.GetAsString(), baseName);
+        SdfPath nodePath = makeUniqueStageSubpath(m_stage, scenePath, baseName);
 
         createNodesRecursively(nodeData, nodePath);
       }
@@ -472,7 +472,7 @@ namespace guc
     if (nodeData->mesh)
     {
       std::string meshName = nodeData->mesh->name ? std::string(nodeData->mesh->name) : "mesh";
-      auto meshPath = makeUniqueStageSubpath(m_stage, path.GetAsString(), meshName);
+      auto meshPath = makeUniqueStageSubpath(m_stage, path, meshName);
 
       createOrOverMesh(nodeData->mesh, meshPath);
     }
@@ -480,7 +480,7 @@ namespace guc
     if (nodeData->camera)
     {
       std::string camName = nodeData->camera->name ? std::string(nodeData->camera->name) : "cam";
-      auto camPath = makeUniqueStageSubpath(m_stage, path.GetAsString(), camName);
+      auto camPath = makeUniqueStageSubpath(m_stage, path, camName);
 
       createOrOverCamera(nodeData->camera, camPath);
     }
@@ -488,7 +488,7 @@ namespace guc
     if (nodeData->light)
     {
       std::string lightName = nodeData->light->name ? std::string(nodeData->light->name) : "light";
-      auto lightPath = makeUniqueStageSubpath(m_stage, path.GetAsString(), lightName);
+      auto lightPath = makeUniqueStageSubpath(m_stage, path, lightName);
 
       createOrOverLight(nodeData->light, lightPath);
     }
@@ -498,7 +498,7 @@ namespace guc
       const cgltf_node* childNodeData = nodeData->children[i];
 
       std::string childName(childNodeData->name ? childNodeData->name : "node");
-      SdfPath childNodePath = makeUniqueStageSubpath(m_stage, path.GetAsString(), childName);
+      SdfPath childNodePath = makeUniqueStageSubpath(m_stage, path, childName);
 
       createNodesRecursively(childNodeData, childNodePath);
     }
@@ -612,7 +612,7 @@ namespace guc
       const cgltf_primitive* primitiveData = &meshData->primitives[i];
 
       std::string submeshName = (meshData->primitives_count == 1) ? "submesh" : ("submesh_" + std::to_string(i));
-      auto submeshPath = makeUniqueStageSubpath(m_stage, path.GetAsString(), submeshName);
+      auto submeshPath = makeUniqueStageSubpath(m_stage, path, submeshName);
 
       UsdPrim submesh;
       if (!overridePrimInPathMap((void*) primitiveData, submeshPath, submesh))

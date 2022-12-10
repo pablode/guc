@@ -139,7 +139,7 @@ namespace guc
 
     // FIXME: the first node will be called 'node' while MaterialX's first node is 'node1'
     const char* nodeNameNumberDelimiter = ""; // mimic MaterialX nodename generation with no delimiter between "node" and number
-    auto shaderPath = makeUniqueStageSubpath(m_stage, path.GetAsString(), "node", nodeNameNumberDelimiter);
+    auto shaderPath = makeUniqueStageSubpath(m_stage, path, "node", nodeNameNumberDelimiter);
     auto shader = UsdShadeShader::Define(m_stage, shaderPath);
     shader.CreateIdAttr(VtValue(_tokens->UsdPreviewSurface));
     auto shaderOutput = shader.CreateOutput(UsdShadeTokens->surface, SdfValueTypeNames->Token);
@@ -341,7 +341,7 @@ namespace guc
       return false;
     }
 
-    auto nodePath = makeUniqueStageSubpath(m_stage, basePath.GetAsString(), "node", "");
+    auto nodePath = makeUniqueStageSubpath(m_stage, basePath, "node", "");
     node = UsdShadeShader::Define(m_stage, nodePath);
     node.CreateIdAttr(VtValue(_tokens->UsdUVTexture));
 
@@ -385,7 +385,7 @@ namespace guc
                                                              const SdfPath& nodeBasePath,
                                                              int stIndex)
   {
-    auto nodePath = makeUniqueStageSubpath(m_stage, nodeBasePath.GetAsString(), "node", "");
+    auto nodePath = makeUniqueStageSubpath(m_stage, nodeBasePath, "node", "");
     auto node = UsdShadeShader::Define(m_stage, nodePath);
     node.CreateIdAttr(VtValue(_tokens->UsdPrimvarReader_float2));
 

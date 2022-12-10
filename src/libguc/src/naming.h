@@ -37,7 +37,7 @@ namespace guc
                                       const std::unordered_set<std::string>& existingNames);
 
   SdfPath makeUniqueStageSubpath(UsdStageRefPtr stage,
-                                 const std::string& root,
+                                 const SdfPath& root,
                                  const std::string& baseName,
                                  const std::string& delimiter = "_");
 

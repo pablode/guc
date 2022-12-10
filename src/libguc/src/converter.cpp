@@ -247,7 +247,7 @@ namespace guc
 
   void Converter::convert(FileExports& fileExports)
   {
-    auto rootXForm = UsdGeomXform::Define(m_stage, SdfPath("/Geom"));
+    auto rootXForm = UsdGeomXform::Define(m_stage, getEntryPath(EntryPathType::Root));
 
     auto defaultPrim = rootXForm.GetPrim();
     m_stage->SetDefaultPrim(defaultPrim);
@@ -284,7 +284,7 @@ namespace guc
     // Step 2: create materials
     if (m_data->materials_count > 0)
     {
-      UsdGeomScope::Define(m_stage, SdfPath("/Materials"));
+      UsdGeomScope::Define(m_stage, getEntryPath(EntryPathType::Materials));
 
       createMaterials(fileExports);
     }
@@ -292,16 +292,17 @@ namespace guc
     // Step 3: create scene graph (nodes, meshes, lights, cameras, ...)
     for (size_t i = 0; i < m_data->scenes_count; i++)
     {
-      const cgltf_scene* sceneData = &m_data->scenes[i];
-
-      SdfPath scenePath("/Geom");
-      if (m_data->scenes_count > 1)
+      const SdfPath& scenesPath = getEntryPath(EntryPathType::Scenes);
+      if (i == 0)
       {
-        std::string name(sceneData->name ? sceneData->name : "scene");
-        scenePath = makeUniqueStageSubpath(m_stage, scenePath, name);
+        UsdGeomXform::Define(m_stage, scenesPath);
       }
 
-      auto prim = m_stage->DefinePrim(scenePath);
+      const cgltf_scene* sceneData = &m_data->scenes[i];
+      std::string name(sceneData->name ? sceneData->name : "scene");
+      SdfPath scenePath = makeUniqueStageSubpath(m_stage, scenesPath, name);
+
+      auto prim = UsdGeomXform::Define(m_stage, scenePath);
       for (size_t i = 0; i < sceneData->nodes_count; i++)
       {
         const cgltf_node* nodeData = sceneData->nodes[i];
@@ -407,7 +408,7 @@ namespace guc
     // Let UsdMtlx convert the document to UsdShade
     if (m_params.mtlx_as_usdshade)
     {
-      UsdMtlxRead(m_mtlxDoc, m_stage, SdfPath("/Materials/MaterialX"));
+      UsdMtlxRead(m_mtlxDoc, m_stage, getEntryPath(EntryPathType::MaterialXMaterials));
     }
     else
     {
@@ -422,7 +423,7 @@ namespace guc
       mx::writeToXmlFile(m_mtlxDoc, mx::FilePath(mtlxFilePath.string()), &writeOptions);
 
       // And create a reference to it
-      auto over = m_stage->OverridePrim(SdfPath("/Materials/MaterialX"));
+      auto over = m_stage->OverridePrim(getEntryPath(EntryPathType::MaterialXMaterials));
       auto references = over.GetPrim().GetReferences();
       TF_VERIFY(references.AddReference(m_mtlxFileName.string(), SdfPath("/MaterialX")));
 

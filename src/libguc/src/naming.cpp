@@ -27,6 +27,23 @@ namespace mx = MaterialX;
 
 namespace guc
 {
+  static const SdfPath s_entryPaths[] = {
+    SdfPath{ "/Asset" },
+    SdfPath{ "/Asset/Scenes" },
+    SdfPath{ "/Asset/Materials" },
+    SdfPath{ "/Asset/Materials/UsdPreviewSurface" },
+    SdfPath{ "/Asset/Materials/MaterialX" },
+    SdfPath{ "/Asset/Meshes" },
+    SdfPath{ "/Asset/Cameras" },
+    SdfPath{ "/Asset/Lights" }
+  };
+  static_assert(sizeof(s_entryPaths) / sizeof(s_entryPaths[0]) == size_t(EntryPathType::ENUM_SIZE));
+
+  const SdfPath& getEntryPath(EntryPathType type)
+  {
+    return s_entryPaths[size_t(type)];
+  }
+
   std::string makeStSetName(int index)
   {
     std::string uvSetBaseName = UsdUtilsGetPrimaryUVSetName(); // likely to be "st"
@@ -147,11 +164,11 @@ namespace guc
 
   SdfPath makeMtlxMaterialPath(const std::string& materialName)
   {
-    return SdfPath("/Materials/MaterialX/Materials/" + materialName);
+    return getEntryPath(EntryPathType::MaterialXMaterials).AppendElementString("Materials").AppendElementString(materialName);
   }
 
   SdfPath makeUsdPreviewSurfaceMaterialPath(const std::string& materialName)
   {
-    return SdfPath("/Materials/UsdPreviewSurface/Materials/" + materialName);
+    return getEntryPath(EntryPathType::PreviewMaterials).AppendElementString("Materials").AppendElementString(materialName);
   }
 }

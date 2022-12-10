@@ -24,6 +24,20 @@ using namespace PXR_NS;
 
 namespace guc
 {
+  enum class EntryPathType
+  {
+    Root = 0,
+    Scenes,
+    Materials,
+    PreviewMaterials,
+    MaterialXMaterials,
+    Meshes,
+    Cameras,
+    Lights,
+    ENUM_SIZE
+  };
+  const SdfPath& getEntryPath(EntryPathType type);
+
   std::string makeStSetName(int index);
   std::string makeColorSetName(int index);
   std::string makeOpacitySetName(int index);

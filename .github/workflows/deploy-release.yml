@@ -25,7 +25,7 @@ jobs:
           name: ${{ needs.build.outputs.archive-name }}
 
       - name: Deploy draft release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@d4e8205d7e959a9107da6396278b2f1f07af0f9b
         with:
           name: "Version XXX"
           body: "TBD"

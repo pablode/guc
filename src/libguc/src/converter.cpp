@@ -35,6 +35,8 @@
 #include <pxr/usd/sdf/types.h>
 #include <pxr/usd/usdMtlx/reader.h>
 #include <pxr/usd/usdMtlx/utils.h>
+#include <pxr/usd/usd/modelAPI.h>
+#include <pxr/usd/kind/registry.h>
 
 #include <MaterialXFormat/XmlIo.h>
 #include <MaterialXFormat/Util.h>
@@ -248,6 +250,7 @@ namespace guc
   void Converter::convert(FileExports& fileExports)
   {
     auto rootXForm = UsdGeomXform::Define(m_stage, getEntryPath(EntryPathType::Root));
+    UsdModelAPI(rootXForm).SetKind(KindTokens->component);
 
     auto defaultPrim = rootXForm.GetPrim();
     m_stage->SetDefaultPrim(defaultPrim);
@@ -303,6 +306,11 @@ namespace guc
       SdfPath scenePath = makeUniqueStageSubpath(m_stage, scenesPath, name);
 
       auto prim = UsdGeomXform::Define(m_stage, scenePath);
+      if (m_data->scenes_count > 1)
+      {
+        UsdModelAPI(prim).SetKind(KindTokens->subcomponent);
+      }
+
       for (size_t i = 0; i < sceneData->nodes_count; i++)
       {
         const cgltf_node* nodeData = sceneData->nodes[i];

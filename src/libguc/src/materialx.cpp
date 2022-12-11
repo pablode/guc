@@ -607,7 +607,8 @@ namespace guc
     // We don't seem to need this if we flatten the glTF PBR node.
     if (material->alpha_mode != cgltf_alpha_mode_opaque && m_hdstormCompat && !m_flattenNodes)
     {
-      mx::InputPtr transmissionInput = shaderNode->addInput("transmission", MTLX_TYPE_FLOAT);
+      mx::InputPtr transmissionInput = material->has_transmission ? shaderNode->getInput("transmission") : shaderNode->addInput("transmission", MTLX_TYPE_FLOAT);
+
       if (!transmissionInput->hasValue() || (transmissionInput->getValue()->isA<float>() && transmissionInput->getValue()->asA<float>() == 0.0f))
       {
         float valueCloseToZero = std::nextafter(0.0f, 1.0f);

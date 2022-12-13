@@ -416,6 +416,9 @@ namespace guc
 
   void MaterialXMaterialConverter::convert(const cgltf_material* material, const std::string& materialName)
   {
+    // By default, the scientific notation is emitted for small values, causing the document to be invalid
+    mx::ScopedFloatFormatting floatFormat(mx::Value::FloatFormatFixed);
+
     std::string nodegraphName = "NG_" + materialName;
     std::string shaderName = "SR_" + materialName;
 
@@ -611,7 +614,7 @@ namespace guc
 
       if (!transmissionInput->hasValue() || (transmissionInput->getValue()->isA<float>() && transmissionInput->getValue()->asA<float>() == 0.0f))
       {
-        float valueCloseToZero = std::nextafter(0.0f, 1.0f);
+        float valueCloseToZero = 0.00001f;
         transmissionInput->setValue(valueCloseToZero);
       }
     }

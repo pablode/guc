@@ -226,6 +226,23 @@ namespace guc
       auto useSpecularWorkflowInput = shader.CreateInput(_tokens->useSpecularWorkflow, SdfValueTypeNames->Int);
       useSpecularWorkflowInput.Set(1);
     }
+
+    // Transmissive materials are rendered translucently (but prefer explicit alpha)
+    if (material->has_transmission && material->alpha_mode == cgltf_alpha_mode_opaque && material->has_pbr_metallic_roughness)
+    {
+      const cgltf_transmission* transmission = &material->transmission;
+      const cgltf_pbr_metallic_roughness* pbrMetallicRoughness = &material->pbr_metallic_roughness;
+      const cgltf_float* baseColorFactor = pbrMetallicRoughness->base_color_factor;
+
+      // Hand-crafted heuristic based on HSV 'saturation' value. range: [0.25, 1.0]
+      float baseColorMaxValue = std::max(baseColorFactor[0], std::max(baseColorFactor[1], baseColorFactor[2]));
+      float baseColorMinValue = std::min(baseColorFactor[0], std::min(baseColorFactor[1], baseColorFactor[2]));
+      float baseColorRange = baseColorMaxValue - baseColorMinValue;
+      float saturation = (baseColorMaxValue <= std::numeric_limits<float>::min()) ? 0.0f : (baseColorRange / baseColorMaxValue);
+      float opacity = 0.25f + 0.75f * saturation * (1.0f - transmission->transmission_factor);
+
+      opacityInput.Set(opacity);
+    }
   }
 
   void UsdPreviewSurfaceMaterialConverter::setNormalTextureInput(const SdfPath& basePath,

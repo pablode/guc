@@ -479,8 +479,11 @@ namespace guc
 
     // FIXME: overwrite default values for the following inputs, as they are incorrect in
     //        MaterialX 1.38.4. Remove this in later versions (see MaterialX PR #971).
-    baseColorInput->setValue(mx::Color3(1.0f));
-    alphaInput->setValue(1.0f);
+    auto baseColorDefault = mx::Color3(1.0f);
+    auto alphaDefault = 1.0f;
+
+    baseColorInput->setValue(baseColorDefault);
+    alphaInput->setValue(alphaDefault);
     occlusionInput->setValue(1.0f);
     metallicInput->setValue(1.0f);
     roughnessInput->setValue(1.0f);
@@ -514,16 +517,26 @@ namespace guc
 
       if (material->alpha_mode != cgltf_alpha_mode_opaque)
       {
-        setAlphaTextureInput(nodeGraph, alphaInput, pbrMetallicRoughness->base_color_texture, pbrMetallicRoughness->base_color_factor[3]);
+        setAlphaTextureInput(nodeGraph, alphaInput, &pbrMetallicRoughness->base_color_texture, pbrMetallicRoughness->base_color_factor[3]);
       }
 
-      setDiffuseTextureInput(nodeGraph, baseColorInput, pbrMetallicRoughness->base_color_texture, detail::makeMxColor3(pbrMetallicRoughness->base_color_factor));
+      setDiffuseTextureInput(nodeGraph, baseColorInput, &pbrMetallicRoughness->base_color_texture, detail::makeMxColor3(pbrMetallicRoughness->base_color_factor));
 
       auto metallicDefault = 1.0f; // spec sec. 5.22.5
       setFloatTextureInput(nodeGraph, metallicInput, pbrMetallicRoughness->metallic_roughness_texture, 2, pbrMetallicRoughness->metallic_factor, metallicDefault);
 
       auto roughnessDefault = 1.0f; // spec sec. 5.22.5
       setFloatTextureInput(nodeGraph, roughnessInput, pbrMetallicRoughness->metallic_roughness_texture, 1, pbrMetallicRoughness->roughness_factor, roughnessDefault);
+    }
+    // Regardless of the existence of base color and texture, we still need to multiply by vertex color / opacity
+    else
+    {
+      setDiffuseTextureInput(nodeGraph, baseColorInput, nullptr, baseColorDefault);
+
+      if (material->alpha_mode != cgltf_alpha_mode_opaque)
+      {
+        setAlphaTextureInput(nodeGraph, alphaInput, nullptr, alphaDefault);
+      }
     }
 
     if (material->has_clearcoat)
@@ -622,7 +635,7 @@ namespace guc
 
   void MaterialXMaterialConverter::setDiffuseTextureInput(mx::NodeGraphPtr nodeGraph,
                                                           mx::InputPtr shaderInput,
-                                                          const cgltf_texture_view& textureView,
+                                                          const cgltf_texture_view* textureView,
                                                           const mx::Color3& factor)
   {
     mx::NodePtr multiplyNode1 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_COLOR3);
@@ -639,14 +652,14 @@ namespace guc
     }
 
     std::string filePath;
-    if (!getTextureFilePath(textureView, filePath))
+    if (!textureView || !getTextureFilePath(*textureView, filePath))
     {
       connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, multiplyNode1);
       return;
     }
 
     auto defaultValue = mx::Value::createValue(mx::Color3(1.0f, 1.0f, 1.0f)); // spec sec. 5.22.2
-    mx::NodePtr textureNode = addFloat3TextureNodes(nodeGraph, textureView, filePath, true, defaultValue);
+    mx::NodePtr textureNode = addFloat3TextureNodes(nodeGraph, *textureView, filePath, true, defaultValue);
 
     mx::NodePtr multiplyNode2 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_COLOR3);
     {
@@ -662,7 +675,7 @@ namespace guc
 
   void MaterialXMaterialConverter::setAlphaTextureInput(mx::NodeGraphPtr nodeGraph,
                                                         mx::InputPtr shaderInput,
-                                                        const cgltf_texture_view& textureView,
+                                                        const cgltf_texture_view* textureView,
                                                         float factor)
   {
     mx::NodePtr multiplyNode1 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
@@ -679,14 +692,14 @@ namespace guc
     }
 
     std::string filePath;
-    if (!getTextureFilePath(textureView, filePath))
+    if (!textureView || !getTextureFilePath(*textureView, filePath))
     {
       connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, multiplyNode1);
       return;
     }
 
     auto defaultValue = 1.0f; // spec sec. 5.22.2
-    mx::NodePtr valueNode = addFloatTextureNodes(nodeGraph, textureView, filePath, 3, defaultValue);
+    mx::NodePtr valueNode = addFloatTextureNodes(nodeGraph, *textureView, filePath, 3, defaultValue);
 
     mx::NodePtr multiplyNode2 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
     {

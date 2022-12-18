@@ -55,12 +55,12 @@ namespace guc
   private:
     void setDiffuseTextureInput(mx::NodeGraphPtr nodeGraph,
                                 mx::InputPtr shaderInput,
-                                const cgltf_texture_view& textureView,
+                                const cgltf_texture_view* textureView,
                                 const mx::Color3& factor);
 
     void setAlphaTextureInput(mx::NodeGraphPtr nodeGraph,
                               mx::InputPtr shaderInput,
-                              const cgltf_texture_view& textureView,
+                              const cgltf_texture_view* textureView,
                               float factor);
 
     bool setNormalTextureInput(mx::NodeGraphPtr nodeGraph,

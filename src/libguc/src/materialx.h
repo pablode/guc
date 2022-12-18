@@ -75,15 +75,15 @@ namespace guc
     void setSrgbTextureInput(mx::NodeGraphPtr nodeGraph,
                              mx::InputPtr input,
                              const cgltf_texture_view& textureView,
-                             mx::Color3 factorValue,
-                             mx::Color3 defaultValue);
+                             mx::Color3 factor,
+                             mx::Color3 fallback);
 
     void setFloatTextureInput(mx::NodeGraphPtr nodeGraph,
                               mx::InputPtr input,
                               const cgltf_texture_view& textureView,
                               int channelIndex,
-                              float factorValue,
-                              float defaultValue);
+                              float factor,
+                              float fallback);
 
   private:
     // These two functions not only set up the image nodes with the correct value

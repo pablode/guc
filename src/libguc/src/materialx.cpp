@@ -219,6 +219,28 @@ namespace detail
     return node;
   }
 
+  mx::NodePtr makeMultiplyFactorNodeIfNecessary(mx::NodeGraphPtr nodeGraph, mx::NodePtr srcNode, mx::ValuePtr factor)
+  {
+    // Skip multiplication if possible.
+    if ((factor->isA<float>() && factor->asA<float>() == 1.0f) ||
+        (factor->isA<mx::Vector3>() && factor->asA<mx::Vector3>() == mx::Vector3(1.0)) ||
+        (factor->isA<mx::Color3>() && factor->asA<mx::Color3>() == mx::Color3(1.0)))
+    {
+      return srcNode;
+    }
+
+    mx::NodePtr multiplyNode = nodeGraph->addNode("multiply", mx::EMPTY_STRING, factor->getTypeString());
+    {
+      mx::InputPtr input1 = multiplyNode->addInput("in1", srcNode->getType());
+      input1->setNodeName(srcNode->getName());
+
+      mx::InputPtr input2 = multiplyNode->addInput("in2", factor->getTypeString());
+      input2->setValueString(factor->getValueString());
+    }
+
+    return multiplyNode;
+  }
+
   // These two functions implement the following code with MaterialX nodes:
   // https://github.com/PixarAnimationStudios/USD/blob/3b097e3ba8fabf1777a1256e241ea15df83f3065/pxr/imaging/hdSt/textureUtils.cpp#L74-L94
   mx::NodePtr makeSrgbToLinearConversionNodes(mx::NodeGraphPtr nodeGraph, mx::NodePtr srcNode)
@@ -283,14 +305,7 @@ namespace detail
   {
     TF_VERIFY(srcNode->getType() == MTLX_TYPE_FLOAT);
 
-    mx::NodePtr leftBranch = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
-    {
-      auto in1Input = leftBranch->addInput("in1", MTLX_TYPE_FLOAT);
-      in1Input->setNodeName(srcNode->getName());
-
-      auto in2Input = leftBranch->addInput("in2", MTLX_TYPE_FLOAT);
-      in2Input->setValue(12.92f);
-    }
+    mx::NodePtr leftBranch = makeMultiplyFactorNodeIfNecessary(nodeGraph, srcNode, mx::Value::createValue(12.92f));
 
     mx::NodePtr rightBranch = nodeGraph->addNode("subtract", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
     {
@@ -303,14 +318,7 @@ namespace detail
         in2Input->setValue(1.0f / 2.4f);
       }
 
-      mx::NodePtr multiplyNode = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
-      {
-        auto in1Input = multiplyNode->addInput("in1", MTLX_TYPE_FLOAT);
-        in1Input->setNodeName(powerNode->getName());
-
-        auto in2Input = multiplyNode->addInput("in2", MTLX_TYPE_FLOAT);
-        in2Input->setValue(1.055f);
-      }
+      mx::NodePtr multiplyNode = makeMultiplyFactorNodeIfNecessary(nodeGraph, powerNode, mx::Value::createValue(1.055f));
 
       auto in1Input = rightBranch->addInput("in1", MTLX_TYPE_FLOAT);
       in1Input->setNodeName(multiplyNode->getName());
@@ -638,18 +646,10 @@ namespace guc
                                                           const cgltf_texture_view* textureView,
                                                           const mx::Color3& factor)
   {
-    mx::NodePtr multiplyNode1 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_COLOR3);
-    {
-      mx::InputPtr input1 = multiplyNode1->addInput("in1", MTLX_TYPE_COLOR3);
-      auto defaultValue = mx::Value::createValue(mx::Vector3(1.0f, 1.0f, 1.0f));
+    auto defaultVertexValue = mx::Value::createValue(mx::Vector3(1.0f, 1.0f, 1.0f));
+    mx::NodePtr geompropNode = makeGeompropValueNode(nodeGraph, m_defaultColorSetName, MTLX_TYPE_COLOR3, defaultVertexValue);
 
-      // COLOR_0 according to spec sec. 3.9.2
-      auto geompropNode = makeGeompropValueNode(nodeGraph, m_defaultColorSetName, MTLX_TYPE_COLOR3, defaultValue);
-      input1->setNodeName(geompropNode->getName());
-
-      mx::InputPtr input2 = multiplyNode1->addInput("in2", MTLX_TYPE_COLOR3);
-      input2->setValue(factor);
-    }
+    mx::NodePtr multiplyNode1 = detail::makeMultiplyFactorNodeIfNecessary(nodeGraph, geompropNode, mx::Value::createValue(factor));
 
     std::string filePath;
     if (!textureView || !getTextureFilePath(*textureView, filePath))
@@ -658,8 +658,8 @@ namespace guc
       return;
     }
 
-    auto defaultValue = mx::Value::createValue(mx::Color3(1.0f, 1.0f, 1.0f)); // spec sec. 5.22.2
-    mx::NodePtr textureNode = addFloat3TextureNodes(nodeGraph, *textureView, filePath, true, defaultValue);
+    auto defaultTextureValue = mx::Value::createValue(mx::Color3(1.0f, 1.0f, 1.0f)); // spec sec. 5.22.2
+    mx::NodePtr textureNode = addFloat3TextureNodes(nodeGraph, *textureView, filePath, true, defaultTextureValue);
 
     mx::NodePtr multiplyNode2 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_COLOR3);
     {
@@ -678,18 +678,11 @@ namespace guc
                                                         const cgltf_texture_view* textureView,
                                                         float factor)
   {
-    mx::NodePtr multiplyNode1 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
-    {
-      mx::InputPtr input1 = multiplyNode1->addInput("in1", MTLX_TYPE_FLOAT);
-      auto defaultOpacity = mx::Value::createValue(1.0f);
+    auto defaultOpacityValue = mx::Value::createValue(1.0f);
+    std::string opacityPrimvarName = makeOpacitySetName(0); // COLOR_0 according to spec sec. 3.9.2
+    mx::NodePtr geompropNode = makeGeompropValueNode(nodeGraph, opacityPrimvarName, MTLX_TYPE_FLOAT, defaultOpacityValue);
 
-      std::string opacityPrimvarName = makeOpacitySetName(0); // COLOR_0 according to spec sec. 3.9.2
-      auto geompropNode = makeGeompropValueNode(nodeGraph, opacityPrimvarName, MTLX_TYPE_FLOAT, defaultOpacity);
-      input1->setNodeName(geompropNode->getName());
-
-      mx::InputPtr input2 = multiplyNode1->addInput("in2", MTLX_TYPE_FLOAT);
-      input2->setValue(factor);
-    }
+    mx::NodePtr multiplyNode1 = detail::makeMultiplyFactorNodeIfNecessary(nodeGraph, geompropNode, mx::Value::createValue(factor));
 
     std::string filePath;
     if (!textureView || !getTextureFilePath(*textureView, filePath))
@@ -698,8 +691,8 @@ namespace guc
       return;
     }
 
-    auto defaultValue = 1.0f; // spec sec. 5.22.2
-    mx::NodePtr valueNode = addFloatTextureNodes(nodeGraph, *textureView, filePath, 3, defaultValue);
+    auto defaultTextureValue = 1.0f; // spec sec. 5.22.2
+    mx::NodePtr valueNode = addFloatTextureNodes(nodeGraph, *textureView, filePath, 3, defaultTextureValue);
 
     mx::NodePtr multiplyNode2 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
     {
@@ -749,14 +742,8 @@ namespace guc
     }
 
     // multiply with scale according to glTF spec sec. 3.9.3
-    mx::NodePtr multiplyNode2 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
-    {
-      mx::InputPtr input1 = multiplyNode2->addInput("in1", MTLX_TYPE_VECTOR3);
-      input1->setNodeName(subtractNode->getName());
-
-      mx::InputPtr input2 = multiplyNode2->addInput("in2", MTLX_TYPE_VECTOR3);
-      input2->setValue(mx::Vector3(textureView.scale, textureView.scale, 1.0f));
-    }
+    auto scale = mx::Value::createValue(mx::Vector3(textureView.scale, textureView.scale, 1.0f));
+    mx::NodePtr multiplyNode2 = detail::makeMultiplyFactorNodeIfNecessary(nodeGraph, subtractNode, scale);
 
     // not done in the MaterialX normalmap impl, but required according to glTF spec sec. 3.9.3
     mx::NodePtr normalizeNode1 = detail::makeNormalizeNode(nodeGraph, multiplyNode2);
@@ -884,14 +871,8 @@ namespace guc
       input2->setValue(1.0f);
     }
 
-    mx::NodePtr multiplyNode = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
-    {
-      auto input1 = multiplyNode->addInput("in1", MTLX_TYPE_FLOAT);
-      input1->setValue(textureView.scale);
-
-      auto input2 = multiplyNode->addInput("in2", MTLX_TYPE_FLOAT);
-      input2->setNodeName(substractNode->getName());
-    }
+    auto scale = mx::Value::createValue(textureView.scale);
+    mx::NodePtr multiplyNode = detail::makeMultiplyFactorNodeIfNecessary(nodeGraph, substractNode, scale);
 
     mx::NodePtr addNode = nodeGraph->addNode("add", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
     {
@@ -908,31 +889,24 @@ namespace guc
   void MaterialXMaterialConverter::setSrgbTextureInput(mx::NodeGraphPtr nodeGraph,
                                                        mx::InputPtr input,
                                                        const cgltf_texture_view& textureView,
-                                                       mx::Color3 factorValue,
-                                                       mx::Color3 defaultValue)
+                                                       mx::Color3 factor,
+                                                       mx::Color3 fallback)
   {
-    std::string valueString = mx::Value::createValue(factorValue)->getValueString();
+    mx::ValuePtr factorValue = mx::Value::createValue(factor);
 
     std::string filePath;
     if (getTextureFilePath(textureView, filePath))
     {
-      auto defaultValuePtr = mx::Value::createValue(defaultValue);
+      auto defaultValuePtr = mx::Value::createValue(fallback);
       mx::NodePtr valueNode = addFloat3TextureNodes(nodeGraph, textureView, filePath, true, defaultValuePtr);
 
-      mx::NodePtr multiplyNode = nodeGraph->addNode("multiply", mx::EMPTY_STRING, valueNode->getType());
-      {
-        auto input1 = multiplyNode->addInput("in1", valueNode->getType());
-        input1->setValueString(valueString);
-
-        auto input2 = multiplyNode->addInput("in2", valueNode->getType());
-        input2->setNodeName(valueNode->getName());
-      }
+      mx::NodePtr multiplyNode = detail::makeMultiplyFactorNodeIfNecessary(nodeGraph, valueNode, factorValue);
 
       connectNodeGraphNodeToShaderInput(nodeGraph, input, multiplyNode);
     }
-    else if (!valueString.empty())
+    else
     {
-      input->setValueString(valueString);
+      input->setValueString(factorValue->getValueString());
     }
   }
 
@@ -940,30 +914,23 @@ namespace guc
                                                         mx::InputPtr input,
                                                         const cgltf_texture_view& textureView,
                                                         int channelIndex,
-                                                        float factorValue,
-                                                        float defaultValue)
+                                                        float factor,
+                                                        float fallback)
   {
-    std::string valueString = mx::Value::createValue(factorValue)->getValueString();
+    mx::ValuePtr factorValue = mx::Value::createValue(factor);
 
     std::string filePath;
     if (getTextureFilePath(textureView, filePath))
     {
-      mx::NodePtr valueNode = addFloatTextureNodes(nodeGraph, textureView, filePath, channelIndex, defaultValue);
+      mx::NodePtr valueNode = addFloatTextureNodes(nodeGraph, textureView, filePath, channelIndex, fallback);
 
-      mx::NodePtr multiplyNode = nodeGraph->addNode("multiply", mx::EMPTY_STRING, valueNode->getType());
-      {
-        auto input1 = multiplyNode->addInput("in1", valueNode->getType());
-        input1->setValueString(valueString);
-
-        auto input2 = multiplyNode->addInput("in2", valueNode->getType());
-        input2->setNodeName(valueNode->getName());
-      }
+      mx::NodePtr multiplyNode = detail::makeMultiplyFactorNodeIfNecessary(nodeGraph, valueNode, factorValue);
 
       connectNodeGraphNodeToShaderInput(nodeGraph, input, multiplyNode);
     }
-    else if (!valueString.empty())
+    else
     {
-      input->setValueString(valueString);
+      input->setValueString(factorValue->getValueString());
     }
   }
 

@@ -174,6 +174,11 @@ namespace detail
   template<typename T>
   void deindexVtArray(VtIntArray indices, VtArray<T>& arr)
   {
+    if (arr.empty())
+    {
+      return;
+    }
+
     int newVertexCount = indices.size();
 
     VtArray<T> newArr;
@@ -852,10 +857,8 @@ namespace guc
     const auto deindexPrimvarsExceptTangents = [&]()
     {
       detail::deindexVtArray(indices, points);
-      if (!normals.empty())
-      {
-        detail::deindexVtArray(indices, normals);
-      }
+      detail::deindexVtArray(indices, normals);
+
       for (VtVec2fArray& texCoords : texCoordSets)
       {
         detail::deindexVtArray(indices, texCoords);
@@ -868,11 +871,11 @@ namespace guc
       {
         detail::deindexVtArray(indices, opacities);
       }
-      if (!displayColors.empty() && !isDisplayColorConstant)
+      if (!isDisplayColorConstant)
       {
         detail::deindexVtArray(indices, displayColors);
       }
-      if (!displayOpacities.empty() && !isDisplayColorConstant)
+      if (!isDisplayColorConstant)
       {
         detail::deindexVtArray(indices, displayOpacities);
       }

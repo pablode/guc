@@ -155,7 +155,7 @@ namespace detail
       }
       else if (textureType == MTLX_TYPE_VECTOR2)
       {
-        // weird scenario: greyscale+alpha texture that RGB is read from. have to choose one component from vec3 as default.
+        // greyscale+alpha texture that RGB is read from - ignore the alpha channel
         valuePtr = mx::Value::createValue(mx::Vector2(colorValue[0]));
       }
       else if (textureType == MTLX_TYPE_FLOAT)

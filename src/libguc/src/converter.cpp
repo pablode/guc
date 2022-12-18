@@ -717,20 +717,26 @@ namespace guc
     }
 
     // Normals
-    bool generatedNormals = true;
     VtVec3fArray normals;
+    bool generatedNormals = false;
     {
       const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "NORMAL");
-      if (accessor)
-      {
-        generatedNormals = !detail::readVtArrayFromAccessor(accessor, normals);
-      }
-    }
-    if (generatedNormals) // spec sec. 3.7.2.1
-    {
-      TF_DEBUG(GUC).Msg("normals do not exist; calculating flat normals\n");
 
-      createFlatNormals(indices, points, normals);
+      if (!accessor || !detail::readVtArrayFromAccessor(accessor, normals))
+      {
+        bool hasTriangleTopology = primitiveData->type == cgltf_primitive_type_triangles ||
+                                   primitiveData->type == cgltf_primitive_type_triangle_strip ||
+                                   primitiveData->type == cgltf_primitive_type_triangle_fan;
+
+        if (hasTriangleTopology) // generate fallback normals (spec sec. 3.7.2.1)
+        {
+          TF_DEBUG(GUC).Msg("normals do not exist; calculating flat normals\n");
+
+          createFlatNormals(indices, points, normals);
+
+          generatedNormals = true;
+        }
+      }
     }
 
     // Colors

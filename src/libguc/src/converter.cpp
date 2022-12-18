@@ -716,29 +716,6 @@ namespace guc
       indices = newIndices;
     }
 
-    // Normals
-    VtVec3fArray normals;
-    bool generatedNormals = false;
-    {
-      const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "NORMAL");
-
-      if (!accessor || !detail::readVtArrayFromAccessor(accessor, normals))
-      {
-        bool hasTriangleTopology = primitiveData->type == cgltf_primitive_type_triangles ||
-                                   primitiveData->type == cgltf_primitive_type_triangle_strip ||
-                                   primitiveData->type == cgltf_primitive_type_triangle_fan;
-
-        if (hasTriangleTopology) // generate fallback normals (spec sec. 3.7.2.1)
-        {
-          TF_DEBUG(GUC).Msg("normals do not exist; calculating flat normals\n");
-
-          createFlatNormals(indices, points, normals);
-
-          generatedNormals = true;
-        }
-      }
-    }
-
     // Colors
     std::vector<VtVec3fArray> colorSets;
     std::vector<VtFloatArray> opacitySets;
@@ -869,7 +846,67 @@ namespace guc
       texCoordSets.push_back(texCoords);
     }
 
-    // Tangents
+    // Normals and Tangents
+    VtVec3fArray normals;
+
+    const auto deindexPrimvarsExceptTangents = [&]()
+    {
+      detail::deindexVtArray(indices, points);
+      if (!normals.empty())
+      {
+        detail::deindexVtArray(indices, normals);
+      }
+      for (VtVec2fArray& texCoords : texCoordSets)
+      {
+        detail::deindexVtArray(indices, texCoords);
+      }
+      for (VtVec3fArray& colors : colorSets)
+      {
+        detail::deindexVtArray(indices, colors);
+      }
+      for (VtFloatArray& opacities : opacitySets)
+      {
+        detail::deindexVtArray(indices, opacities);
+      }
+      if (!displayColors.empty() && !isDisplayColorConstant)
+      {
+        detail::deindexVtArray(indices, displayColors);
+      }
+      if (!displayOpacities.empty() && !isDisplayColorConstant)
+      {
+        detail::deindexVtArray(indices, displayOpacities);
+      }
+
+      for (size_t i = 0; i < indices.size(); i++)
+      {
+        indices[i] = i;
+      }
+    };
+
+    bool generatedNormals = false;
+    {
+      const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "NORMAL");
+
+      if (!accessor || !detail::readVtArrayFromAccessor(accessor, normals))
+      {
+        bool hasTriangleTopology = primitiveData->type == cgltf_primitive_type_triangles ||
+                                   primitiveData->type == cgltf_primitive_type_triangle_strip ||
+                                   primitiveData->type == cgltf_primitive_type_triangle_fan;
+
+        if (hasTriangleTopology) // generate fallback normals (spec sec. 3.7.2.1)
+        {
+          TF_DEBUG(GUC).Msg("normals do not exist; calculating flat normals\n");
+
+          // For flat normals, vertex normals can not be shared among triangles.
+          deindexPrimvarsExceptTangents();
+
+          createFlatNormals(indices, points, normals);
+
+          generatedNormals = true;
+        }
+      }
+    }
+
     VtVec3fArray tangents;
     VtFloatArray tangentSigns;
     bool generatedTangents = false;
@@ -908,33 +945,7 @@ namespace guc
 
             // The generated tangents are unindexed, which means that we
             // have to deindex all other primvars and reindex the mesh.
-            detail::deindexVtArray(indices, points);
-            detail::deindexVtArray(indices, normals);
-            for (VtVec2fArray& texCoords : texCoordSets)
-            {
-              detail::deindexVtArray(indices, texCoords);
-            }
-            for (VtVec3fArray& colors : colorSets)
-            {
-              detail::deindexVtArray(indices, colors);
-            }
-            for (VtFloatArray& opacities : opacitySets)
-            {
-              detail::deindexVtArray(indices, opacities);
-            }
-            if (!displayColors.empty() && !isDisplayColorConstant)
-            {
-              detail::deindexVtArray(indices, displayColors);
-            }
-            if (!displayOpacities.empty() && !isDisplayColorConstant)
-            {
-              detail::deindexVtArray(indices, displayOpacities);
-            }
-
-            for (size_t i = 0; i < indices.size(); i++)
-            {
-              indices[i] = i;
-            }
+            deindexPrimvarsExceptTangents();
 
             generatedTangents = true;
           }
@@ -961,11 +972,11 @@ namespace guc
     {
       auto attr = mesh.CreateFaceVertexIndicesAttr(VtValue(indices));
 
-      // If we generated tangents, we have re-indexed the mesh. This also means that
-      // we have de-indexed all other primvars; but unlike the indices, their data
+      // If we generated normals or tangents, we have re-indexed the mesh. This means
+      // that we have de-indexed all other primvars; but unlike the indices, their data
       // still exists and is just encoded in a different way. This is why we only add
-      // the "generated" custom data to the indices (when we generate tangents).
-      if (generatedTangents)
+      // the "generated" custom data to the indices.
+      if (generatedNormals || generatedTangents)
       {
         detail::markAttributeAsGenerated(attr);
       }

@@ -910,10 +910,9 @@ namespace guc
     VtVec3fArray tangents;
     VtFloatArray tangentSigns;
     bool generatedTangents = false;
-    if (!generatedNormals) // according to glTF spec 3.7.2.1, tangents must be ignored if normals are missing
     {
       const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "TANGENT");
-      if (accessor)
+      if (!generatedNormals && accessor) // according to glTF spec 3.7.2.1, tangents must be ignored if normals are missing
       {
         VtVec4fArray tangentsWithW;
         if (detail::readVtArrayFromAccessor(accessor, tangentsWithW))
@@ -945,7 +944,10 @@ namespace guc
 
             // The generated tangents are unindexed, which means that we
             // have to deindex all other primvars and reindex the mesh.
-            deindexPrimvarsExceptTangents();
+            if (!generatedNormals)
+            {
+              deindexPrimvarsExceptTangents();
+            }
 
             generatedTangents = true;
           }

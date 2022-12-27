@@ -63,6 +63,12 @@ bool guc_convert(const char* gltf_path,
 {
   TF_VERIFY(params);
 
+  if (params->mtlx_as_usdshade && params->gltf_pbr_impl == GUC_GLTF_PBR_IMPL_FLATTENED)
+  {
+    TF_RUNTIME_ERROR("mtlx-as-usdshade not supported with node flattening");
+    return false;
+  }
+
   // The path we write USDA/USDC files to. If the user wants a USDZ file, we first
   // write these files to a temporary location, zip them, and copy the ZIP file to
   // the destination directory.

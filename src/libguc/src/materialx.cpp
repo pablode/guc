@@ -758,11 +758,20 @@ namespace guc
       auto spaceInput = normalNode->addInput("space", MTLX_TYPE_STRING);
       spaceInput->setValue("world");
     }
+
+#ifdef MATERIALXVIEW_COMPAT
     auto tangentNode = nodeGraph->addNode("tangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
     {
       auto spaceInput = tangentNode->addInput("space", MTLX_TYPE_STRING);
       spaceInput->setValue("world");
     }
+#else
+    auto tangentNode = makeGeompropValueNode(nodeGraph, "tangents", MTLX_TYPE_VECTOR3);
+
+    tangentNode = detail::makeVectorToWorldSpaceNode(nodeGraph, tangentNode);
+
+    tangentNode = detail::makeNormalizeNode(nodeGraph, tangentNode);
+#endif
 
 #ifndef MATERIALXVIEW_COMPAT
     auto crossproductNode = nodeGraph->addNode("crossproduct", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);

@@ -30,6 +30,7 @@ namespace guc
   static const SdfPath s_entryPaths[] = {
     SdfPath{ "/Asset" },
     SdfPath{ "/Asset/Scenes" },
+    SdfPath{ "/Asset/Nodes" },
     SdfPath{ "/Asset/Materials" },
     SdfPath{ "/Asset/Materials/UsdPreviewSurface" },
     SdfPath{ "/Asset/Materials/MaterialX" },

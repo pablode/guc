@@ -298,6 +298,14 @@ namespace guc
     }
 
     // Step 3: create scene graph (nodes, meshes, lights, cameras, ...)
+    auto createNode = [this](const cgltf_node* nodeData, SdfPath path)
+    {
+      std::string baseName(nodeData->name ? nodeData->name : "node");
+      SdfPath nodePath = makeUniqueStageSubpath(m_stage, path, baseName);
+
+      createNodesRecursively(nodeData, nodePath);
+    };
+
     for (size_t i = 0; i < m_data->scenes_count; i++)
     {
       const SdfPath& scenesPath = getEntryPath(EntryPathType::Scenes);
@@ -325,10 +333,25 @@ namespace guc
       {
         const cgltf_node* nodeData = sceneData->nodes[i];
 
-        std::string baseName(nodeData->name ? nodeData->name : "node");
-        SdfPath nodePath = makeUniqueStageSubpath(m_stage, scenePath, baseName);
+        createNode(nodeData, scenePath);
+      }
+    }
 
-        createNodesRecursively(nodeData, nodePath);
+    // According to glTF spec sec. 3.5.1., "glTF assets that do not contain any
+    // [scenes] should be treated as a library of individual entities [...]". In
+    // this case, we put all nodes under an invisible "Nodes" root prim.
+    if (m_data->scenes_count == 0)
+    {
+      const SdfPath& nodesPath = getEntryPath(EntryPathType::Nodes);
+
+      auto scope = UsdGeomScope::Define(m_stage, nodesPath);
+      scope.MakeInvisible();
+
+      for (size_t i = 0; i < m_data->nodes_count; i++)
+      {
+        const cgltf_node* nodeData = &m_data->nodes[i];
+
+        createNode(nodeData, nodesPath);
       }
     }
   }

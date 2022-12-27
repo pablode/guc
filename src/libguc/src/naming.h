@@ -28,6 +28,7 @@ namespace guc
   {
     Root = 0,
     Scenes,
+    Nodes,
     Materials,
     PreviewMaterials,
     MaterialXMaterials,

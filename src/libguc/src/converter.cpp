@@ -310,10 +310,15 @@ namespace guc
       std::string name(sceneData->name ? sceneData->name : "scene");
       SdfPath scenePath = makeUniqueStageSubpath(m_stage, scenesPath, name);
 
-      auto prim = UsdGeomXform::Define(m_stage, scenePath);
+      auto xform = UsdGeomXform::Define(m_stage, scenePath);
       if (m_data->scenes_count > 1)
       {
-        UsdModelAPI(prim).SetKind(KindTokens->subcomponent);
+        UsdModelAPI(xform).SetKind(KindTokens->subcomponent);
+
+        if (m_data->scene != sceneData)
+        {
+          xform.MakeInvisible();
+        }
       }
 
       for (size_t i = 0; i < sceneData->nodes_count; i++)

@@ -17,6 +17,7 @@
 #include "materialx.h"
 
 #include <pxr/base/tf/diagnostic.h>
+#include <pxr/base/tf/envSetting.h>
 
 #include <MaterialXCore/Document.h>
 #include <MaterialXCore/Value.h>
@@ -50,6 +51,11 @@ const char* MTLX_TYPE_STRING = "string";
 const char* MTLX_TYPE_FILENAME = "filename";
 const char* MTLX_TYPE_MATERIAL = "material";
 const char* MTLX_TYPE_SURFACESHADER = "surfaceshader";
+
+#ifndef NDEBUG
+TF_DEFINE_ENV_SETTING(GUC_ENABLE_MTLX_GLTF_PBR_TANGENT, false,
+                      "Set the 'tangent' input of the MaterialX glTF PBR (required for anisotropy).")
+#endif
 
 namespace detail
 {
@@ -502,7 +508,31 @@ namespace guc
     setSrgbTextureInput(nodeGraph, emissiveInput, material->emissive_texture, emissiveFactor, emissiveDefault);
 
     mx::InputPtr normalInput = shaderNode->addInput("normal", MTLX_TYPE_VECTOR3);
-    if (!setNormalTextureInput(nodeGraph, normalInput, material->normal_texture))
+    if (setNormalTextureInput(nodeGraph, normalInput, material->normal_texture))
+    {
+#ifndef NDEBUG
+      if (TfGetEnvSetting(GUC_ENABLE_MTLX_GLTF_PBR_TANGENT))
+      {
+#ifdef MATERIALXVIEW_COMPAT
+        auto tangentNode = nodeGraph->addNode("tangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+        {
+          auto spaceInput = tangentNode->addInput("space", MTLX_TYPE_STRING);
+          spaceInput->setValue("world");
+        }
+#else
+        auto tangentNode = makeGeompropValueNode(nodeGraph, "tangents", MTLX_TYPE_VECTOR3);
+
+        tangentNode = detail::makeVectorToWorldSpaceNode(nodeGraph, tangentNode);
+
+        tangentNode = detail::makeNormalizeNode(nodeGraph, tangentNode);
+#endif
+
+        mx::InputPtr tangentInput = shaderNode->addInput("tangent", MTLX_TYPE_VECTOR3);
+        connectNodeGraphNodeToShaderInput(nodeGraph, tangentInput, tangentNode);
+      }
+#endif
+    }
+    else
     {
       // in case no texture has been found, fall back to the implicit declaration (defaultgeomprop="Nworld")
       shaderNode->removeInput("normal");

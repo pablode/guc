@@ -75,6 +75,9 @@ if(WIN32 AND BUILD_SHARED_LIBS)
   set_target_properties(libguc PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 endif()
 
+# Need fPIC for static linking because the USD libraries we use are built with it
+set_target_properties(libguc PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 install(TARGETS libguc COMPONENT libguc)
 
 if(GUC_BUILD_USDGLTF)

@@ -425,6 +425,18 @@ namespace guc
     // By default, the scientific notation is emitted for small values, causing the document to be invalid
     mx::ScopedFloatFormatting floatFormat(mx::Value::FloatFormatFixed);
 
+    try
+    {
+      createGltfPbrNodes(material, materialName);
+    }
+    catch (const mx::Exception& ex)
+    {
+      TF_RUNTIME_ERROR("Failed to create glTF PBR nodes for material '%s': %s", materialName.c_str(), ex.what());
+    }
+  }
+
+  void MaterialXMaterialConverter::createGltfPbrNodes(const cgltf_material* material, const std::string& materialName)
+  {
     std::string nodegraphName = "NG_" + materialName;
     std::string shaderName = "SR_" + materialName;
 

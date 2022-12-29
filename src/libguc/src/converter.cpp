@@ -378,7 +378,14 @@ namespace guc
         TF_DEBUG(GUC).Msg("adding UsdMtlx search path %s\n", newPathString.c_str());
       }
 
-      mx::loadLibraries(libFolders, searchPath, m_mtlxDoc);
+      try
+      {
+        mx::loadLibraries(libFolders, searchPath, m_mtlxDoc);
+      }
+      catch (const mx::Exception& ex)
+      {
+        TF_RUNTIME_ERROR("Failed to load MaterialX libraries: %s", ex.what());
+      }
     }
 
     std::unordered_set<std::string> materialNameSet;

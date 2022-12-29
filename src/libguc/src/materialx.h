@@ -48,6 +48,9 @@ namespace guc
     bool m_hdstormCompat;
 
   private:
+    void createGltfPbrNodes(const cgltf_material* material,
+                             const std::string& materialName);
+
     void setGltfPbrInputs(const cgltf_material* material,
                           mx::NodeGraphPtr nodeGraph,
                           mx::NodePtr shaderNode);

@@ -30,11 +30,6 @@
 #include "naming.h"
 #include "debugCodes.h"
 
-// By setting this define, the exported .mtlx file can be imported into MaterialX's viewer.
-// The individual materials must be manually mapped to the meshes of the original glTF file.
-// The look may not be 100% correct because vertex color multiplications are omitted.
-//#define MATERIALXVIEW_COMPAT
-
 namespace mx = MaterialX;
 namespace fs = std::filesystem;
 
@@ -55,6 +50,8 @@ const char* MTLX_TYPE_SURFACESHADER = "surfaceshader";
 #ifndef NDEBUG
 TF_DEFINE_ENV_SETTING(GUC_ENABLE_MTLX_GLTF_PBR_TANGENT, false,
                       "Set the 'tangent' input of the MaterialX glTF PBR (required for anisotropy).")
+TF_DEFINE_ENV_SETTING(GUC_ENABLE_MTLX_VIEWER_COMPAT, false,
+                      "Emit geometric nodes and constant vertex colors for compatibility with MaterialXView.")
 #endif
 
 namespace detail
@@ -413,13 +410,8 @@ namespace guc
     , m_defaultColorSetName(makeColorSetName(0))
     , m_defaultOpacitySetName(makeOpacitySetName(0))
     , m_flattenNodes(flatten_nodes)
-#ifndef MATERIALXVIEW_COMPAT
     , m_explicitColorSpaceTransforms(explicit_colorspace_transforms || hdstorm_compat)
     , m_hdstormCompat(hdstorm_compat)
-#else
-    , m_explicitColorSpaceTransforms(explicit_colorspace_transforms)
-    , m_hdstormCompat(false)
-#endif
   {
     if (!m_explicitColorSpaceTransforms)
     {
@@ -513,19 +505,23 @@ namespace guc
 #ifndef NDEBUG
       if (TfGetEnvSetting(GUC_ENABLE_MTLX_GLTF_PBR_TANGENT))
       {
-#ifdef MATERIALXVIEW_COMPAT
-        auto tangentNode = nodeGraph->addNode("tangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+        mx::NodePtr tangentNode;
+
+        if (TfGetEnvSetting(GUC_ENABLE_MTLX_VIEWER_COMPAT))
         {
+          tangentNode = nodeGraph->addNode("tangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+
           auto spaceInput = tangentNode->addInput("space", MTLX_TYPE_STRING);
           spaceInput->setValue("world");
         }
-#else
-        auto tangentNode = makeGeompropValueNode(nodeGraph, "tangents", MTLX_TYPE_VECTOR3);
+        else
+        {
+          tangentNode = makeGeompropValueNode(nodeGraph, "tangents", MTLX_TYPE_VECTOR3);
 
-        tangentNode = detail::makeVectorToWorldSpaceNode(nodeGraph, tangentNode);
+          tangentNode = detail::makeVectorToWorldSpaceNode(nodeGraph, tangentNode);
 
-        tangentNode = detail::makeNormalizeNode(nodeGraph, tangentNode);
-#endif
+          tangentNode = detail::makeNormalizeNode(nodeGraph, tangentNode);
+        }
 
         mx::InputPtr tangentInput = shaderNode->addInput("tangent", MTLX_TYPE_VECTOR3);
         connectNodeGraphNodeToShaderInput(nodeGraph, tangentInput, tangentNode);
@@ -789,47 +785,57 @@ namespace guc
       spaceInput->setValue("world");
     }
 
-#ifdef MATERIALXVIEW_COMPAT
-    auto tangentNode = nodeGraph->addNode("tangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+    mx::NodePtr tangentNode;
+#ifndef NDEBUG
+    if (TfGetEnvSetting(GUC_ENABLE_MTLX_VIEWER_COMPAT))
     {
+      tangentNode = nodeGraph->addNode("tangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+
       auto spaceInput = tangentNode->addInput("space", MTLX_TYPE_STRING);
       spaceInput->setValue("world");
     }
-#else
-    auto tangentNode = makeGeompropValueNode(nodeGraph, "tangents", MTLX_TYPE_VECTOR3);
-
-    tangentNode = detail::makeVectorToWorldSpaceNode(nodeGraph, tangentNode);
-
-    tangentNode = detail::makeNormalizeNode(nodeGraph, tangentNode);
+    else
 #endif
-
-#ifndef MATERIALXVIEW_COMPAT
-    auto crossproductNode = nodeGraph->addNode("crossproduct", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
     {
-     auto input1 = crossproductNode->addInput("in1", MTLX_TYPE_VECTOR3);
-     input1->setNodeName(normalNode->getName());
+      tangentNode = makeGeompropValueNode(nodeGraph, "tangents", MTLX_TYPE_VECTOR3);
 
-     auto input2 = crossproductNode->addInput("in2", MTLX_TYPE_VECTOR3);
-     input2->setNodeName(tangentNode->getName());
+      tangentNode = detail::makeVectorToWorldSpaceNode(nodeGraph, tangentNode);
+
+      tangentNode = detail::makeNormalizeNode(nodeGraph, tangentNode);
     }
 
-    auto tangentSignNode = makeGeompropValueNode(nodeGraph, "tangentSigns", MTLX_TYPE_FLOAT);
-
-    auto bitangentNode = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+    mx::NodePtr bitangentNode;
+#ifndef NDEBUG
+    if (TfGetEnvSetting(GUC_ENABLE_MTLX_VIEWER_COMPAT))
     {
-      auto input1 = bitangentNode->addInput("in1", MTLX_TYPE_VECTOR3);
-      input1->setNodeName(crossproductNode->getName());
+      bitangentNode = nodeGraph->addNode("bitangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
 
-      auto input2 = bitangentNode->addInput("in2", MTLX_TYPE_FLOAT);
-      input2->setNodeName(tangentSignNode->getName());
-    }
-#else
-    auto bitangentNode = nodeGraph->addNode("bitangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
-    {
       auto spaceInput = bitangentNode->addInput("space", MTLX_TYPE_STRING);
       spaceInput->setValue("world");
     }
+    else
 #endif
+    {
+      auto crossproductNode = nodeGraph->addNode("crossproduct", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+      {
+       auto input1 = crossproductNode->addInput("in1", MTLX_TYPE_VECTOR3);
+       input1->setNodeName(normalNode->getName());
+
+       auto input2 = crossproductNode->addInput("in2", MTLX_TYPE_VECTOR3);
+       input2->setNodeName(tangentNode->getName());
+      }
+
+      auto tangentSignNode = makeGeompropValueNode(nodeGraph, "tangentSigns", MTLX_TYPE_FLOAT);
+
+      bitangentNode = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+      {
+        auto input1 = bitangentNode->addInput("in1", MTLX_TYPE_VECTOR3);
+        input1->setNodeName(crossproductNode->getName());
+
+        auto input2 = bitangentNode->addInput("in2", MTLX_TYPE_FLOAT);
+        input2->setNodeName(tangentSignNode->getName());
+      }
+    }
 
     // the next nodes implement multiplication with the TBN matrix
     mx::NodePtr multiplyNode3 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
@@ -1099,18 +1105,21 @@ namespace guc
     mx::InputPtr uvInput = node->addInput("texcoord", MTLX_TYPE_VECTOR2);
     int stIndex = textureView.texcoord;
 
-#ifdef MATERIALXVIEW_COMPAT
-    auto texcoordNode = nodeGraph->addNode("texcoord", mx::EMPTY_STRING, MTLX_TYPE_VECTOR2);
+    mx::NodePtr texcoordNode;
+#ifndef NDEBUG
+    if (TfGetEnvSetting(GUC_ENABLE_MTLX_VIEWER_COMPAT))
     {
-      auto indexInput = texcoordNode->addInput("index");
-      indexInput->setValue(stIndex);
+      texcoordNode = nodeGraph->addNode("texcoord", mx::EMPTY_STRING, MTLX_TYPE_VECTOR2);
 
-      uvInput->setNodeName(texcoordNode->getName());
+      mx::InputPtr indexInput = texcoordNode->addInput("index");
+      indexInput->setValue(stIndex);
     }
-#else
-    auto geompropNode = makeGeompropValueNode(nodeGraph, makeStSetName(stIndex), MTLX_TYPE_VECTOR2);
-    uvInput->setNodeName(geompropNode->getName());
+    else
 #endif
+    {
+      texcoordNode = makeGeompropValueNode(nodeGraph, makeStSetName(stIndex), MTLX_TYPE_VECTOR2);
+    }
+    uvInput->setNodeName(texcoordNode->getName());
 
     mx::InputPtr fileInput = node->addInput("file", MTLX_TYPE_FILENAME);
     fileInput->setValue(filePath, MTLX_TYPE_FILENAME);
@@ -1173,42 +1182,47 @@ namespace guc
                                                                 mx::ValuePtr defaultValue)
   {
     mx::NodePtr node;
-#ifdef MATERIALXVIEW_COMPAT
-    node = nodeGraph->addNode("constant", mx::EMPTY_STRING, geompropValueTypeName);
-
-    // Workaround for MaterialXView not supporting geompropvalue node fallback values:
-    // https://github.com/AcademySoftwareFoundation/MaterialX/issues/941
-    mx::ValuePtr valuePtr = defaultValue;
-    if (!defaultValue)
+#ifndef NDEBUG
+    if (TfGetEnvSetting(GUC_ENABLE_MTLX_VIEWER_COMPAT))
     {
-      if (geompropName == m_defaultColorSetName)
+      node = nodeGraph->addNode("constant", mx::EMPTY_STRING, geompropValueTypeName);
+
+      // Workaround for MaterialXView not supporting geompropvalue node fallback values:
+      // https://github.com/AcademySoftwareFoundation/MaterialX/issues/941
+      mx::ValuePtr valuePtr = defaultValue;
+      if (!valuePtr)
       {
-        valuePtr = mx::Value::createValue(mx::Color3(1.0f));
+        if (geompropName == m_defaultColorSetName)
+        {
+          valuePtr = mx::Value::createValue(mx::Color3(1.0f));
+        }
+        else if (geompropName == m_defaultOpacitySetName)
+        {
+          valuePtr = mx::Value::createValue(1.0f);
+        }
+        else
+        {
+          TF_VERIFY(false);
+        }
       }
-      else if (geompropName == m_defaultOpacitySetName)
-      {
-        valuePtr = mx::Value::createValue(1.0f);
-      }
-      else
-      {
-        TF_VERIFY(false);
-      }
+
+      auto valueInput = node->addInput("value", geompropValueTypeName);
+      valueInput->setValueString(valuePtr->getValueString());
     }
-
-    auto valueInput = node->addInput("value", geompropValueTypeName);
-    valueInput->setValueString(valuePtr->getValueString());
-#else
-    node = nodeGraph->addNode("geompropvalue", mx::EMPTY_STRING, geompropValueTypeName);
-
-    auto geompropInput = node->addInput("geomprop", MTLX_TYPE_STRING);
-    geompropInput->setValue(geompropName);
-
-    if (defaultValue)
-    {
-      auto defaultInput = node->addInput("default", geompropValueTypeName);
-      defaultInput->setValueString(defaultValue->getValueString());
-    }
+    else
 #endif
+    {
+      node = nodeGraph->addNode("geompropvalue", mx::EMPTY_STRING, geompropValueTypeName);
+
+      auto geompropInput = node->addInput("geomprop", MTLX_TYPE_STRING);
+      geompropInput->setValue(geompropName);
+
+      if (defaultValue)
+      {
+        auto defaultInput = node->addInput("default", geompropValueTypeName);
+        defaultInput->setValueString(defaultValue->getValueString());
+      }
+    }
 
     if (!m_explicitColorSpaceTransforms && geompropName == m_defaultColorSetName)
     {

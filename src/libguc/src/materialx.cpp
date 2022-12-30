@@ -722,15 +722,25 @@ namespace guc
 
     mx::NodePtr multiplyNode1 = detail::makeMultiplyFactorNodeIfNecessary(nodeGraph, geompropNode, mx::Value::createValue(factor));
 
-    std::string filePath;
-    if (!textureView || !getTextureFilePath(*textureView, filePath))
+    ImageMetadata metadata;
+    if (!textureView || !getTextureMetadata(*textureView, metadata))
     {
       connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, multiplyNode1);
       return;
     }
 
+    std::string filePath = metadata.filePath;
+
+    int channelIndex = 3;
+    if (metadata.channelCount != 4)
+    {
+      TF_WARN("glTF spec violation: alpha must be encoded in the 4th channel of an RGBA texture (§5.22.2). %s only has %d channels.", filePath.c_str(), metadata.channelCount);
+      // Fall back to transparency channel of greyscale texture, or greyscale channel itself when texture is not transparent.
+      channelIndex = (metadata.channelCount == 2) ? 1 : 0;
+    }
+
     auto defaultTextureValue = 1.0f; // spec sec. 5.22.2
-    mx::NodePtr valueNode = addFloatTextureNodes(nodeGraph, *textureView, filePath, 3, defaultTextureValue);
+    mx::NodePtr valueNode = addFloatTextureNodes(nodeGraph, *textureView, filePath, channelIndex, defaultTextureValue);
 
     mx::NodePtr multiplyNode2 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
     {

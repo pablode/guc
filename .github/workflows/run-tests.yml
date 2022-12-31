@@ -10,18 +10,25 @@ env:
   guc-artifact-name: guc_USD22.11_Linux_x64_Debug.tar.gz
 
 jobs:
-  build:
-    name: Build guc for USD v22.11
+  build-debug:
+    name: Build guc for USD v22.11 (Debug)
     uses: ./.github/workflows/build-usd22.11.yml
     with:
       build-config: Debug
+      extra-cmake-flags: -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+
+  build-release:
+    name: Build guc for USD v22.11 (Release)
+    uses: ./.github/workflows/build-usd22.11.yml
+    with:
+      build-config: Release
       extra-cmake-flags: -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
 
   run-tests:
     name: Run Tests
     # We require debug builds for all major os families to succeed with the
     # warnings-as-errors flag enabled, but only use the Linux image for tests.
-    needs: build
+    needs: build-debug
     runs-on: ubuntu-20.04
 
     steps:
@@ -35,7 +42,7 @@ jobs:
       id: download-guc
       uses: actions/download-artifact@v3
       with:
-        name: ${{ needs.build.outputs.archive-name }}
+        name: ${{ needs.build-debug.outputs.archive-name }}
 
     - name: Install guc
       # Install guc to the USD installation so that we can use the usdGlTF Sdf plugin

@@ -64,6 +64,8 @@ TF_DEFINE_PRIVATE_TOKENS(
 );
 
 const static char* MTLX_GLTF_PBR_FILE_NAME = "gltf_pbr.mtlx";
+const static char* DEFAULT_MATERIAL_NAME = "default";
+const static cgltf_material DEFAULT_MATERIAL = {};
 
 #ifndef NDEBUG
 TF_DEFINE_ENV_SETTING(GUC_DISABLE_PREVIEW_MATERIAL_BINDINGS, false,
@@ -290,11 +292,26 @@ namespace guc
     }
 
     // Step 2: create materials
-    if (m_data->materials_count > 0)
+    bool hasMaterials = (m_data->materials_count > 0);
+    bool createDefaultMaterial = false;
+
+    for (size_t i = 0; i < m_data->meshes_count && !createDefaultMaterial; i++)
+    {
+      const cgltf_mesh* gmesh = &m_data->meshes[i];
+
+      for (size_t j = 0; j < gmesh->primitives_count && !createDefaultMaterial; j++)
+      {
+        const cgltf_primitive* gprim = &gmesh->primitives[j];
+
+        createDefaultMaterial |= !gprim->material;
+      }
+    }
+
+    if (hasMaterials || createDefaultMaterial)
     {
       UsdGeomScope::Define(m_stage, getEntryPath(EntryPathType::Materials));
 
-      createMaterials(fileExports);
+      createMaterials(fileExports, createDefaultMaterial);
     }
 
     // Step 3: create scene graph (nodes, meshes, lights, cameras, ...)
@@ -356,7 +373,7 @@ namespace guc
     }
   }
 
-  void Converter::createMaterials(FileExports& fileExports)
+  void Converter::createMaterials(FileExports& fileExports, bool createDefaultMaterial)
   {
     // We import the MaterialX bxdf/pbrlib/stdlib documents mainly for validation, but
     // because UsdMtlx tries to output them, we only do so when not exporting UsdShade.
@@ -389,8 +406,25 @@ namespace guc
     }
 
     std::unordered_set<std::string> materialNameSet;
+
+    // Create a default material if needed (glTF spec. 3.7.2.1)
+    if (createDefaultMaterial)
+    {
+      TF_DEBUG(GUC).Msg("creating default material\n");
+
+      SdfPath previewPath = makeUsdPreviewSurfaceMaterialPath(DEFAULT_MATERIAL_NAME);
+      m_usdPreviewSurfaceConverter.convert(&DEFAULT_MATERIAL, previewPath);
+
+      if (m_params.emit_mtlx)
+      {
+        m_mtlxConverter.convert(&DEFAULT_MATERIAL, DEFAULT_MATERIAL_NAME);
+      }
+      materialNameSet.insert(DEFAULT_MATERIAL_NAME);
+    }
+
     m_materialNames.resize(m_data->materials_count);
 
+    // Create UsdPreviewSurface prims and MaterialX document nodes for glTF materials
     for (size_t i = 0; i < m_data->materials_count; i++)
     {
       const cgltf_material* gmat = &m_data->materials[i];
@@ -416,6 +450,7 @@ namespace guc
       return;
     }
 
+    // Export MaterialX glTF PBR file if wanted
     if (m_params.gltf_pbr_impl == GUC_GLTF_PBR_IMPL_FILE)
     {
       fs::path implFilePath;
@@ -675,15 +710,14 @@ namespace guc
         m_uniquePaths[(void*) primitiveData] = submeshPath;
       }
 
-      if (!primitiveData->material)
+      std::string materialName = DEFAULT_MATERIAL_NAME;
+
+      if (primitiveData->material)
       {
-        continue;
+        int materialIndex = (primitiveData->material - &m_data->materials[0]);
+        TF_VERIFY(materialIndex >= 0);
+        materialName = m_materialNames[materialIndex].c_str();
       }
-
-      int materialIndex = (primitiveData->material - &m_data->materials[0]);
-      TF_VERIFY(materialIndex >= 0);
-
-      const std::string& materialName = m_materialNames[materialIndex];
 
       UsdShadeMaterialBindingAPI::Apply(submesh);
 
@@ -712,6 +746,12 @@ namespace guc
   bool Converter::createPrimitive(const cgltf_primitive* primitiveData, SdfPath path, UsdPrim& prim)
   {
     const cgltf_material* material = primitiveData->material;
+
+    // "If material is undefined, then a default material MUST be used." (glTF spec. 3.7.2.1)
+    if (!material)
+    {
+      material = &DEFAULT_MATERIAL;
+    }
 
     // Indices
     VtIntArray indices;
@@ -836,7 +876,7 @@ namespace guc
       displayColors = colorSets[0];
       displayOpacities = opacitySets[0];
     }
-    else if (material && material->has_pbr_metallic_roughness)
+    else if (material->has_pbr_metallic_roughness)
     {
       if (displayColors.empty())
       {
@@ -965,7 +1005,7 @@ namespace guc
           }
         }
       }
-      else if (material && hasTriangleTopology)
+      else if (hasTriangleTopology)
       {
         const cgltf_texture_view& textureView = material->normal_texture;
 
@@ -1003,7 +1043,7 @@ namespace guc
 
     mesh.CreateSubdivisionSchemeAttr(VtValue(UsdGeomTokens->none));
 
-    if (material && material->double_sided)
+    if (material->double_sided)
     {
       mesh.CreateDoubleSidedAttr(VtValue(true));
     }

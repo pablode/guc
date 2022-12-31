@@ -59,7 +59,7 @@ namespace guc
     void convert(FileExports& fileExports);
 
   private:
-    void createMaterials(FileExports& fileExports);
+    void createMaterials(FileExports& fileExports, bool createDefaultMaterial);
     void createNodesRecursively(const cgltf_node* nodeData, SdfPath path);
     void createOrOverCamera(const cgltf_camera* cameraData, SdfPath path);
     void createOrOverLight(const cgltf_light* lightData, SdfPath path);

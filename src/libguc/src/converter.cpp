@@ -846,13 +846,22 @@ namespace guc
           continue;
         }
 
-        size_t colorCount = rgbaColors.size();
-        colors.resize(colorCount);
-        opacities.resize(colorCount);
-        for (size_t k = 0; k < colorCount; k++)
+        size_t rgbaColorCount = rgbaColors.size();
+
+        colors.resize(rgbaColorCount);
+        for (size_t k = 0; k < rgbaColorCount; k++)
         {
           colors[k] = GfVec3f(rgbaColors[k].data());
-          opacities[k] = rgbaColors[k][3];
+        }
+
+        // Optimization: if material is opaque, we don't read the opacities anyway
+        if (material->alpha_mode != cgltf_alpha_mode_opaque)
+        {
+          opacities.resize(rgbaColorCount);
+          for (size_t k = 0; k < rgbaColorCount; k++)
+          {
+            opacities[k] = rgbaColors[k][3];
+          }
         }
       }
       else
@@ -868,21 +877,28 @@ namespace guc
     // Display colors and opacities
     VtVec3fArray displayColors;
     VtFloatArray displayOpacities;
-    bool isDisplayColorConstant = false;
     bool generatedDisplayColors = false;
 
     if (!colorSets.empty())
     {
       displayColors = colorSets[0];
-      displayOpacities = opacitySets[0];
+
+      // The alpha mode 'overrides' vertex opacity, for instance for the default material.
+      if (material->alpha_mode != cgltf_alpha_mode_opaque)
+      {
+        displayOpacities = opacitySets[0];
+      }
     }
     else if (material->has_pbr_metallic_roughness)
     {
       if (displayColors.empty())
       {
         displayColors = { GfVec3f(1.0f) };
+        generatedDisplayColors = true;
+      }
+      if (displayOpacities.empty() && material->alpha_mode != cgltf_alpha_mode_opaque)
+      {
         displayOpacities = { 1.0f };
-        isDisplayColorConstant = true;
       }
 
       const cgltf_pbr_metallic_roughness* pbr_metallic_roughness = &material->pbr_metallic_roughness;
@@ -895,8 +911,6 @@ namespace guc
       {
         o *= pbr_metallic_roughness->base_color_factor[3];
       }
-
-      generatedDisplayColors = true;
     }
 
     // TexCoord sets
@@ -946,11 +960,11 @@ namespace guc
       {
         detail::deindexVtArray(indices, opacities);
       }
-      if (!isDisplayColorConstant)
+      if (!generatedDisplayColors) // constant interpolation
       {
         detail::deindexVtArray(indices, displayColors);
       }
-      if (!isDisplayColorConstant)
+      if (!generatedDisplayColors) // constant interpolation
       {
         detail::deindexVtArray(indices, displayOpacities);
       }
@@ -1145,7 +1159,7 @@ namespace guc
       opacityPrimvar.Set(opacities);
     }
 
-    TfToken displayPrimvarInterpolation = isDisplayColorConstant ? UsdGeomTokens->constant : UsdGeomTokens->vertex;
+    TfToken displayPrimvarInterpolation = generatedDisplayColors ? UsdGeomTokens->constant : UsdGeomTokens->vertex;
     if (!displayColors.empty())
     {
       auto primvar = mesh.CreateDisplayColorPrimvar(displayPrimvarInterpolation);

@@ -717,8 +717,7 @@ namespace guc
                                                         float factor)
   {
     auto defaultOpacityValue = mx::Value::createValue(1.0f);
-    std::string opacityPrimvarName = makeOpacitySetName(0); // COLOR_0 according to spec sec. 3.9.2
-    mx::NodePtr geompropNode = makeGeompropValueNode(nodeGraph, opacityPrimvarName, MTLX_TYPE_FLOAT, defaultOpacityValue);
+    mx::NodePtr geompropNode = makeGeompropValueNode(nodeGraph, m_defaultOpacitySetName, MTLX_TYPE_FLOAT, defaultOpacityValue);
 
     mx::NodePtr multiplyNode1 = detail::makeMultiplyFactorNodeIfNecessary(nodeGraph, geompropNode, mx::Value::createValue(factor));
 

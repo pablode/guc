@@ -889,7 +889,8 @@ namespace guc
         displayOpacities = opacitySets[0];
       }
     }
-    else if (material->has_pbr_metallic_roughness)
+
+    if (material->has_pbr_metallic_roughness)
     {
       if (displayColors.empty())
       {

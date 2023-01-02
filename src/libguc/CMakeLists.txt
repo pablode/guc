@@ -28,7 +28,9 @@ set(LIBGUC_SHARED_SRCS
 )
 
 set(LIBGUC_SHARED_LIBRARIES
-  cgltf
+  # Header-only library without link dependencies --
+  # we can get away with not installing the target.
+  $<BUILD_INTERFACE:cgltf>
   MikkTSpace
   usd
   usdGeom
@@ -48,16 +50,41 @@ set(LIBGUC_VERSION_DEFINES
   GUC_VERSION_STRING="${CMAKE_PROJECT_VERSION}"
 )
 
+set(LIBGUC_PUBLIC_HEADERS
+  include/guc_params.h
+  include/guc.h
+)
+
+#
+# libguc
+#
 add_library(
   libguc
   ${LIBGUC_SHARED_SRCS}
-  include/guc_params.h
-  include/guc.h
+  ${LIBGUC_PUBLIC_HEADERS}
   src/guc.cpp
 )
 
 target_link_libraries(libguc PRIVATE ${LIBGUC_SHARED_LIBRARIES})
-target_include_directories(libguc PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+target_include_directories(libguc
+  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  PUBLIC $<INSTALL_INTERFACE:include>
+)
+
+set_target_properties(
+  libguc
+  PROPERTIES
+    PUBLIC_HEADER "${LIBGUC_PUBLIC_HEADERS}"
+    # We don't want 'liblibguc' on Linux/Unix
+    PREFIX ""
+    # fPIC for static linking because the USD libraries we use are built with it
+    POSITION_INDEPENDENT_CODE ON
+)
+
+if(WIN32 AND BUILD_SHARED_LIBS)
+  set_target_properties(libguc PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+endif()
 
 target_compile_definitions(
   libguc
@@ -68,23 +95,36 @@ target_compile_definitions(
     "$<$<OR:$<CONFIG:>,$<CONFIG:Debug>>:TBB_USE_DEBUG>"
 )
 
-# We don't want 'liblibguc' on Linux/Unix
-set_target_properties(libguc PROPERTIES PREFIX "")
+# Installation and cmake config file
+install(TARGETS libguc MikkTSpace EXPORT gucTargets COMPONENT libguc)
 
-if(WIN32 AND BUILD_SHARED_LIBS)
-  set_target_properties(libguc PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
-endif()
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+    gucConfigVersion.cmake
+    VERSION ${PACKAGE_VERSION}
+    COMPATIBILITY AnyNewerVersion
+)
+install(EXPORT gucTargets
+    FILE gucTargets.cmake
+    DESTINATION lib/cmake/guc
+    COMPONENT libguc
+)
 
-# Need fPIC for static linking because the USD libraries we use are built with it
-set_target_properties(libguc PROPERTIES POSITION_INDEPENDENT_CODE ON)
+configure_file("${PROJECT_SOURCE_DIR}/cmake/gucConfig.cmake.in" gucConfig.cmake @ONLY)
+install(
+  FILES "${CMAKE_CURRENT_BINARY_DIR}/gucConfig.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/gucConfigVersion.cmake"
+  DESTINATION lib/cmake/guc
+  COMPONENT libguc
+)
 
-install(TARGETS libguc COMPONENT libguc)
-
+#
+# usdGlTF
+#
 if(GUC_BUILD_USDGLTF)
   add_library(
     usdGlTF SHARED
     ${LIBGUC_SHARED_SRCS}
-    include/guc_params.h
     src/fileFormat.h
     src/fileFormat.cpp
   )

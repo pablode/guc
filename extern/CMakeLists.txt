@@ -5,5 +5,8 @@ target_include_directories(cgltf INTERFACE cgltf)
 
 # MikkTSpace
 add_library(MikkTSpace STATIC MikkTSpace/mikktspace.c MikkTSpace/mikktspace.h)
-target_include_directories(MikkTSpace PUBLIC MikkTSpace)
 set_target_properties(MikkTSpace PROPERTIES LINKER_LANGUAGE C)
+target_include_directories(MikkTSpace
+  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/MikkTSpace>
+  PUBLIC $<INSTALL_INTERFACE:>
+)

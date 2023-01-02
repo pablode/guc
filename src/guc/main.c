@@ -45,12 +45,12 @@ int main(int argc, const char* argv[])
   const char* gltf_path = argv[1];
   const char* usd_path = argv[2];
 
-  struct guc_params params;
-  params.emit_mtlx = false;
-  params.mtlx_as_usdshade = false;
-  params.explicit_colorspace_transforms = false;
-  params.gltf_pbr_impl = GUC_GLTF_PBR_IMPL_RUNTIME;
-  params.hdstorm_compat = false;
+  struct guc_options options;
+  options.emit_mtlx = false;
+  options.mtlx_as_usdshade = false;
+  options.explicit_colorspace_transforms = false;
+  options.gltf_pbr_impl = GUC_GLTF_PBR_IMPL_RUNTIME;
+  options.hdstorm_compat = false;
 
   for (int i = 3; i < argc; i++)
   {
@@ -62,17 +62,17 @@ int main(int argc, const char* argv[])
 
       if (!strcmp(arg, "emit-mtlx"))
       {
-        params.emit_mtlx = true;
+        options.emit_mtlx = true;
         continue;
       }
       else if (!strcmp(arg, "mtlx-as-usdshade"))
       {
-        params.mtlx_as_usdshade = true;
+        options.mtlx_as_usdshade = true;
         continue;
       }
       else if (!strcmp(arg, "explicit-colorspace-transforms"))
       {
-        params.explicit_colorspace_transforms = true;
+        options.explicit_colorspace_transforms = true;
         continue;
       }
       else if (!strcmp(arg, "gltf-pbr-impl") && ++i < argc)
@@ -85,18 +85,18 @@ int main(int argc, const char* argv[])
         }
         else if (!strcmp(val, "file"))
         {
-          params.gltf_pbr_impl = GUC_GLTF_PBR_IMPL_FILE;
+          options.gltf_pbr_impl = GUC_GLTF_PBR_IMPL_FILE;
           continue;
         }
         else if (!strcmp(val, "flattened"))
         {
-          params.gltf_pbr_impl = GUC_GLTF_PBR_IMPL_FLATTENED;
+          options.gltf_pbr_impl = GUC_GLTF_PBR_IMPL_FLATTENED;
           continue;
         }
       }
       else if (!strcmp(arg, "hdstorm-compat"))
       {
-        params.hdstorm_compat = true;
+        options.hdstorm_compat = true;
         continue;
       }
     }
@@ -105,7 +105,7 @@ int main(int argc, const char* argv[])
     return EXIT_FAILURE;
   }
 
-  bool result = guc_convert(gltf_path, usd_path, &params);
+  bool result = guc_convert(gltf_path, usd_path, &options);
 
   return result ? EXIT_SUCCESS : EXIT_FAILURE;
 }

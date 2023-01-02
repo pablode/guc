@@ -34,7 +34,7 @@ bool convertToUsd(fs::path src_dir,
                   const cgltf_data* gltf_data,
                   fs::path usd_path,
                   bool copyExistingFiles,
-                  const guc_params* params,
+                  const guc_options* options,
                   Converter::FileExports& fileExports)
 {
   UsdStageRefPtr stage = UsdStage::CreateNew(usd_path.string());
@@ -44,11 +44,20 @@ bool convertToUsd(fs::path src_dir,
     return false;
   }
 
-  fs::path dst_dir = usd_path.parent_path();
-  fs::path mtlx_file_name = usd_path.filename().replace_extension(".mtlx");
-  bool genRelativePaths = true;
+  Converter::Params params = {};
+  params.srcDir = src_dir;
+  params.dstDir = usd_path.parent_path();
+  params.mtlxFileName = usd_path.filename().replace_extension(".mtlx");
+  params.copyExistingFiles = copyExistingFiles;
+  params.genRelativePaths = true;
+  params.emitMtlx = options->emit_mtlx;
+  params.mtlxAsUsdShade = options->mtlx_as_usdshade;
+  params.explicitColorspaceTransforms = options->explicit_colorspace_transforms;
+  params.gltfPbrImpl = (Converter::GltfPbrImpl) options->gltf_pbr_impl;
+  params.hdStormCompat = options->hdstorm_compat;
 
-  Converter converter(gltf_data, stage, src_dir, dst_dir, mtlx_file_name, copyExistingFiles, genRelativePaths, *params);
+  Converter converter(gltf_data, stage, params);
+
   converter.convert(fileExports);
 
   TF_DEBUG(GUC).Msg("saving stage to %s\n", usd_path.string().c_str());
@@ -59,11 +68,9 @@ bool convertToUsd(fs::path src_dir,
 
 bool guc_convert(const char* gltf_path,
                  const char* usd_path,
-                 const guc_params* params)
+                 const guc_options* options)
 {
-  TF_VERIFY(params);
-
-  if (params->mtlx_as_usdshade && params->gltf_pbr_impl == GUC_GLTF_PBR_IMPL_FLATTENED)
+  if (options->mtlx_as_usdshade && options->gltf_pbr_impl == GUC_GLTF_PBR_IMPL_FLATTENED)
   {
     TF_RUNTIME_ERROR("mtlx-as-usdshade not supported with node flattening");
     return false;
@@ -105,7 +112,7 @@ bool guc_convert(const char* gltf_path,
   bool copyExistingFiles = !export_usdz; // Add source files directly to archive in case of USDZ
 
   Converter::FileExports fileExports;
-  bool result = convertToUsd(src_dir, gltf_data, base_usd_path, copyExistingFiles, params, fileExports);
+  bool result = convertToUsd(src_dir, gltf_data, base_usd_path, copyExistingFiles, options, fileExports);
 
   cgltf_free(gltf_data);
 

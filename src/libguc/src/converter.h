@@ -16,8 +16,6 @@
 
 #pragma once
 
-#include "guc_params.h"
-
 #include <cgltf.h>
 #include <pxr/usd/usd/prim.h>
 #include <pxr/usd/usd/stage.h>
@@ -39,14 +37,29 @@ namespace guc
   class Converter
   {
   public:
-    Converter(const cgltf_data* data,
-              UsdStageRefPtr stage,
-              const fs::path& srcDir,
-              const fs::path& dstDir,
-              const fs::path& mtlxFileName,
-              bool copyExistingFiles,
-              bool genRelativePaths,
-              const guc_params& params);
+    enum class GltfPbrImpl
+    {
+      Runtime,
+      File,
+      Flattened
+    };
+
+    struct Params
+    {
+      fs::path srcDir;
+      fs::path dstDir;
+      fs::path mtlxFileName;
+      bool copyExistingFiles;
+      bool genRelativePaths;
+      bool emitMtlx;
+      bool mtlxAsUsdShade;
+      bool explicitColorspaceTransforms;
+      GltfPbrImpl gltfPbrImpl;
+      bool hdStormCompat;
+    };
+
+  public:
+    Converter(const cgltf_data* data, UsdStageRefPtr stage, const Params& params);
 
   public:
     struct FileExport
@@ -73,12 +86,7 @@ namespace guc
   private:
     const cgltf_data* m_data;
     UsdStageRefPtr m_stage;
-    const fs::path& m_srcDir;
-    const fs::path& m_dstDir;
-    const fs::path& m_mtlxFileName;
-    const bool m_copyExistingFiles;
-    const bool m_genRelativePaths;
-    const guc_params& m_params;
+    const Params& m_params;
 
   private:
     ImageMetadataMap m_imgMetadata;

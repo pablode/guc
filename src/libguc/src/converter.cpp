@@ -230,26 +230,14 @@ namespace detail
 
 namespace guc
 {
-  Converter::Converter(const cgltf_data* data,
-                       UsdStageRefPtr stage,
-                       const fs::path& srcDir,
-                       const fs::path& dstDir,
-                       const fs::path& mtlxFileName,
-                       bool copyExistingFiles,
-                       bool genRelativePaths,
-                       const guc_params& params)
+  Converter::Converter(const cgltf_data* data, UsdStageRefPtr stage, const Params& params)
     : m_data(data)
     , m_stage(stage)
-    , m_srcDir(srcDir)
-    , m_dstDir(dstDir)
-    , m_mtlxFileName(mtlxFileName)
-    , m_copyExistingFiles(copyExistingFiles)
-    , m_genRelativePaths(genRelativePaths)
     , m_params(params)
     , m_mtlxDoc(mx::createDocument())
     , m_mtlxConverter(m_mtlxDoc, m_imgMetadata,
-        params.gltf_pbr_impl == GUC_GLTF_PBR_IMPL_FLATTENED,
-        params.explicit_colorspace_transforms, params.hdstorm_compat)
+        params.gltfPbrImpl == GltfPbrImpl::Flattened,
+        params.explicitColorspaceTransforms, params.hdStormCompat)
     , m_usdPreviewSurfaceConverter(m_stage, m_imgMetadata)
   {
   }
@@ -282,7 +270,8 @@ namespace guc
     }
 
     // Step 1: process images
-    processImages(m_data->images, m_data->images_count, m_srcDir, m_dstDir, m_copyExistingFiles, m_genRelativePaths, m_imgMetadata);
+    processImages(m_data->images, m_data->images_count, m_params.srcDir,
+      m_params.dstDir, m_params.copyExistingFiles, m_params.genRelativePaths, m_imgMetadata);
 
     fileExports.reserve(m_imgMetadata.size());
     for (const auto& imgMetadataPair : m_imgMetadata)
@@ -377,7 +366,7 @@ namespace guc
   {
     // We import the MaterialX bxdf/pbrlib/stdlib documents mainly for validation, but
     // because UsdMtlx tries to output them, we only do so when not exporting UsdShade.
-    if (m_params.emit_mtlx && !m_params.mtlx_as_usdshade)
+    if (m_params.emitMtlx && !m_params.mtlxAsUsdShade)
     {
       mx::FilePathVec libFolders = { "libraries" };
       mx::FileSearchPath searchPath;
@@ -415,7 +404,7 @@ namespace guc
       SdfPath previewPath = makeUsdPreviewSurfaceMaterialPath(DEFAULT_MATERIAL_NAME);
       m_usdPreviewSurfaceConverter.convert(&DEFAULT_MATERIAL, previewPath);
 
-      if (m_params.emit_mtlx)
+      if (m_params.emitMtlx)
       {
         m_mtlxConverter.convert(&DEFAULT_MATERIAL, DEFAULT_MATERIAL_NAME);
       }
@@ -439,33 +428,33 @@ namespace guc
       SdfPath previewPath = makeUsdPreviewSurfaceMaterialPath(m_materialNames[i]);
       m_usdPreviewSurfaceConverter.convert(gmat, previewPath);
 
-      if (m_params.emit_mtlx)
+      if (m_params.emitMtlx)
       {
         m_mtlxConverter.convert(gmat, materialName);
       }
     }
 
-    if (!m_params.emit_mtlx)
+    if (!m_params.emitMtlx)
     {
       return;
     }
 
     // Export MaterialX glTF PBR file if wanted
-    if (m_params.gltf_pbr_impl == GUC_GLTF_PBR_IMPL_FILE)
+    if (m_params.gltfPbrImpl == GltfPbrImpl::File)
     {
       fs::path implFilePath;
       if (!detail::findMtlxGltfPbrFilePath(implFilePath))
       {
         TF_RUNTIME_ERROR("can't find %s - portable node impl not possible", MTLX_GLTF_PBR_FILE_NAME);
       }
-      else if (!m_copyExistingFiles)
+      else if (!m_params.copyExistingFiles)
       {
-        const std::string& refPath = m_genRelativePaths ? MTLX_GLTF_PBR_FILE_NAME : implFilePath.string();
+        const std::string& refPath = m_params.genRelativePaths ? MTLX_GLTF_PBR_FILE_NAME : implFilePath.string();
         fileExports.push_back({ implFilePath.string(), refPath });
       }
       else
       {
-        fs::path dstFilePath = m_dstDir / MTLX_GLTF_PBR_FILE_NAME;
+        fs::path dstFilePath = m_params.dstDir / MTLX_GLTF_PBR_FILE_NAME;
 
         TF_DEBUG(GUC).Msg("copying glTF PBR mtlx file from %s to %s\n",
           implFilePath.string().c_str(), dstFilePath.string().c_str());
@@ -489,7 +478,7 @@ namespace guc
     }
 
     // Let UsdMtlx convert the document to UsdShade
-    if (m_params.mtlx_as_usdshade)
+    if (m_params.mtlxAsUsdShade)
     {
       UsdMtlxRead(m_mtlxDoc, m_stage, getEntryPath(EntryPathType::MaterialXMaterials));
     }
@@ -501,16 +490,18 @@ namespace guc
         // Prevent imported libraries (pbrlib etc.) from being emitted as XML includes
         return !elem->hasSourceUri() || elem->getSourceUri() == MTLX_GLTF_PBR_FILE_NAME;
       };
-      auto mtlxFilePath = m_dstDir / m_mtlxFileName;
+
+      auto mtlxFileName = m_params.mtlxFileName;
+      auto mtlxFilePath = m_params.dstDir / mtlxFileName;
       TF_DEBUG(GUC).Msg("writing mtlx file %s\n", mtlxFilePath.string().c_str());
       mx::writeToXmlFile(m_mtlxDoc, mx::FilePath(mtlxFilePath.string()), &writeOptions);
 
       // And create a reference to it
       auto over = m_stage->OverridePrim(getEntryPath(EntryPathType::MaterialXMaterials));
       auto references = over.GetPrim().GetReferences();
-      TF_VERIFY(references.AddReference(m_mtlxFileName.string(), SdfPath("/MaterialX")));
+      TF_VERIFY(references.AddReference(mtlxFileName.string(), SdfPath("/MaterialX")));
 
-      fileExports.push_back({ mtlxFilePath.string(), m_mtlxFileName.string() });
+      fileExports.push_back({ mtlxFilePath.string(), mtlxFileName.string() });
     }
   }
 
@@ -732,7 +723,7 @@ namespace guc
         );
       }
 
-      if (m_params.emit_mtlx)
+      if (m_params.emitMtlx)
       {
         UsdShadeMaterialBindingAPI(submesh).Bind(
           UsdShadeMaterial::Get(m_stage, makeMtlxMaterialPath(materialName)),

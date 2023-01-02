@@ -23,7 +23,6 @@
 
 #include <filesystem>
 
-#include "guc_params.h"
 #include "cgltf_util.h"
 #include "converter.h"
 #include "debugCodes.h"
@@ -106,23 +105,22 @@ bool UsdGlTFFileFormat::Read(SdfLayer* layer,
     return false;
   }
 
-  guc_params params = {};
-  params.emit_mtlx = TfGetEnvSetting(USDGLTF_ENABLE_MTLX);
-  params.mtlx_as_usdshade = true;
-  params.explicit_colorspace_transforms = false;
-  params.gltf_pbr_impl = GUC_GLTF_PBR_IMPL_RUNTIME;
-  params.hdstorm_compat = false;
-
-  fs::path srcDir = fs::path(resolvedPath).parent_path();
-  fs::path dstDir = s_tmpDirHolder.makeDir();
-  fs::path mtlxFileName = ""; // Emitted as UsdShade
-  bool copyExistingFiles = false;
-  bool genRelativePaths = false;
+  Converter::Params params = {};
+  params.srcDir = fs::path(resolvedPath).parent_path();
+  params.dstDir = s_tmpDirHolder.makeDir();
+  params.mtlxFileName = ""; // Not needed because of Mtlx-as-UsdShade option
+  params.copyExistingFiles = false;
+  params.genRelativePaths = false;
+  params.emitMtlx = TfGetEnvSetting(USDGLTF_ENABLE_MTLX);
+  params.mtlxAsUsdShade = true;
+  params.explicitColorspaceTransforms = false;
+  params.gltfPbrImpl = Converter::GltfPbrImpl::Runtime;
+  params.hdStormCompat = false;
 
   SdfLayerRefPtr tmpLayer = SdfLayer::CreateAnonymous(".usdc");
   UsdStageRefPtr stage = UsdStage::Open(tmpLayer);
 
-  Converter converter(gltf_data, stage, srcDir, dstDir, mtlxFileName, copyExistingFiles, genRelativePaths, params);
+  Converter converter(gltf_data, stage, params);
 
   Converter::FileExports fileExports; // only used for USDZ
   converter.convert(fileExports);

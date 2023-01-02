@@ -51,7 +51,6 @@ set(LIBGUC_VERSION_DEFINES
 )
 
 set(LIBGUC_PUBLIC_HEADERS
-  include/guc_params.h
   include/guc.h
 )
 

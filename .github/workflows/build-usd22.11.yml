@@ -1,3 +1,5 @@
+name: Build guc for USD v22.11
+
 on:
   workflow_call:
     inputs:

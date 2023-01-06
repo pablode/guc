@@ -1,3 +1,5 @@
+name: Build guc
+
 on:
   workflow_call:
     inputs:
@@ -50,7 +52,7 @@ jobs:
 
     - name: Generate build system files using CMake
       working-directory: BUILD
-      run: cmake .. -Dpxr_DIR=${{ inputs.usd-install-path }} -DCMAKE_BUILD_TYPE=${{ inputs.build-config }} -DGUC_BUILD_USDGLTF=ON ${{ inputs.extra-cmake-flags }} 
+      run: cmake .. -Dpxr_DIR=${{ inputs.usd-install-path }} -DCMAKE_BUILD_TYPE=${{ inputs.build-config }} -DGUC_BUILD_USDGLTF=ON ${{ inputs.extra-cmake-flags }}
 
     - name: Build guc
       working-directory: BUILD

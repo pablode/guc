@@ -1,13 +1,25 @@
 name: Run Tests
 
 on:
-  workflow_dispatch:
   push:
+  workflow_dispatch:
+    inputs:
+      enable-graphical-tests-mtlx:
+        description: Enable MaterialX graphical tests
+        type: boolean
+        default: false
+      enable-graphical-tests-preview:
+        description: Enable preview graphical tests
+        type: boolean
+        default: false
+      test-filter:
+        description: Filter (regular expression)
+        type: string
 
 env:
-  usd-download-url: "https://github.com/pablode/USD/releases/download/v22.11-ci-release/USD22.11_Linux_x64_Python3.8.tar.gz"
-  usd-install-path: /home/runner/work/USD/USD/INSTALL
-  guc-artifact-name: guc_USD22.11_Linux_x64_Debug.tar.gz
+  USD_DOWNLOAD_URL: "https://github.com/pablode/USD/releases/download/v22.11-ci-release/USD22.11_Linux_x64_Python3.8.tar.gz"
+  USD_INSTALL_PATH: /home/runner/work/USD/USD/INSTALL
+  GUC_ARTIFACT_NAME: guc_USD22.11_Linux_x64_Debug.tar.gz
 
 jobs:
   build-debug:
@@ -33,10 +45,10 @@ jobs:
 
     steps:
     - name: Fetch USD binaries
-      run: curl ${{ env.usd-download-url }} -L -v -o USD.tar.gz
+      run: curl ${{ env.USD_DOWNLOAD_URL }} -L -v -o USD.tar.gz
 
     - name: Install USD binaries
-      run: mkdir -p ${{ env.usd-install-path }} && tar -xvf USD.tar.gz -C ${{ env.usd-install-path }}
+      run: mkdir -p ${{ env.USD_INSTALL_PATH }} && tar -xvf USD.tar.gz -C ${{ env.USD_INSTALL_PATH }}
 
     - name: Download guc artifacts
       id: download-guc
@@ -44,15 +56,72 @@ jobs:
       with:
         name: ${{ needs.build-debug.outputs.archive-name }}
 
-    - name: Install guc
       # Install guc to the USD installation so that we can use the usdGlTF Sdf plugin
-      run: tar -xvf ${{ env.guc-artifact-name }} -C ${{ env.usd-install-path }}
+    - name: Install guc
+      run: tar -xvf ${{ env.GUC_ARTIFACT_NAME }} -C ${{ env.USD_INSTALL_PATH }}
+
+    - name: Install packages
+      run: |
+        # Use latest stable mesa because Storm requires OpenGL 4.6
+        sudo add-apt-repository ppa:kisak/kisak-mesa
+        sudo apt update
+        sudo apt upgrade
+        sudo apt-get install mesa-utils xvfb qt5-default
+
+      # usdrecord needs python (may change soon!)
+    - name: Install Python packages
+      run: pip3 install --user PySide2 PyOpenGL
 
     - name: Set up environment variables
       run: |
-        echo "${{ env.usd-install-path }}/bin" >> $GITHUB_PATH
-        echo "LD_LIBRARY_PATH=${{ env.usd-install-path }}/lib" >> $GITHUB_ENV
-        echo "PYTHONPATH=${{ env.usd-install-path }}/lib/python" >> $GITHUB_ENV
+        # Test options
+        if [[ -z "${{ inputs.enable-graphical-tests-mtlx }}" ]] || [[ "${{ inputs.enable-graphical-tests-mtlx }}" = "false" ]]; then
+          echo "GT_DISABLE_GRAPHICAL_MTLX=1" >> $GITHUB_ENV
+        fi
+        if [[ -z "${{ inputs.enable-graphical-tests-preview }}" ]] || [[ "${{ inputs.enable-graphical-tests-preview }}" = "false" ]]; then
+          echo "GT_DISABLE_GRAPHICAL_PREVIEW=1" >> $GITHUB_ENV
+        fi
+        # Executables and libraries
+        echo "${{ env.USD_INSTALL_PATH }}/bin" >> $GITHUB_PATH
+        echo "LD_LIBRARY_PATH=${{ env.USD_INSTALL_PATH }}/lib" >> $GITHUB_ENV
+        echo "PYTHONPATH=${{ env.USD_INSTALL_PATH }}/lib/python" >> $GITHUB_ENV
+        # Software rendering
+        echo "DISPLAY=:1" >> $GITHUB_ENV
+        echo "LIBGL_ALWAYS_SOFTWARE=1" >> $GITHUB_ENV
+        echo "GALLIUM_DRIVER=llvmpipe" >> $GITHUB_ENV
+        echo "MESA_NO_ERROR=1" >> $GITHUB_ENV
+        # guc debug output
+        echo "TF_DEBUG=GUC" >> $GITHUB_ENV
+
+    - name: Start virtual framebuffer
+      run: |
+        Xvfb :1 -screen 0 1280x960x24 &
+
+    - name: Test glxinfo
+      run: glxinfo
 
     - name: Print guc help
       run: guc || [ $? -eq 1 ]
+
+    - name: Check out tests repository
+      uses: actions/checkout@v3
+      with:
+        repository: pablode/guc-tests
+        submodules: recursive
+
+    - name: Run tests
+      run: bash ./run_tests.sh "${{ inputs.test-filter }}"
+
+    - name: Create test output archive
+      if: success() || failure()
+      working-directory: tests/output
+      run: tar -zcvf ../../test-output.tar.gz *
+
+    - name: Upload archive
+      if: success() || failure()
+      uses: actions/upload-artifact@v3
+      with:
+        path: test-output.tar.gz
+        if-no-files-found: error
+        name: test-output-${{ github.sha }}
+        retention-days: 7

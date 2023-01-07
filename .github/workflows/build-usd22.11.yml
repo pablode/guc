@@ -30,9 +30,9 @@ jobs:
 
         - os-family: MacOS
           image: macos-12
-          usd-download-url: "https://github.com/pablode/USD/releases/download/v22.11-ci-release/USD22.11_MacOS_x64_Python2.7.tar.gz"
+          usd-download-url: "https://github.com/pablode/USD/releases/download/v22.11-ci-release/USD22.11_MacOS_x64_Python3.7.tar.gz"
           usd-install-path: /Users/runner/work/USD/USD/INSTALL
-          archive-file-name: guc_USD22.11_MacOS_x64_Python2.7.tar.gz
+          archive-file-name: guc_USD22.11_MacOS_x64_Python3.7.tar.gz
 
         - os-family: Windows
           image: windows-2019

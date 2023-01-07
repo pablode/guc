@@ -19,7 +19,7 @@ on:
 env:
   USD_DOWNLOAD_URL: "https://github.com/pablode/USD/releases/download/v22.11-ci-release/USD22.11_Linux_x64_Python3.8.tar.gz"
   USD_INSTALL_PATH: /home/runner/work/USD/USD/INSTALL
-  GUC_ARTIFACT_NAME: guc_USD22.11_Linux_x64_Debug.tar.gz
+  GUC_ARTIFACT_NAME: guc_USD22.11_Linux_x64_Python3.8.tar.gz
 
 jobs:
   build-debug:

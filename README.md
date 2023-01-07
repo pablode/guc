@@ -10,7 +10,7 @@ Unlike...
 guc furthermore supports near-lossless material translation via the [MaterialX](https://github.com/AcademySoftwareFoundation/MaterialX) standard.
 Shading networks can be encoded as UsdShade and flattened for backwards compatibility.
 
-All glTF features except animation and skinning are implemented and have been tested on Khronos's [sample](https://github.com/KhronosGroup/glTF-Sample-Models) and [validation](https://github.com/KhronosGroup/glTF-Asset-Generator) models.
+All glTF features except animation and skinning are implemented and get continuously tested in guc's [test suite](https://github.com/pablode/guc-tests).
 
 <p align="middle">
   <img width=360 src="preview_hdStorm.png" />
@@ -43,24 +43,26 @@ Build the executable:
 cmake --build . -j8 --target guc --config Release
 ```
 
-> Note: If you're using MSVC, be sure to select a 64-bit generator.
+> Note: set `BUILD_SHARED_LIBS` for shared builds, and `CMAKE_MSVC_RUNTIME_LIBRARY` to USD's MSVC ABI.
 
 ### Usage
 
 ```
-Usage: guc <gltf_path> <usd_path> [params]
+Usage: guc <gltf_path> <usd_path> [options]
 
-Available params:
---emit-mtlx                       Emit MaterialX materials in addition to UsdPreviewSurfaces
---mtlx-as-usdshade                Convert and inline MaterialX materials with UsdMtlx
---flatten-nodes                   Flatten MaterialX glTF PBR nodes to stdlib and pbrlib nodes
---explicit-colorspace-transforms  Explicitly transform colorspaces using MaterialX nodes
---hdstorm-compat                  Apply compatibility tweaks for the USD hdStorm renderer
+Options:
+--emit-mtlx                             Emit MaterialX materials in addition to UsdPreviewSurfaces
+--mtlx-as-usdshade                      Convert and inline MaterialX materials with UsdMtlx
+--explicit-colorspace-transforms        Explicitly transform colorspaces using MaterialX nodes
+--gltf-pbr-impl runtime|file|flattened  How the MaterialX glTF PBR is provided. Default: runtime
+--hdstorm-compat                        Apply compatibility tweaks for the USD hdStorm renderer
 ```
 
-Both `.gltf` and `.glb` file types are valid input. `.usda` and `.usdc` USD formats can be written.
+Both glTF and GLB file types are valid input. USDA, USDC and USDZ formats can be written.
 
-Debug logging can be enabled by defining the `TF_DEBUG="GUC"` environment variable.
+An example asset conversion is described in the [Structure Mapping](docs/Structure_Mapping.md) document.
+
+> Note: imaging of USD+MaterialX assets may be incorrect due to a number of current [Ecosystem Limitations](docs/Ecosystem_Limitations.md).
 
 ### Extension support
 
@@ -84,13 +86,14 @@ KHR_xmp_json_ld                     | ❌ Not supported
 <sup>\[1\]</sup> Spotlight cone falloff is ignored.  
 <sup>\[2\]</sup> Thickness is <a href="https://github.com/AcademySoftwareFoundation/MaterialX/pull/861">not supported</a> by the MaterialX glTF PBR implementation.
 
-### Known limitations
+### Sdf plugin
 
-Normal map bitangents are currently [not supported](https://github.com/AcademySoftwareFoundation/MaterialX/issues/945) in MaterialX.
+The _usdGlTF_ library implements USD's Sdf file format interface. Enable the CMake option and install it as follows:
+```
+cmake --install . --component usdGlTF --config Release --prefix <USD_INSTALL_DIR>/plugin/usd
+```
 
-### Apple AR Quick Look compatibility
-
-I have no intention of implementing workarounds for Apple's incomplete USD support. [usd_from_gltf](https://github.com/google/usd_from_gltf) or [Apple's USDZ Tools](https://developer.apple.com/augmented-reality/tools/) should be used instead.
+> Note: the plugin only emits MaterialX materials if the `USDGLTF_ENABLE_MTLX` environment variable is set.
 
 ### License
 

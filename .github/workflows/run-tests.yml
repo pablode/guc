@@ -18,10 +18,9 @@ on:
         description: Filter (regular expression)
         type: string
 
-env:
-  USD_DOWNLOAD_URL: "https://github.com/pablode/USD/releases/download/v22.11-ci-release/USD22.11_Linux_x64_Python3.8.tar.gz"
-  USD_INSTALL_PATH: /home/runner/work/USD/USD/INSTALL
-  GUC_ARTIFACT_NAME: guc_USD22.11_Linux_x64_Python3.8.tar.gz
+defaults:
+  run:
+    shell: bash
 
 jobs:
   build-debug:
@@ -38,12 +37,77 @@ jobs:
       build-config: Release
       extra-cmake-flags: -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
 
-  run-tests:
-    name: Run Tests
-    # We require debug builds for all major os families to succeed with the
-    # warnings-as-errors flag enabled, but only use the Linux image for tests.
-    needs: build-debug
+  smoke-test:
+    name: Smoke Test ${{ matrix.os-family }} (Release)
+    runs-on: ${{ matrix.image }}
+    needs: build-release
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - os-family: Linux
+          image: ubuntu-20.04
+          usd-download-url: "https://github.com/pablode/USD/releases/download/v22.11-ci-release/USD22.11_Linux_x64_Python3.8.tar.gz"
+          artifact-name: guc_USD22.11_Linux_x64_Python3.8.tar.gz
+          executable-name: guc
+
+        - os-family: Windows
+          image: windows-2019
+          usd-download-url: "https://github.com/pablode/USD/releases/download/v22.11-ci-release/USD22.11_Windows_x64_Python3.7.tar.gz"
+          artifact-name: guc_USD22.11_Windows_x64_Python3.7.tar.gz
+          executable-name: guc.exe
+
+    steps:
+    - name: Fetch USD binaries
+      run: curl ${{ matrix.usd-download-url }} -L -v -o USD.tar.gz
+
+    - name: Install USD binaries
+      run: mkdir -p USD_INSTALL && tar -xvf USD.tar.gz -C $PWD/USD_INSTALL
+
+    - name: Download guc artifacts
+      id: download-guc
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ needs.build-release.outputs.archive-name }}
+
+    - name: Install guc
+      run: mkdir -p GUC_INSTALL && tar -xvf ${{ matrix.artifact-name}} -C $PWD/GUC_INSTALL
+
+    - name: Set up environment variables (Linux)
+      if: matrix.os-family == 'Linux'
+      run: echo "LD_LIBRARY_PATH=$PWD/USD_INSTALL/lib" >> $GITHUB_ENV
+
+    - name: Set up environment variables (Windows)
+      if: matrix.os-family == 'Windows'
+      run: |
+        # We need to use real Windows paths, instead of MSYS2's auto-converted Unix paths
+        echo "$(pwd -W)/USD_INSTALL/lib" >> $GITHUB_PATH
+        echo "$(pwd -W)/USD_INSTALL/bin" >> $GITHUB_PATH
+
+    - name: Fetch example glTF file
+      run: mkdir test && curl "https://github.com/KhronosGroup/glTF-Sample-Models/raw/db9ff67c1116cfe28eb36320916bccd8c4127cc1/2.0/ToyCar/glTF-Binary/ToyCar.glb" -L -v -o test/asset.glb
+
+    - name: Run test
+      working-directory: test
+      run: ../GUC_INSTALL/bin/${{ matrix.executable-name }} asset.glb asset.usda --emit-mtlx
+
+    - name: Print output info
+      working-directory: test
+      run: |
+        ls -la .
+        cat asset.mtlx
+        cat asset.usda
+
+  conversion-tests:
+    name: Conversion Tests (Debug)
     runs-on: ubuntu-20.04
+    needs: build-debug
+
+    env:
+      USD_DOWNLOAD_URL: "https://github.com/pablode/USD/releases/download/v22.11-ci-release/USD22.11_Linux_x64_Python3.8.tar.gz"
+      GUC_ARTIFACT_NAME: guc_USD22.11_Linux_x64_Python3.8.tar.gz
+      USD_INSTALL_PATH: /home/runner/work/USD/USD/INSTALL
 
     steps:
     - name: Fetch USD binaries

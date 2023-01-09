@@ -32,6 +32,6 @@ jobs:
           name: "Version XXX"
           body: "TBD"
           files: |
-            */*.tar.gz
+            *.tar.gz
           fail_on_unmatched_files: true
           draft: true

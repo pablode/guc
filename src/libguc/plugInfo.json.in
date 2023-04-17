@@ -11,6 +11,7 @@
                         "extensions": [
                             "gltf", "glb"
                         ],
+                        "supportsWriting": false,
                         "formatId": "glTF",
                         "primary": true,
                         "target": "usd"

@@ -33,6 +33,7 @@ TF_DEFINE_PRIVATE_TOKENS(
   (UsdPreviewSurface)
   (UsdUVTexture)
   (UsdPrimvarReader_float2)
+  (UsdTransform2d)
   // UsdPreviewSurface inputs
   (emissiveColor)
   (occlusion)
@@ -72,6 +73,10 @@ TF_DEFINE_PRIVATE_TOKENS(
   // UsdPrimvarReader_float2 input and output
   (varname)
   (result)
+  // UsdTransform2d inputs
+  (in)
+  (rotation)
+  (translation)
 );
 
 namespace detail
@@ -120,6 +125,16 @@ namespace detail
     auto valueType = channels == _tokens->rgb ? SdfValueTypeNames->Float3 : SdfValueTypeNames->Float;
     auto output = node.CreateOutput(channels, valueType);
     input.ConnectToSource(output);
+  }
+
+  bool isTransformNeeded(const cgltf_texture_transform& transform)
+  {
+    return transform.has_texcoord ||
+           transform.offset[0] != 0.0f ||
+           transform.offset[1] != 0.0f ||
+           transform.rotation != 0.0f ||
+           transform.scale[0] != 1.0f ||
+           transform.scale[1] != 1.0f;
   }
 }
 
@@ -269,9 +284,6 @@ namespace guc
       return;
     }
 
-    auto stInput = textureNode.CreateInput(_tokens->st, SdfValueTypeNames->Float2);
-    setStPrimvarInput(stInput, basePath, textureView.texcoord);
-
     detail::connectTextureInputOutput(shaderInput, textureNode, _tokens->rgb);
   }
 
@@ -296,9 +308,6 @@ namespace guc
     {
       return;
     }
-
-    auto stInput = textureNode.CreateInput(_tokens->st, SdfValueTypeNames->Float2);
-    setStPrimvarInput(stInput, basePath, textureView.texcoord);
 
     detail::connectTextureInputOutput(shaderInput, textureNode, _tokens->r);
   }
@@ -339,15 +348,43 @@ namespace guc
       int channelCount = getTextureChannelCount(textureView);
       bool remapChannelToAlpha = (channelCount == 2 && channels == _tokens->g);
 
-      auto stInput = textureNode.CreateInput(_tokens->st, SdfValueTypeNames->Float2);
-      setStPrimvarInput(stInput, basePath, textureView.texcoord);
-
       detail::connectTextureInputOutput(shaderInput, textureNode, remapChannelToAlpha ? _tokens->a : channels);
     }
     else if (scale)
     {
       detail::setChannelInputValues(shaderInput, *scale, channels);
     }
+  }
+
+  void UsdPreviewSurfaceMaterialConverter::addTextureTransformNode(const SdfPath& basePath,
+                                                                   const cgltf_texture_transform& transform,
+                                                                   int fallbackStIndex,
+                                                                   UsdShadeInput& textureStInput)
+  {
+    auto nodePath = makeUniqueStageSubpath(m_stage, basePath, "node", "");
+
+    UsdShadeShader node = UsdShadeShader::Define(m_stage, nodePath);
+    node.CreateIdAttr(VtValue(_tokens->UsdTransform2d));
+
+    auto rotationInput = node.CreateInput(_tokens->rotation, SdfValueTypeNames->Float);
+    rotationInput.Set(float(GfRadiansToDegrees(transform.rotation)));
+
+    auto scaleInput = node.CreateInput(_tokens->scale, SdfValueTypeNames->Float2);
+    scaleInput.Set(GfVec2f(transform.scale[0], transform.scale[1]));
+
+    // Modify offset to account for glTF-USD differences in rotation pivot and y-origin
+    GfVec2f offset(transform.offset[0], -transform.offset[1]);
+    offset[0] += sinf(transform.rotation) * transform.scale[1];
+    offset[1] += 1.0f - (cosf(transform.rotation) * transform.scale[1]);
+
+    auto translationInput = node.CreateInput(_tokens->translation, SdfValueTypeNames->Float2);
+    translationInput.Set(offset);
+
+    auto untransformedInput = node.CreateInput(_tokens->in, SdfValueTypeNames->Float2);
+    setStPrimvarInput(untransformedInput, basePath, transform.has_texcoord ? transform.texcoord : fallbackStIndex);
+
+    auto transformedOutput = node.CreateOutput(_tokens->result, SdfValueTypeNames->Float2);
+    textureStInput.ConnectToSource(transformedOutput);
   }
 
   bool UsdPreviewSurfaceMaterialConverter::addTextureNode(const SdfPath& basePath,
@@ -400,6 +437,19 @@ namespace guc
 
     auto wrapTInput = node.CreateInput(_tokens->wrapT, SdfValueTypeNames->Token);
     wrapTInput.Set(sampler ? detail::convertWrapMode(sampler->wrap_t) : _tokens->repeat);
+
+    // Tex coords come from either a primvar or the output of a UsdTransform2d node
+    auto stInput = node.CreateInput(_tokens->st, SdfValueTypeNames->Float2);
+    const cgltf_texture_transform& transform = textureView.transform;
+
+    if (detail::isTransformNeeded(transform))
+    {
+      addTextureTransformNode(basePath, transform, textureView.texcoord, stInput);
+    }
+    else
+    {
+      setStPrimvarInput(stInput, basePath, textureView.texcoord);
+    }
 
     return true;
   }

@@ -71,6 +71,11 @@ namespace guc
                          const GfVec4f* bias,
                          const GfVec4f* fallback);
 
+    void addTextureTransformNode(const SdfPath& basePath,
+                                 const cgltf_texture_transform& transform,
+                                 int fallbackStIndex,
+                                 UsdShadeInput& textureStInput);
+
     bool addTextureNode(const SdfPath& basePath,
                         const cgltf_texture_view& textureView,
                         const TfToken& colorSpace,

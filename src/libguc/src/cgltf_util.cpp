@@ -41,7 +41,8 @@ namespace detail
            strcmp(name, "KHR_materials_sheen") == 0 ||
            strcmp(name, "KHR_materials_specular") == 0 ||
            strcmp(name, "KHR_materials_transmission") == 0 ||
-           strcmp(name, "KHR_materials_volume") == 0;
+           strcmp(name, "KHR_materials_volume") == 0 ||
+           strcmp(name, "KHR_texture_transform") == 0;
   }
 }
 

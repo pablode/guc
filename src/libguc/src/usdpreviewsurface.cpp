@@ -253,7 +253,7 @@ namespace guc
     // We also scale the normal although this does not guarantee that the resulting vector is normalized.
     float xyScale = 2.0f * textureView.scale;
     float xyBias = -1.0f * textureView.scale;
-    GfVec4f scale(xyScale, xyScale, 2.0f, 0.0f);
+    GfVec4f scale(xyScale, xyScale, 2.0f, 1.0f);
     GfVec4f bias(xyBias, xyBias, -1.0f, 0.0f);
     GfVec4f fallback(0.5f, 0.5f, 1.0f, 0.0f); // glTF fallback normal
 

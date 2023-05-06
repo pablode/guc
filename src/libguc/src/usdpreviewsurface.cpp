@@ -349,7 +349,7 @@ namespace guc
 
   void UsdPreviewSurfaceMaterialConverter::addTextureTransformNode(const SdfPath& basePath,
                                                                    const cgltf_texture_transform& transform,
-                                                                   int fallbackStIndex,
+                                                                   int stIndex,
                                                                    UsdShadeInput& textureStInput)
   {
     auto nodePath = makeUniqueStageSubpath(m_stage, basePath, "node", "");
@@ -372,7 +372,7 @@ namespace guc
     translationInput.Set(offset);
 
     auto untransformedInput = node.CreateInput(_tokens->in, SdfValueTypeNames->Float2);
-    setStPrimvarInput(untransformedInput, basePath, transform.has_texcoord ? transform.texcoord : fallbackStIndex);
+    setStPrimvarInput(untransformedInput, basePath, stIndex);
 
     auto transformedOutput = node.CreateOutput(_tokens->result, SdfValueTypeNames->Float2);
     textureStInput.ConnectToSource(transformedOutput);
@@ -431,15 +431,17 @@ namespace guc
 
     // Tex coords come from either a primvar or the output of a UsdTransform2d node
     auto stInput = node.CreateInput(_tokens->st, SdfValueTypeNames->Float2);
-    const cgltf_texture_transform& transform = textureView.transform;
 
-    if (cgltf_transform_required(transform))
+    const cgltf_texture_transform& transform = textureView.transform;
+    int stIndex = (textureView.has_transform && transform.has_texcoord) ? transform.texcoord : textureView.texcoord;
+
+    if (textureView.has_transform && cgltf_transform_required(transform))
     {
-      addTextureTransformNode(basePath, transform, textureView.texcoord, stInput);
+      addTextureTransformNode(basePath, transform, stIndex, stInput);
     }
     else
     {
-      setStPrimvarInput(stInput, basePath, textureView.texcoord);
+      setStPrimvarInput(stInput, basePath, stIndex);
     }
 
     return true;

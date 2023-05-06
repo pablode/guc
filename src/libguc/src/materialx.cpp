@@ -1206,7 +1206,9 @@ namespace guc
   {
     mx::NodePtr node = nodeGraph->addNode("image", mx::EMPTY_STRING, textureType);
 
-    int stIndex = textureView.texcoord;
+    const cgltf_texture_transform& transform = textureView.transform;
+    int stIndex = (textureView.has_transform && transform.has_texcoord) ? transform.texcoord : textureView.texcoord;
+
     mx::NodePtr texcoordNode;
 #ifndef NDEBUG
     if (TfGetEnvSetting(GUC_ENABLE_MTLX_VIEWER_COMPAT))
@@ -1222,8 +1224,7 @@ namespace guc
       texcoordNode = makeGeompropValueNode(nodeGraph, makeStSetName(stIndex), MTLX_TYPE_VECTOR2);
     }
 
-    const cgltf_texture_transform& transform = textureView.transform;
-    if (cgltf_transform_required(transform))
+    if (textureView.has_transform && cgltf_transform_required(transform))
     {
       texcoordNode = addTextureTransformNode(nodeGraph, texcoordNode, transform);
     }

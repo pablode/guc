@@ -73,7 +73,7 @@ namespace guc
 
     void addTextureTransformNode(const SdfPath& basePath,
                                  const cgltf_texture_transform& transform,
-                                 int fallbackStIndex,
+                                 int stIndex,
                                  UsdShadeInput& textureStInput);
 
     bool addTextureNode(const SdfPath& basePath,

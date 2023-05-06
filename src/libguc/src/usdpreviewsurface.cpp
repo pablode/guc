@@ -24,6 +24,7 @@
 
 #include "naming.h"
 #include "debugCodes.h"
+#include "cgltf_util.h"
 
 namespace fs = std::filesystem;
 
@@ -125,16 +126,6 @@ namespace detail
     auto valueType = channels == _tokens->rgb ? SdfValueTypeNames->Float3 : SdfValueTypeNames->Float;
     auto output = node.CreateOutput(channels, valueType);
     input.ConnectToSource(output);
-  }
-
-  bool isTransformNeeded(const cgltf_texture_transform& transform)
-  {
-    return transform.has_texcoord ||
-           transform.offset[0] != 0.0f ||
-           transform.offset[1] != 0.0f ||
-           transform.rotation != 0.0f ||
-           transform.scale[0] != 1.0f ||
-           transform.scale[1] != 1.0f;
   }
 }
 
@@ -442,7 +433,7 @@ namespace guc
     auto stInput = node.CreateInput(_tokens->st, SdfValueTypeNames->Float2);
     const cgltf_texture_transform& transform = textureView.transform;
 
-    if (detail::isTransformNeeded(transform))
+    if (cgltf_transform_required(transform))
     {
       addTextureTransformNode(basePath, transform, textureView.texcoord, stInput);
     }

@@ -30,4 +30,6 @@ namespace guc
   cgltf_size cgltf_calc_size(cgltf_type type, cgltf_component_type component_type);
 
   cgltf_size cgltf_decode_uri(char* uri);
+
+  bool cgltf_transform_required(const cgltf_texture_transform& transform);
 }

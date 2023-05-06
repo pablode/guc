@@ -202,4 +202,14 @@ namespace guc
     *write = 0;
     return write - uri;
   }
+
+  bool cgltf_transform_required(const cgltf_texture_transform& transform)
+  {
+    return transform.has_texcoord ||
+           transform.offset[0] != 0.0f ||
+           transform.offset[1] != 0.0f ||
+           transform.rotation != 0.0f ||
+           transform.scale[0] != 1.0f ||
+           transform.scale[1] != 1.0f;
+  }
 }

@@ -129,6 +129,10 @@ namespace guc
                                       bool color,
                                       mx::ValuePtr defaultValue);
 
+    mx::NodePtr addTextureTransformNode(mx::NodeGraphPtr nodeGraph,
+                                        mx::NodePtr texcoordNode,
+                                        const cgltf_texture_transform& transform);
+
     mx::NodePtr addTextureNode(mx::NodeGraphPtr nodeGraph,
                                const std::string& filePath,
                                const std::string& textureType,

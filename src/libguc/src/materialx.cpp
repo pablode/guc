@@ -29,6 +29,7 @@
 
 #include "naming.h"
 #include "debugCodes.h"
+#include "cgltf_util.h"
 
 namespace mx = MaterialX;
 namespace fs = std::filesystem;
@@ -1169,6 +1170,33 @@ namespace guc
     return valueNode;
   }
 
+  mx::NodePtr MaterialXMaterialConverter::addTextureTransformNode(mx::NodeGraphPtr nodeGraph,
+                                                                  mx::NodePtr texcoordNode,
+                                                                  const cgltf_texture_transform& transform)
+  {
+    mx::NodePtr node = nodeGraph->addNode("place2d", mx::EMPTY_STRING, MTLX_TYPE_VECTOR2);
+
+    mx::InputPtr texcoordInput = node->addInput("texcoord", MTLX_TYPE_VECTOR2);
+    texcoordInput->setNodeName(texcoordNode->getName());
+
+    mx::InputPtr offsetInput = node->addInput("offset", MTLX_TYPE_VECTOR2);
+    offsetInput->setValue(mx::Vector2(-transform.offset[0], transform.offset[1]));
+
+    mx::InputPtr rotationInput = node->addInput("rotate", MTLX_TYPE_FLOAT);
+    rotationInput->setValue(float(GfRadiansToDegrees(-transform.rotation)));
+
+    float scaleX = transform.scale[0] == 0.0f ? 0.0f : (1.0f / transform.scale[0]);
+    float scaleY = transform.scale[1] == 0.0f ? 0.0f : (1.0f / transform.scale[1]);
+
+    mx::InputPtr scaleInput = node->addInput("scale", MTLX_TYPE_VECTOR2);
+    scaleInput->setValue(mx::Vector2(scaleX, scaleY));
+
+    mx::InputPtr pivotInput = node->addInput("pivot", MTLX_TYPE_VECTOR2);
+    pivotInput->setValue(mx::Vector2(0.0f, 1.0f));
+
+    return node;
+  }
+
   mx::NodePtr MaterialXMaterialConverter::addTextureNode(mx::NodeGraphPtr nodeGraph,
                                                          const std::string& filePath,
                                                          const std::string& textureType,
@@ -1178,9 +1206,7 @@ namespace guc
   {
     mx::NodePtr node = nodeGraph->addNode("image", mx::EMPTY_STRING, textureType);
 
-    mx::InputPtr uvInput = node->addInput("texcoord", MTLX_TYPE_VECTOR2);
     int stIndex = textureView.texcoord;
-
     mx::NodePtr texcoordNode;
 #ifndef NDEBUG
     if (TfGetEnvSetting(GUC_ENABLE_MTLX_VIEWER_COMPAT))
@@ -1195,6 +1221,14 @@ namespace guc
     {
       texcoordNode = makeGeompropValueNode(nodeGraph, makeStSetName(stIndex), MTLX_TYPE_VECTOR2);
     }
+
+    const cgltf_texture_transform& transform = textureView.transform;
+    if (cgltf_transform_required(transform))
+    {
+      texcoordNode = addTextureTransformNode(nodeGraph, texcoordNode, transform);
+    }
+
+    mx::InputPtr uvInput = node->addInput("texcoord", MTLX_TYPE_VECTOR2);
     uvInput->setNodeName(texcoordNode->getName());
 
     mx::InputPtr fileInput = node->addInput("file", MTLX_TYPE_FILENAME);

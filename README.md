@@ -82,7 +82,7 @@ KHR_materials_variants              | 🚧 Planned
 KHR_materials_volume                | ✅ Partial <sup>2</sup>
 KHR_mesh_quantization               | ❌ Not supported
 KHR_texture_basisu                  | ❌ Not supported
-KHR_texture_transform               | 🚧 Planned
+KHR_texture_transform               | ✅ Complete
 KHR_xmp_json_ld                     | ❌ Not supported
 
 <sup>\[1\]</sup> Spotlight cone falloff is ignored.  

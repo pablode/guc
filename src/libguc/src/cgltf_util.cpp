@@ -37,6 +37,7 @@ namespace detail
            strcmp(name, "KHR_materials_emissive_strength") == 0 ||
            strcmp(name, "KHR_materials_clearcoat") == 0 ||
            strcmp(name, "KHR_materials_ior") == 0 ||
+           strcmp(name, "KHR_materials_iridescence") == 0 ||
            strcmp(name, "KHR_materials_sheen") == 0 ||
            strcmp(name, "KHR_materials_specular") == 0 ||
            strcmp(name, "KHR_materials_transmission") == 0 ||

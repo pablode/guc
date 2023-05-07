@@ -28,6 +28,21 @@
 
 using namespace PXR_NS;
 
+namespace detail
+{
+  bool extensionSupported(const char* name)
+  {
+    return strcmp(name, "KHR_materials_pbrSpecularGlossiness") == 0 ||
+           strcmp(name, "KHR_lights_punctual") == 0 ||
+           strcmp(name, "KHR_materials_clearcoat") == 0 ||
+           strcmp(name, "KHR_materials_ior") == 0 ||
+           strcmp(name, "KHR_materials_sheen") == 0 ||
+           strcmp(name, "KHR_materials_specular") == 0 ||
+           strcmp(name, "KHR_materials_transmission") == 0 ||
+           strcmp(name, "KHR_materials_volume") == 0;
+  }
+}
+
 namespace guc
 {
   bool load_gltf(const char* gltfPath, cgltf_data** data)
@@ -63,20 +78,26 @@ namespace guc
       const char* ext = (*data)->extensions_required[i];
       TF_DEBUG(GUC).Msg("extension required: %s\n", ext);
 
-      if (strcmp(ext, "KHR_materials_pbrSpecularGlossiness") == 0 ||
-          strcmp(ext, "KHR_lights_punctual") == 0 ||
-          strcmp(ext, "KHR_materials_clearcoat") == 0 ||
-          strcmp(ext, "KHR_materials_ior") == 0 ||
-          strcmp(ext, "KHR_materials_sheen") == 0 ||
-          strcmp(ext, "KHR_materials_specular") == 0 ||
-          strcmp(ext, "KHR_materials_transmission") == 0 ||
-          strcmp(ext, "KHR_materials_volume") == 0)
+      if (detail::extensionSupported(ext))
       {
         continue;
       }
 
       TF_RUNTIME_ERROR("extension %s not supported", ext);
       return false;
+    }
+
+    for (size_t i = 0; i < (*data)->extensions_used_count; i++)
+    {
+      const char* ext = (*data)->extensions_used[i];
+      TF_DEBUG(GUC).Msg("extension used: %s\n", ext);
+
+      if (detail::extensionSupported(ext))
+      {
+        continue;
+      }
+
+      TF_WARN("optional extension %s not suppported", ext);
     }
 
     return true;

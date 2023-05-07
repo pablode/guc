@@ -73,6 +73,7 @@ KHR_lights_punctual                 | ✅ Partial <sup>1</sup>
 KHR_materials_emissive_strength     | ✅ Complete
 KHR_materials_clearcoat             | ✅ Complete
 KHR_materials_ior                   | ✅ Complete
+KHR_materials_iridescence           | ✅ Complete
 KHR_materials_sheen                 | ✅ Complete
 KHR_materials_specular              | ✅ Complete
 KHR_materials_transmission          | ✅ Complete

@@ -70,6 +70,7 @@ Name                                | Status&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 ------------------------------------|----------
 KHR_draco_mesh_compression          | ❌ Not supported
 KHR_lights_punctual                 | ✅ Partial <sup>1</sup>
+KHR_materials_emissive_strength     | ✅ Complete
 KHR_materials_clearcoat             | ✅ Complete
 KHR_materials_ior                   | ✅ Complete
 KHR_materials_sheen                 | ✅ Complete

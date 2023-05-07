@@ -74,6 +74,10 @@ namespace guc
                                   mx::InputPtr shaderInput,
                                   const cgltf_texture_view& textureView);
 
+    void setIridescenceThicknessInput(mx::NodeGraphPtr nodeGraph,
+                                      mx::InputPtr shaderInput,
+                                      const cgltf_iridescence* iridescence);
+
   private:
     void setSrgbTextureInput(mx::NodeGraphPtr nodeGraph,
                              mx::InputPtr input,

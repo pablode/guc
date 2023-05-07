@@ -645,6 +645,21 @@ namespace guc
       iorInput->setValue(ior->ior);
     }
 
+    if (material->has_iridescence)
+    {
+      const cgltf_iridescence* iridescence = &material->iridescence;
+
+      mx::InputPtr iridescenceInput = shaderNode->addInput("iridescence", MTLX_TYPE_FLOAT);
+      float iridescenceDefault = 1.0f;
+      setFloatTextureInput(nodeGraph, iridescenceInput, iridescence->iridescence_texture, 0, iridescence->iridescence_factor, iridescenceDefault);
+
+      mx::InputPtr iridescenceIorInput = shaderNode->addInput("iridescence_ior", MTLX_TYPE_FLOAT);
+      iridescenceIorInput->setValue(iridescence->iridescence_ior);
+
+      mx::InputPtr iridescenceThicknessInput = shaderNode->addInput("iridescence_thickness", MTLX_TYPE_FLOAT);
+      setIridescenceThicknessInput(nodeGraph, iridescenceThicknessInput, iridescence);
+    }
+
     if (material->has_specular)
     {
       const cgltf_specular* specular = &material->specular;
@@ -958,6 +973,38 @@ namespace guc
     }
 
     connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, addNode);
+  }
+
+  void MaterialXMaterialConverter::setIridescenceThicknessInput(mx::NodeGraphPtr nodeGraph,
+                                                                mx::InputPtr shaderInput,
+                                                                const cgltf_iridescence* iridescence)
+  {
+    std::string filePath;
+    if (!getTextureFilePath(iridescence->iridescence_thickness_texture, filePath))
+    {
+      // "The thickness of the thin-film is set to iridescenceThicknessMaximum if iridescenceThicknessTexture is not given."
+      shaderInput->setValue(iridescence->iridescence_thickness_max);
+      return;
+    }
+
+    // Otherwise, we insert a mix(min, max, texture.g) node and connect it to the input, as noted here:
+    // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_iridescence#properties
+    mx::NodePtr mixNode = nodeGraph->addNode("mix", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
+    {
+      mx::InputPtr inputBg = mixNode->addInput("bg", MTLX_TYPE_FLOAT);
+      inputBg->setValue(iridescence->iridescence_thickness_min);
+
+      mx::InputPtr inputFg = mixNode->addInput("fg", MTLX_TYPE_FLOAT);
+      inputFg->setValue(iridescence->iridescence_thickness_max);
+
+      float thicknessFallbackValue = 1.0f; // Falling back to 1.0f results in the constant maximum thickness like above.
+      mx::NodePtr thicknessTexNode = addFloatTextureNodes(nodeGraph, iridescence->iridescence_thickness_texture, filePath, 1, thicknessFallbackValue);
+
+      mx::InputPtr inputMix = mixNode->addInput("mix", MTLX_TYPE_FLOAT);
+      inputMix->setNodeName(thicknessTexNode->getName());
+    }
+
+    connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, mixNode);
   }
 
   void MaterialXMaterialConverter::setSrgbTextureInput(mx::NodeGraphPtr nodeGraph,

@@ -846,7 +846,7 @@ namespace guc
        input2->setNodeName(tangentNode->getName());
       }
 
-      auto tangentSignNode = makeGeompropValueNode(nodeGraph, "tangentSigns", MTLX_TYPE_FLOAT);
+      auto bitangentSignNode = makeGeompropValueNode(nodeGraph, "bitangentSigns", MTLX_TYPE_FLOAT);
 
       bitangentNode = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
       {
@@ -854,7 +854,7 @@ namespace guc
         input1->setNodeName(crossproductNode->getName());
 
         auto input2 = bitangentNode->addInput("in2", MTLX_TYPE_FLOAT);
-        input2->setNodeName(tangentSignNode->getName());
+        input2->setNodeName(bitangentSignNode->getName());
       }
     }
 

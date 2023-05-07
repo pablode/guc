@@ -58,7 +58,7 @@ TF_DEFINE_PRIVATE_TOKENS(
   (generator)
   (version)
   (min_version)
-  (tangentSigns)
+  (bitangentSigns)
   (guc)
   (generated)
 );
@@ -992,7 +992,7 @@ namespace guc
     }
 
     VtVec3fArray tangents;
-    VtFloatArray tangentSigns;
+    VtFloatArray bitangentSigns;
     bool generatedTangents = false;
     {
       const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "TANGENT");
@@ -1002,12 +1002,12 @@ namespace guc
         if (detail::readVtArrayFromAccessor(accessor, tangentsWithW))
         {
           tangents.resize(tangentsWithW.size());
-          tangentSigns.resize(tangentsWithW.size());
+          bitangentSigns.resize(tangentsWithW.size());
 
           for (size_t i = 0; i < tangentsWithW.size(); i++)
           {
             tangents[i] = GfVec3f(tangentsWithW[i].data());
-            tangentSigns[i] = tangentsWithW[i][3];
+            bitangentSigns[i] = tangentsWithW[i][3];
           }
         }
       }
@@ -1024,7 +1024,7 @@ namespace guc
             TF_DEBUG(GUC).Msg("generating tangents\n");
 
             const VtVec2fArray& texCoords = texCoordSets[textureView.texcoord];
-            createTangents(indices, points, normals, texCoords, tangentSigns, tangents);
+            createTangents(indices, points, normals, texCoords, bitangentSigns, tangents);
 
             // The generated tangents are unindexed, which means that we
             // have to deindex all other primvars and reindex the mesh.
@@ -1102,10 +1102,10 @@ namespace guc
         detail::markAttributeAsGenerated(primvar);
       }
     }
-    if (!tangentSigns.empty())
+    if (!bitangentSigns.empty())
     {
-      auto primvar = primvarsApi.CreatePrimvar(_tokens->tangentSigns, SdfValueTypeNames->FloatArray, UsdGeomTokens->vertex);
-      primvar.Set(tangentSigns);
+      auto primvar = primvarsApi.CreatePrimvar(_tokens->bitangentSigns, SdfValueTypeNames->FloatArray, UsdGeomTokens->vertex);
+      primvar.Set(bitangentSigns);
 
       if (generatedTangents)
       {

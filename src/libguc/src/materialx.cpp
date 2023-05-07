@@ -585,6 +585,14 @@ namespace guc
       }
     }
 
+    if (material->has_emissive_strength)
+    {
+      const cgltf_emissive_strength* emissiveStrength = &material->emissive_strength;
+
+      mx::InputPtr emissiveStrengthInput = shaderNode->addInput("emissive_strength", MTLX_TYPE_FLOAT);
+      emissiveStrengthInput->setValue(emissiveStrength->emissive_strength);
+    }
+
     if (material->has_clearcoat)
     {
       const cgltf_clearcoat* clearcoat = &material->clearcoat;

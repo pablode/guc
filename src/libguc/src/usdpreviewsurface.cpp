@@ -146,7 +146,13 @@ namespace guc
     surfaceOutput.ConnectToSource(shaderOutput);
 
     auto emissiveColorInput = shader.CreateInput(_tokens->emissiveColor, SdfValueTypeNames->Float3);
-    setSrgbTextureInput(path, emissiveColorInput, material->emissive_texture, GfVec4f(material->emissive_factor));
+    auto emissiveFactor = GfVec4f(material->emissive_factor);
+    if (material->has_emissive_strength)
+    {
+      const cgltf_emissive_strength* emissiveStrength = &material->emissive_strength;
+      emissiveFactor *= emissiveStrength->emissive_strength;
+    }
+    setSrgbTextureInput(path, emissiveColorInput, material->emissive_texture, emissiveFactor);
 
     auto occlusionInput = shader.CreateInput(_tokens->occlusion, SdfValueTypeNames->Float);
     setOcclusionTextureInput(path, occlusionInput, material->occlusion_texture);

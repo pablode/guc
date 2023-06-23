@@ -45,6 +45,16 @@ namespace guc
     return s_entryPaths[size_t(type)];
   }
 
+  const char* getVariantSetName()
+  {
+    return "shadingVariant";
+  }
+
+  std::string normalizeVariantName(const std::string& name)
+  {
+    return TfMakeValidIdentifier(name);
+  }
+
   std::string makeStSetName(int index)
   {
     std::string uvSetBaseName = UsdUtilsGetPrimaryUVSetName(); // likely to be "st"

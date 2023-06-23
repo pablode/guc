@@ -39,6 +39,9 @@ namespace guc
   };
   const SdfPath& getEntryPath(EntryPathType type);
 
+  const char* getVariantSetName();
+  std::string normalizeVariantName(const std::string& name);
+
   std::string makeStSetName(int index);
   std::string makeColorSetName(int index);
   std::string makeOpacitySetName(int index);

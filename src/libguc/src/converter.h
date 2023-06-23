@@ -77,6 +77,7 @@ namespace guc
     void createOrOverCamera(const cgltf_camera* cameraData, SdfPath path);
     void createOrOverLight(const cgltf_light* lightData, SdfPath path);
     void createOrOverMesh(const cgltf_mesh* meshData, SdfPath path);
+    void createMaterialBinding(UsdPrim& prim, const std::string& materialName);
     bool createPrimitive(const cgltf_primitive* primitiveData, SdfPath path, UsdPrim& prim);
 
   private:

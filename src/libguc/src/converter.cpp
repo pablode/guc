@@ -19,6 +19,7 @@
 #include <pxr/base/tf/envSetting.h>
 #include <pxr/base/gf/matrix4f.h>
 #include <pxr/usd/usd/stage.h>
+#include <pxr/usd/usd/editContext.h>
 #include <pxr/usd/usdGeom/camera.h>
 #include <pxr/usd/usdGeom/mesh.h>
 #include <pxr/usd/usdGeom/metrics.h>
@@ -244,6 +245,7 @@ namespace guc
 
   void Converter::convert(FileExports& fileExports)
   {
+    // Step 1: set up stage & root prim
     auto rootXForm = UsdGeomXform::Define(m_stage, getEntryPath(EntryPathType::Root));
     UsdModelAPI(rootXForm).SetKind(KindTokens->component);
 
@@ -269,7 +271,19 @@ namespace guc
       defaultPrim.SetCustomDataByKey(_tokens->min_version, VtValue(std::string(asset.min_version)));
     }
 
-    // Step 1: process images
+    if (m_data->variants_count > 0)
+    {
+      UsdVariantSets variantSets = defaultPrim.GetVariantSets();
+      UsdVariantSet set = variantSets.AddVariantSet(getVariantSetName());
+
+      for (size_t i = 0; i < m_data->variants_count; i++)
+      {
+        const cgltf_material_variant* variant = &m_data->variants[i];
+        TF_VERIFY(set.AddVariant(normalizeVariantName(variant->name)));
+      }
+    }
+
+    // Step 2: process images
     processImages(m_data->images, m_data->images_count, m_params.srcDir,
       m_params.dstDir, m_params.copyExistingFiles, m_params.genRelativePaths, m_imgMetadata);
 
@@ -280,7 +294,7 @@ namespace guc
       fileExports.push_back({ metadata.filePath, metadata.refPath });
     }
 
-    // Step 2: create materials
+    // Step 3: create materials
     bool hasMaterials = (m_data->materials_count > 0);
     bool createDefaultMaterial = false;
 
@@ -303,7 +317,7 @@ namespace guc
       createMaterials(fileExports, createDefaultMaterial);
     }
 
-    // Step 3: create scene graph (nodes, meshes, lights, cameras, ...)
+    // Step 4: create scene graph (nodes, meshes, lights, cameras, ...)
     auto createNode = [this](const cgltf_node* nodeData, SdfPath path)
     {
       std::string baseName(nodeData->name ? nodeData->name : "node");
@@ -701,34 +715,68 @@ namespace guc
         m_uniquePaths[(void*) primitiveData] = submeshPath;
       }
 
+      // Assign material (explicit, fallback, variants)
       std::string materialName = DEFAULT_MATERIAL_NAME;
+
+      const auto getMaterialName = [&](const cgltf_material* material) {
+        int materialIndex = (material - &m_data->materials[0]);
+        TF_VERIFY(materialIndex >= 0);
+        return m_materialNames[materialIndex].c_str();
+      };
 
       if (primitiveData->material)
       {
-        int materialIndex = (primitiveData->material - &m_data->materials[0]);
-        TF_VERIFY(materialIndex >= 0);
-        materialName = m_materialNames[materialIndex].c_str();
+        materialName = getMaterialName(primitiveData->material);
       }
 
+      if (primitiveData->mappings_count > 0)
+      {
+        UsdPrim defaultPrim = m_stage->GetDefaultPrim();
+        UsdVariantSets variantSets = defaultPrim.GetVariantSets();
+        UsdVariantSet set = variantSets.GetVariantSet(getVariantSetName());
+
+        for (size_t j = 0; j < primitiveData->mappings_count; j++)
+        {
+          const cgltf_material_mapping* mapping = &primitiveData->mappings[j];
+          std::string variantName = normalizeVariantName(m_data->variants[mapping->variant].name);
+
+          TF_VERIFY(set.SetVariantSelection(variantName));
+
+          UsdEditContext editContext(set.GetVariantEditContext());
+
+          materialName = getMaterialName(mapping->material);
+          createMaterialBinding(submesh, materialName);
+        }
+
+        TF_VERIFY(set.ClearVariantSelection());
+      }
+      else
+      {
+        createMaterialBinding(submesh, materialName);
+      }
+    }
+  }
+
+  void Converter::createMaterialBinding(UsdPrim& prim, const std::string& materialName)
+  {
 #ifndef NDEBUG
-      if (!TfGetEnvSetting(GUC_DISABLE_PREVIEW_MATERIAL_BINDINGS))
+    if (!TfGetEnvSetting(GUC_DISABLE_PREVIEW_MATERIAL_BINDINGS))
 #endif
-      {
-        UsdShadeMaterialBindingAPI::Apply(submesh).Bind(
-          UsdShadeMaterial::Get(m_stage, makeUsdPreviewSurfaceMaterialPath(materialName)),
-          UsdShadeTokens->fallbackStrength,
-          UsdShadeTokens->preview
-        );
-      }
+    {
+      UsdShadeMaterialBindingAPI::Apply(prim).Bind(
+        UsdShadeMaterial::Get(m_stage, makeUsdPreviewSurfaceMaterialPath(materialName)),
+        UsdShadeTokens->fallbackStrength,
+        UsdShadeTokens->preview
+      );
+    }
 
-      if (m_params.emitMtlx)
-      {
-        UsdShadeMaterialBindingAPI::Apply(submesh).Bind(
-          UsdShadeMaterial::Get(m_stage, makeMtlxMaterialPath(materialName)),
-          UsdShadeTokens->fallbackStrength,
-          UsdShadeTokens->allPurpose
-        );
-      }
+    if (m_params.emitMtlx)
+    {
+      UsdShadeMaterialBindingAPI::Apply(prim).Bind(
+        UsdShadeMaterial::Get(m_stage, makeMtlxMaterialPath(materialName)),
+        UsdShadeTokens->fallbackStrength,
+        UsdShadeTokens->allPurpose
+      );
     }
   }
 

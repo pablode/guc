@@ -390,7 +390,7 @@ namespace guc
       }
       catch (const mx::Exception& ex)
       {
-        TF_RUNTIME_ERROR("Failed to load MaterialX libraries: %s", ex.what());
+        TF_RUNTIME_ERROR("failed to load MaterialX libraries: %s", ex.what());
       }
     }
 

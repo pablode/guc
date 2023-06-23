@@ -56,6 +56,7 @@ Options:
 --explicit-colorspace-transforms        Explicitly transform colorspaces using MaterialX nodes
 --gltf-pbr-impl runtime|file|flattened  How the MaterialX glTF PBR is provided. Default: runtime
 --hdstorm-compat                        Apply compatibility tweaks for the USD hdStorm renderer
+--default-material-variant              Index of the material variant that is selected by default
 ```
 
 Both glTF and GLB file types are valid input. USDA, USDC and USDZ formats can be written.
@@ -78,7 +79,7 @@ KHR_materials_sheen                 | ✅ Complete
 KHR_materials_specular              | ✅ Complete
 KHR_materials_transmission          | ✅ Complete
 KHR_materials_unlit                 | 🚧 Planned
-KHR_materials_variants              | 🚧 Planned
+KHR_materials_variants              | ✅ Complete
 KHR_materials_volume                | ✅ Partial <sup>2</sup>
 KHR_mesh_quantization               | ❌ Not supported
 KHR_texture_basisu                  | ❌ Not supported

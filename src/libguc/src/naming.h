@@ -39,7 +39,7 @@ namespace guc
   };
   const SdfPath& getEntryPath(EntryPathType type);
 
-  const char* getVariantSetName();
+  const char* getMaterialVariantSetName();
   std::string normalizeVariantName(const std::string& name);
 
   std::string makeStSetName(int index);

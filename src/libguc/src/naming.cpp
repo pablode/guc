@@ -45,7 +45,7 @@ namespace guc
     return s_entryPaths[size_t(type)];
   }
 
-  const char* getVariantSetName()
+  const char* getMaterialVariantSetName()
   {
     return "shadingVariant";
   }

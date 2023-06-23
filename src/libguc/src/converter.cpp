@@ -274,7 +274,7 @@ namespace guc
     if (m_data->variants_count > 0)
     {
       UsdVariantSets variantSets = defaultPrim.GetVariantSets();
-      UsdVariantSet set = variantSets.AddVariantSet(getVariantSetName());
+      UsdVariantSet set = variantSets.AddVariantSet(getMaterialVariantSetName());
 
       for (size_t i = 0; i < m_data->variants_count; i++)
       {
@@ -355,6 +355,26 @@ namespace guc
 
         createNode(nodeData, scenePath);
       }
+    }
+
+    // Assign default material variant
+    if (m_data->variants_count > 0)
+    {
+      int variantIndex = m_params.defaultMaterialVariant;
+
+      if (variantIndex < 0 || variantIndex >= int(m_data->variants_count))
+      {
+        TF_RUNTIME_ERROR("default material variant index %d out of range [0, %d); using 0",
+          variantIndex, int(m_data->variants_count));
+
+        variantIndex = 0;
+      }
+
+      UsdVariantSets variantSets = defaultPrim.GetVariantSets();
+      UsdVariantSet set = variantSets.GetVariantSet(getMaterialVariantSetName());
+
+      std::string defaultVariantName = normalizeVariantName(m_data->variants[variantIndex].name);
+      TF_VERIFY(set.SetVariantSelection(defaultVariantName));
     }
 
     // According to glTF spec sec. 3.5.1., "glTF assets that do not contain any
@@ -733,7 +753,7 @@ namespace guc
       {
         UsdPrim defaultPrim = m_stage->GetDefaultPrim();
         UsdVariantSets variantSets = defaultPrim.GetVariantSets();
-        UsdVariantSet set = variantSets.GetVariantSet(getVariantSetName());
+        UsdVariantSet set = variantSets.GetVariantSet(getMaterialVariantSetName());
 
         for (size_t j = 0; j < primitiveData->mappings_count; j++)
         {

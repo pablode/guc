@@ -66,6 +66,10 @@ struct guc_options
   // https://github.com/PixarAnimationStudios/USD/blob/857ffda41f4f1553fe1019ac7c7b4f08c233a7bb/pxr/imaging/plugin/hioOiio/oiioImage.cpp#L470-L471
   // Additionally, we make hdStorm recognize alpha materials as translucent.
   bool hdstorm_compat;
+
+  // If the asset supports the KHR_materials_variants extension, select the material
+  // variant at the given index by default.
+  int default_material_variant;
 };
 
 bool guc_convert(const char* gltf_path,

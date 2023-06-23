@@ -56,6 +56,7 @@ namespace guc
       bool explicitColorspaceTransforms;
       GltfPbrImpl gltfPbrImpl;
       bool hdStormCompat;
+      int defaultMaterialVariant;
     };
 
   public:

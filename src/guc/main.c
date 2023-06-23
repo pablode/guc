@@ -32,6 +32,7 @@ void print_usage()
   fprintf(stderr, "--explicit-colorspace-transforms        Explicitly transform colorspaces using MaterialX nodes\n");
   fprintf(stderr, "--gltf-pbr-impl runtime|file|flattened  How the MaterialX glTF PBR is provided. Default: runtime\n");
   fprintf(stderr, "--hdstorm-compat                        Apply compatibility tweaks for the USD hdStorm renderer\n");
+  fprintf(stderr, "--default-material-variant              Index of the material variant that is selected by default\n");
 }
 
 int main(int argc, const char* argv[])
@@ -51,6 +52,7 @@ int main(int argc, const char* argv[])
   options.explicit_colorspace_transforms = false;
   options.gltf_pbr_impl = GUC_GLTF_PBR_IMPL_RUNTIME;
   options.hdstorm_compat = false;
+  options.default_material_variant = 0;
 
   for (int i = 3; i < argc; i++)
   {
@@ -97,6 +99,12 @@ int main(int argc, const char* argv[])
       else if (!strcmp(arg, "hdstorm-compat"))
       {
         options.hdstorm_compat = true;
+        continue;
+      }
+      else if (!strcmp(arg, "default-material-variant") && ++i < argc)
+      {
+        const char* val = argv[i];
+        options.default_material_variant = atoi(val); // fall back to 0 on error
         continue;
       }
     }

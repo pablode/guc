@@ -116,6 +116,7 @@ bool UsdGlTFFileFormat::Read(SdfLayer* layer,
   params.explicitColorspaceTransforms = false;
   params.gltfPbrImpl = Converter::GltfPbrImpl::Runtime;
   params.hdStormCompat = false;
+  params.defaultMaterialVariant = 0;
 
   SdfLayerRefPtr tmpLayer = SdfLayer::CreateAnonymous(".usdc");
   UsdStageRefPtr stage = UsdStage::Open(tmpLayer);

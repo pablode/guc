@@ -710,13 +710,11 @@ namespace guc
         materialName = m_materialNames[materialIndex].c_str();
       }
 
-      UsdShadeMaterialBindingAPI::Apply(submesh);
-
 #ifndef NDEBUG
       if (!TfGetEnvSetting(GUC_DISABLE_PREVIEW_MATERIAL_BINDINGS))
 #endif
       {
-        UsdShadeMaterialBindingAPI(submesh).Bind(
+        UsdShadeMaterialBindingAPI::Apply(submesh).Bind(
           UsdShadeMaterial::Get(m_stage, makeUsdPreviewSurfaceMaterialPath(materialName)),
           UsdShadeTokens->fallbackStrength,
           UsdShadeTokens->preview
@@ -725,7 +723,7 @@ namespace guc
 
       if (m_params.emitMtlx)
       {
-        UsdShadeMaterialBindingAPI(submesh).Bind(
+        UsdShadeMaterialBindingAPI::Apply(submesh).Bind(
           UsdShadeMaterial::Get(m_stage, makeMtlxMaterialPath(materialName)),
           UsdShadeTokens->fallbackStrength,
           UsdShadeTokens->allPurpose

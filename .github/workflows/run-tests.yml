@@ -32,15 +32,15 @@ defaults:
 
 jobs:
   build-debug:
-    name: Build guc for USD v22.11 (Debug)
-    uses: ./.github/workflows/build-usd22.11.yml
+    name: Build guc for USD v23.08 (Debug)
+    uses: ./.github/workflows/build-usd23.08.yml
     with:
       build-config: Debug
       extra-cmake-flags: -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
 
   build-release:
-    name: Build guc for USD v22.11 (Release)
-    uses: ./.github/workflows/build-usd22.11.yml
+    name: Build guc for USD v23.08 (Release)
+    uses: ./.github/workflows/build-usd23.08.yml
     with:
       build-config: Release
       extra-cmake-flags: -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
@@ -56,14 +56,14 @@ jobs:
         include:
         - os-family: Linux
           image: ubuntu-20.04
-          usd-download-url: "https://github.com/pablode/USD/releases/download/v22.11-ci-release/USD22.11_Linux_x64_Python3.8.tar.gz"
-          artifact-name: guc_USD22.11_Linux_x64_Python3.8.tar.gz
+          usd-download-url: "https://github.com/pablode/USD/releases/download/v23.08-ci-release/USD23.08_Linux_x64_Python3.8.tar.gz"
+          artifact-name: guc_USD23.08_Linux_x64_Python3.8.tar.gz
           executable-name: guc
 
         - os-family: Windows
           image: windows-2019
-          usd-download-url: "https://github.com/pablode/USD/releases/download/v22.11-ci-release/USD22.11_Windows_x64_Python3.7.tar.gz"
-          artifact-name: guc_USD22.11_Windows_x64_Python3.7.tar.gz
+          usd-download-url: "https://github.com/pablode/USD/releases/download/v23.08-ci-release/USD23.08_Windows_x64_Python3.7.tar.gz"
+          artifact-name: guc_USD23.08_Windows_x64_Python3.7.tar.gz
           executable-name: guc.exe
 
     steps:
@@ -113,8 +113,8 @@ jobs:
     needs: build-debug
 
     env:
-      USD_DOWNLOAD_URL: "https://github.com/pablode/USD/releases/download/v22.11-ci-release/USD22.11_Linux_x64_Python3.8.tar.gz"
-      GUC_ARTIFACT_NAME: guc_USD22.11_Linux_x64_Python3.8.tar.gz
+      USD_DOWNLOAD_URL: "https://github.com/pablode/USD/releases/download/v23.08-ci-release/USD23.08_Linux_x64_Python3.8.tar.gz"
+      GUC_ARTIFACT_NAME: guc_USD23.08_Linux_x64_Python3.8.tar.gz
       USD_INSTALL_PATH: /home/runner/work/USD/USD/INSTALL
 
     steps:

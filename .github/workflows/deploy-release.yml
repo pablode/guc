@@ -10,8 +10,8 @@ on:
 
 jobs:
   build:
-    name: Build guc for USD v22.11
-    uses: ./.github/workflows/build-usd22.11.yml
+    name: Build guc for USD v23.08
+    uses: ./.github/workflows/build-usd23.08.yml
     with:
       build-config: Release
 

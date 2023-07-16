@@ -14,6 +14,10 @@ on:
         description: Enable preview graphical tests
         type: boolean
         default: false
+      enable-usdchecker:
+        description: Run usdchecker on converted USD files
+        type: boolean
+        default: true
       tests-branch:
         description: Tests branch name
         type: string
@@ -150,6 +154,9 @@ jobs:
         fi
         if [[ -z "${{ inputs.enable-graphical-tests-preview }}" ]] || [[ "${{ inputs.enable-graphical-tests-preview }}" = "false" ]]; then
           echo "GT_DISABLE_GRAPHICAL_PREVIEW=1" >> $GITHUB_ENV
+        fi
+        if [[ -z "${{ inputs.enable-usdchecker }}" ]] || [[ "${{ inputs.enable-usdchecker }}" = "false" ]]; then
+          echo "GT_DISABLE_USDCHECKER=1" >> $GITHUB_ENV
         fi
         # Executables and libraries
         echo "${{ env.USD_INSTALL_PATH }}/bin" >> $GITHUB_PATH

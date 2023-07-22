@@ -498,7 +498,7 @@ namespace guc
 
       // And create a reference to it
       auto over = m_stage->OverridePrim(getEntryPath(EntryPathType::MaterialXMaterials));
-      auto references = over.GetPrim().GetReferences();
+      auto references = over.GetReferences();
       TF_VERIFY(references.AddReference(mtlxFileName.string(), SdfPath("/MaterialX")));
 
       fileExports.push_back({ mtlxFilePath.string(), mtlxFileName.string() });

@@ -30,10 +30,6 @@ One outstanding problem with the translation process is that color spaces are no
 
 This issue affects a number of render delegates, including Pixar's [HdStorm](https://github.com/PixarAnimationStudios/USD/blob/0c7b9a95f155c221ff7df9270a39a52e3b23af8b/pxr/imaging/hdSt/materialXFilter.cpp#L877).
 
-#### MaterialX materials with the name 'material' are not supported
-
-The `HdMtlxCreateMtlxDocumentFromHdNetwork` from above throws an exception. (Issue [#2076](https://github.com/PixarAnimationStudios/USD/issues/2076))
-
 
 ## MaterialX
 
@@ -46,11 +42,6 @@ I've proprosed a _bitangent_ input (Issue [#945](https://github.com/AcademySoftw
 As described in the [initial PR](https://github.com/AcademySoftwareFoundation/MaterialX/pull/861), certain properties of the glTF shading model do not map to MaterialX:
  * _thickness_: whether the material is thin-walled (thickness = 0) or volumetric (thickness > 0). Currently, only the volumetric case is implemented, and the input is ignored. The addition of thin-walled materials to MaterialX is being discussed. (Issue [#864](https://github.com/AcademySoftwareFoundation/MaterialX/issues/864))
  * _occlusion_: this concept does not exist in MaterialX. SSAO or ray traced ambient occlusion may be used instead.
-
-#### Changes since 1.38.4 that are not yet shipped with USD
-* Fixed glTF PBR default values (PR [#971](https://github.com/AcademySoftwareFoundation/MaterialX/pull/971))
-* Fixed glTF PBR version number (PR [#1094](https://github.com/AcademySoftwareFoundation/MaterialX/pull/1094))
-* Added emissive strength (PR [#910](https://github.com/AcademySoftwareFoundation/MaterialX/pull/910)) and iridescence (PR [#1055](https://github.com/AcademySoftwareFoundation/MaterialX/pull/1055)) to glTF PBR
 
 
 ## HdStorm
@@ -68,9 +59,6 @@ Converted assets may use such textures, but HdStorm is not able to render them. 
 
 #### MaterialX materials with 1x1 images are not rendered correctly
 Issue [#2140](https://github.com/PixarAnimationStudios/USD/issues/2140).
-
-#### Fixes to MaterialX's GLSL backend that are not yet shipped with USD
-* Fixed missing basis orthogonalizations in GLSL backend (PR [#1177](https://github.com/AcademySoftwareFoundation/MaterialX/pull/1177))
 
 
 ## Apple RealityKit and SceneKit compatibility

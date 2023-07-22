@@ -75,6 +75,14 @@ bool guc_convert(const char* gltf_path,
     TF_RUNTIME_ERROR("mtlx-as-usdshade not supported with node flattening");
     return false;
   }
+#if PXR_VERSION >= 2308
+  if (options->gltf_pbr_impl == GUC_GLTF_PBR_IMPL_FILE)
+  {
+    // Disable option to avoid an internal access violation in tf
+    TF_RUNTIME_ERROR("file glTF PBR implementation option not supported with USD v23.08+");
+    return false;
+  }
+#endif
 
   // The path we write USDA/USDC files to. If the user wants a USDZ file, we first
   // write these files to a temporary location, zip them, and copy the ZIP file to

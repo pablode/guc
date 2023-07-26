@@ -586,6 +586,7 @@ namespace guc
       }
     }
 
+#if MATERIALX_MINOR_VERSION > 38 || (MATERIALX_MINOR_VERSION == 38 && MATERIALX_BUILD_VERSION >= 5)
     if (material->has_emissive_strength)
     {
       const cgltf_emissive_strength* emissiveStrength = &material->emissive_strength;
@@ -593,6 +594,7 @@ namespace guc
       mx::InputPtr emissiveStrengthInput = shaderNode->addInput("emissive_strength", MTLX_TYPE_FLOAT);
       emissiveStrengthInput->setValue(emissiveStrength->emissive_strength);
     }
+#endif
 
     if (material->has_clearcoat)
     {
@@ -646,6 +648,7 @@ namespace guc
       iorInput->setValue(ior->ior);
     }
 
+#if MATERIALX_MINOR_VERSION > 38 || (MATERIALX_MINOR_VERSION == 38 && MATERIALX_BUILD_VERSION >= 6)
     if (material->has_iridescence)
     {
       const cgltf_iridescence* iridescence = &material->iridescence;
@@ -660,6 +663,7 @@ namespace guc
       mx::InputPtr iridescenceThicknessInput = shaderNode->addInput("iridescence_thickness", MTLX_TYPE_FLOAT);
       setIridescenceThicknessInput(nodeGraph, iridescenceThicknessInput, iridescence);
     }
+#endif
 
     if (material->has_specular)
     {

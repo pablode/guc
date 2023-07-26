@@ -23,7 +23,7 @@ All glTF features except animation and skinning are implemented and get continuo
 
 ### Build
 
-You need <a href="https://github.com/PixarAnimationStudios/OpenUSD/tree/v23.08">USD 22.11+</a> with MaterialX and OpenImageIO support enabled.
+You need USD v22.11+ (e.g. <a href="https://github.com/PixarAnimationStudios/OpenUSD/tree/v23.08">v23.08</a>) with MaterialX and OpenImageIO support enabled.
 
 Do a recursive clone of the repository and set up a build folder:
 ```
@@ -69,10 +69,9 @@ An example asset conversion is described in the [Structure Mapping](docs/Structu
 
 Name                                | Status&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 ------------------------------------|----------
-KHR_draco_mesh_compression          | ❌ Not supported
 KHR_lights_punctual                 | ✅ Partial <sup>1</sup>
-KHR_materials_emissive_strength     | ✅ Complete
 KHR_materials_clearcoat             | ✅ Complete
+KHR_materials_emissive_strength     | ✅ Complete
 KHR_materials_ior                   | ✅ Complete
 KHR_materials_iridescence           | ✅ Complete
 KHR_materials_sheen                 | ✅ Complete
@@ -81,10 +80,7 @@ KHR_materials_transmission          | ✅ Complete
 KHR_materials_unlit                 | 🚧 Planned
 KHR_materials_variants              | ✅ Complete
 KHR_materials_volume                | ✅ Partial <sup>2</sup>
-KHR_mesh_quantization               | ❌ Not supported
-KHR_texture_basisu                  | ❌ Not supported
 KHR_texture_transform               | ✅ Complete
-KHR_xmp_json_ld                     | ❌ Not supported
 
 <sup>\[1\]</sup> Spotlight cone falloff is ignored.  
 <sup>\[2\]</sup> Thickness is <a href="https://github.com/AcademySoftwareFoundation/MaterialX/pull/861">not supported</a> by the MaterialX glTF PBR implementation.

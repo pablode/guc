@@ -1,6 +1,25 @@
 
 # Changelog
 
+## Version 0.3 - 2023-07-26
+
+Added
+* Binaries for USD v23.08 with MaterialX 1.38.7
+* Metainfo that UsdGlTF plugin does not support writing
+* Support for [KHR_materials_emissive_strength](https://github.com/KhronosGroup/glTF/blob/d3382c30eca18312bd9cc0b36d6a9ae60e1f1bae/extensions/2.0/Khronos/KHR_materials_emissive_strength/README.md) extension
+* Support for [KHR_materials_iridescence](https://github.com/KhronosGroup/glTF/tree/d3382c30eca18312bd9cc0b36d6a9ae60e1f1bae/extensions/2.0/Khronos/KHR_materials_iridescence/README.md) extension
+* Support for [KHR_materials_variants](https://github.com/KhronosGroup/glTF/blob/d3382c30eca18312bd9cc0b36d6a9ae60e1f1bae/extensions/2.0/Khronos/KHR_materials_variants/README.md) extension
+* Support for [KHR_texture_transform](https://github.com/KhronosGroup/glTF/blob/d3382c30eca18312bd9cc0b36d6a9ae60e1f1bae/extensions/2.0/Khronos/KHR_texture_transform/README.md) extension
+* Warnings about unsupported optional extensions
+
+Changed
+* Disabled file glTF PBR implementation option on USD v23.08+ due to an internal crash
+* Renamed 'tangentSigns' primvar to 'bitangentSigns'
+* Updated [Ecosystem Limitations](docs/Ecosystem_Limitations.md) document with latest USD/MaterialX versions
+
+Fixed
+* Normalmap UsdUVTexture:scale[3] not matching USD complianceChecker
+
 ## Version 0.2 - 2023-01-09
 
 Added

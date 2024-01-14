@@ -92,13 +92,6 @@ The _usdGlTF_ library implements USD's Sdf file format interface. Enable the `GU
 cmake --install . --component usdGlTF --config Release --prefix <USD_INSTALL_DIR>/plugin/usd
 ```
 
-You can check whether the plugin is enabled in usdview by opening the interpreter and running:
-
-```python
-from pxr import Plug
-'usdGlTF' in [plugin.name for plugin in Plug.Registry().GetAllPlugins()]
-```
-
 > Note: the plugin only emits MaterialX materials if the `USDGLTF_ENABLE_MTLX` environment variable is set.
 
 ### License

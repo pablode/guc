@@ -23,7 +23,7 @@ All glTF features except animation and skinning are implemented and get continuo
 
 ### Build
 
-You need USD v22.11+ (e.g. <a href="https://github.com/PixarAnimationStudios/OpenUSD/tree/v23.08">v23.08</a>) with MaterialX and OpenImageIO support enabled.
+You need USD <a href="https://github.com/PixarAnimationStudios/OpenUSD/tree/v24.03">v24.03</a> with MaterialX and `--openimageio` support enabled.
 
 Do a recursive clone of the repository and set up a build folder:
 ```
@@ -44,6 +44,8 @@ cmake --build . -j8 --target guc --config Release
 ```
 
 > Note: set `BUILD_SHARED_LIBS` for shared builds, and `CMAKE_MSVC_RUNTIME_LIBRARY` to USD's MSVC ABI.
+
+> Note: if you run into issues with module or shared libary loading, try building USD with the `--opencolorio` flag.
 
 ### Usage
 

@@ -35,15 +35,15 @@ defaults:
 
 jobs:
   build-debug:
-    name: Build guc for USD v23.08 (Debug)
-    uses: ./.github/workflows/build-usd23.08.yml
+    name: Build guc for USD v24.03 (Debug)
+    uses: ./.github/workflows/build-usd24.03.yml
     with:
       build-config: Debug
       extra-cmake-flags: -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
 
   build-release:
-    name: Build guc for USD v23.08 (Release)
-    uses: ./.github/workflows/build-usd23.08.yml
+    name: Build guc for USD v24.03 (Release)
+    uses: ./.github/workflows/build-usd24.03.yml
     with:
       build-config: Release
       extra-cmake-flags: -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
@@ -59,14 +59,14 @@ jobs:
         include:
         - os-family: Linux
           image: ubuntu-20.04
-          usd-download-url: "https://github.com/pablode/USD/releases/download/v23.08-ci-release/USD23.08_Linux_x64_Python3.8.tar.gz"
-          artifact-name: guc_USD23.08_Linux_x64_Python3.8.tar.gz
+          usd-download-url: "https://github.com/pablode/USD/releases/download/v24.03-ci-release/USD24.03_Linux_x64_Python3.9.tar.gz"
+          artifact-name: guc_USD24.03_Linux_x64_Python3.9.tar.gz
           executable-name: guc
 
         - os-family: Windows
           image: windows-2019
-          usd-download-url: "https://github.com/pablode/USD/releases/download/v23.08-ci-release/USD23.08_Windows_x64_Python3.7.tar.gz"
-          artifact-name: guc_USD23.08_Windows_x64_Python3.7.tar.gz
+          usd-download-url: "https://github.com/pablode/USD/releases/download/v24.03-ci-release/USD24.03_Windows_x64_Python3.9.tar.gz"
+          artifact-name: guc_USD24.03_Windows_x64_Python3.9.tar.gz
           executable-name: guc.exe
 
     steps:
@@ -96,6 +96,11 @@ jobs:
         echo "$(pwd -W)/USD_INSTALL/lib" >> $GITHUB_PATH
         echo "$(pwd -W)/USD_INSTALL/bin" >> $GITHUB_PATH
 
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+
     - name: Fetch example glTF file
       run: mkdir test && curl "https://github.com/KhronosGroup/glTF-Sample-Models/raw/db9ff67c1116cfe28eb36320916bccd8c4127cc1/2.0/ToyCar/glTF-Binary/ToyCar.glb" -L -v -o test/asset.glb
 
@@ -116,8 +121,8 @@ jobs:
     needs: build-debug
 
     env:
-      USD_DOWNLOAD_URL: "https://github.com/pablode/USD/releases/download/v23.08-ci-release/USD23.08_Linux_x64_Python3.8.tar.gz"
-      GUC_ARTIFACT_NAME: guc_USD23.08_Linux_x64_Python3.8.tar.gz
+      USD_DOWNLOAD_URL: "https://github.com/pablode/USD/releases/download/v24.03-ci-release/USD24.03_Linux_x64_Python3.9.tar.gz"
+      GUC_ARTIFACT_NAME: guc_USD24.03_Linux_x64_Python3.9.tar.gz
       USD_INSTALL_PATH: /home/runner/work/USD/USD/INSTALL
 
     steps:
@@ -145,10 +150,6 @@ jobs:
         sudo apt upgrade
         sudo apt-get install mesa-utils xvfb qt5-default
 
-      # usdrecord needs python (may change soon!)
-    - name: Install Python packages
-      run: pip3 install --user PySide2 PyOpenGL
-
     - name: Set up environment variables
       run: |
         # Test options
@@ -172,6 +173,15 @@ jobs:
         echo "MESA_NO_ERROR=1" >> $GITHUB_ENV
         # guc debug output
         echo "TF_DEBUG=GUC" >> $GITHUB_ENV
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+
+      # usdrecord needs python (may change soon!)
+    - name: Install Python packages
+      run: pip3 install --user PySide2 PyOpenGL
 
     - name: Start virtual framebuffer
       run: |

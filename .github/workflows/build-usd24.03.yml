@@ -1,4 +1,4 @@
-name: Build guc for USD v23.08
+name: Build guc for USD v24.03
 
 on:
   workflow_call:
@@ -24,21 +24,21 @@ jobs:
         include:
         - os-family: Linux
           image: ubuntu-20.04
-          usd-download-url: "https://github.com/pablode/USD/releases/download/v23.08-ci-release/USD23.08_Linux_x64_Python3.8.tar.gz"
+          usd-download-url: "https://github.com/pablode/USD/releases/download/v24.03-ci-release/USD24.03_Linux_x64_Python3.9.tar.gz"
           usd-install-path: /home/runner/work/USD/USD/INSTALL
-          archive-file-name: guc_USD23.08_Linux_x64_Python3.8.tar.gz
+          archive-file-name: guc_USD24.03_Linux_x64_Python3.9.tar.gz
 
         - os-family: MacOS
           image: macos-12
-          usd-download-url: "https://github.com/pablode/USD/releases/download/v23.08-ci-release/USD23.08_MacOS_x64_Python3.7.tar.gz"
+          usd-download-url: "https://github.com/pablode/USD/releases/download/v24.03-ci-release/USD24.03_MacOS_x64_Python3.9.tar.gz"
           usd-install-path: /Users/runner/work/USD/USD/INSTALL
-          archive-file-name: guc_USD23.08_MacOS_x64_Python3.7.tar.gz
+          archive-file-name: guc_USD24.03_MacOS_x64_Python3.9.tar.gz
 
         - os-family: Windows
           image: windows-2019
-          usd-download-url: "https://github.com/pablode/USD/releases/download/v23.08-ci-release/USD23.08_Windows_x64_Python3.7.tar.gz"
+          usd-download-url: "https://github.com/pablode/USD/releases/download/v24.03-ci-release/USD24.03_Windows_x64_Python3.9.tar.gz"
           usd-install-path: C:/INSTALL
-          archive-file-name: guc_USD23.08_Windows_x64_Python3.7.tar.gz
+          archive-file-name: guc_USD24.03_Windows_x64_Python3.9.tar.gz
 
     uses: ./.github/workflows/build.yml
     with:

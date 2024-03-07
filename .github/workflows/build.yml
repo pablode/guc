@@ -40,9 +40,15 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew install pyenv
-        env PYTHON_CONFIGURE_OPTS="--enable-framework" pyenv install 3.7.13
-        pyenv global 3.7.13
+        env PYTHON_CONFIGURE_OPTS="--enable-framework" pyenv install 3.9.13
+        pyenv global 3.9.13
         echo "$HOME/.pyenv/shims" >> $GITHUB_PATH
+
+    - name: Set up Python (Linux & Windows)
+      if: matrix.name != 'MacOS'
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
 
     - name: Check out repository
       uses: actions/checkout@v3

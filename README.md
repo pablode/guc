@@ -87,7 +87,7 @@ KHR_texture_transform               | ✅ Complete
 
 ### Sdf plugin
 
-The _usdGlTF_ library implements USD's Sdf file format interface. Enable the CMake option and install it as follows:
+The _usdGlTF_ library implements USD's Sdf file format interface. Enable the `GUC_BUILD_USDGLTF` CMake option and install it as follows:
 ```
 cmake --install . --component usdGlTF --config Release --prefix <USD_INSTALL_DIR>/plugin/usd
 ```

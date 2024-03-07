@@ -35,6 +35,10 @@ if(MSVC)
   # Disable "macro expansion producing 'defined' has undefined behavior" warning
   # introduced by indirect inclusion of Windows headers in guc and MikkTSpace.
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd5105")
+  # Disable "not enough arguments for function-like macro invocation" warning caused
+  # by the transitive inclusion of boost headers and non-conformant MSVC preprocessor
+  # behaviour. See USD's msvcdefaults.cmake file for a detailed comment.
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4003")
 endif()
 
 add_subdirectory(extern)

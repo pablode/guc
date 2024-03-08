@@ -438,15 +438,28 @@ namespace guc
 
   void MaterialXMaterialConverter::createGltfPbrNodes(const cgltf_material* material, const std::string& materialName)
   {
+    createMaterialNodes(material, materialName, "gltf_pbr", [this](const cgltf_material* material,
+                                                                   mx::NodeGraphPtr nodeGraph,
+                                                                   mx::NodePtr shaderNode) {
+      setGltfPbrInputs(material, nodeGraph, shaderNode);
+    });
+  }
+
+  void MaterialXMaterialConverter::createMaterialNodes(const cgltf_material* material,
+                                                       const std::string& materialName,
+                                                       const std::string& shaderNodeType,
+                                                       ShaderNodeCreationCallback callback)
+
+  {
     std::string nodegraphName = "NG_" + materialName;
     std::string shaderName = "SR_" + materialName;
 
     mx::NodeGraphPtr nodeGraph = m_doc->addNodeGraph(nodegraphName);
     mx::GraphElementPtr shaderNodeRoot = m_flattenNodes ? std::static_pointer_cast<mx::GraphElement>(nodeGraph) : std::static_pointer_cast<mx::GraphElement>(m_doc);
-    mx::NodePtr shaderNode = shaderNodeRoot->addNode("gltf_pbr", shaderName, MTLX_TYPE_SURFACESHADER);
+    mx::NodePtr shaderNode = shaderNodeRoot->addNode(shaderNodeType, shaderName, MTLX_TYPE_SURFACESHADER);
 
-    // Fill nodegraph with helper nodes (e.g. textures) and set glTF PBR node params.
-    setGltfPbrInputs(material, nodeGraph, shaderNode);
+    // Fill nodegraph with helper nodes (e.g. textures) and set shadernode params.
+    callback(material, nodeGraph, shaderNode);
 
     if (m_flattenNodes)
     {
@@ -458,7 +471,7 @@ namespace guc
       // that, we extract the surface node to the nodegraph outside after flattening.
 
       // 1. Find surface shader in nodegraph.
-      auto surfaceNodes = nodeGraph->getNodesOfType(mx::SURFACE_SHADER_TYPE_STRING);
+      auto surfaceNodes = nodeGraph->getNodesOfType(MTLX_TYPE_SURFACESHADER);
       assert(surfaceNodes.size() == 1);
       mx::NodePtr surfaceNode = surfaceNodes[0];
 

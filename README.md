@@ -81,7 +81,7 @@ KHR_materials_iridescence           | ✅ Complete
 KHR_materials_sheen                 | ✅ Complete
 KHR_materials_specular              | ✅ Complete
 KHR_materials_transmission          | ✅ Complete
-KHR_materials_unlit                 | 🚧 Planned
+KHR_materials_unlit                 | ✅ Complete
 KHR_materials_variants              | ✅ Complete
 KHR_materials_volume                | ✅ Partial <sup>2</sup>
 KHR_texture_transform               | ✅ Complete

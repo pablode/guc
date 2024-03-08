@@ -48,6 +48,9 @@ namespace guc
     bool m_hdstormCompat;
 
   private:
+    void createUnlitSurfaceNodes(const cgltf_material* material,
+                                 const std::string& materialName);
+
     void createGltfPbrNodes(const cgltf_material* material,
                             const std::string& materialName);
 

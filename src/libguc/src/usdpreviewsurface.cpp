@@ -151,8 +151,47 @@ namespace guc
     auto shaderOutput = shader.CreateOutput(UsdShadeTokens->surface, SdfValueTypeNames->Token);
     surfaceOutput.ConnectToSource(shaderOutput);
 
+    auto setAlphaTextureInput = [&](const cgltf_pbr_metallic_roughness* pbrMetallicRoughness)
+    {
+      if (material->alpha_mode != cgltf_alpha_mode_opaque)
+      {
+        // Do nothing.
+        return;
+      }
+
+      GfVec4f opacityFallback(1.0f); // image fallback value is 0.0, but opacity default should be 1.0
+
+      auto opacityInput = shader.CreateInput(_tokens->opacity, SdfValueTypeNames->Float);
+      setFloatTextureInput(path, opacityInput, pbrMetallicRoughness->base_color_texture, _tokens->a, GfVec4f(pbrMetallicRoughness->base_color_factor[3]), &opacityFallback);
+
+      if (material->alpha_mode == cgltf_alpha_mode_mask)
+      {
+        auto opacityThresholdInput = shader.CreateInput(_tokens->opacityThreshold, SdfValueTypeNames->Float);
+        opacityThresholdInput.Set(material->alpha_cutoff);
+      }
+    };
+
     auto emissiveColorInput = shader.CreateInput(_tokens->emissiveColor, SdfValueTypeNames->Float3);
     auto emissiveFactor = GfVec4f(material->emissive_factor);
+
+    if (material->unlit) // Not really 'unlit', but there's no better way
+    {
+      if (material->has_pbr_metallic_roughness)
+      {
+        const cgltf_pbr_metallic_roughness* pbrMetallicRoughness = &material->pbr_metallic_roughness;
+
+        GfVec4f unlitColorFallback(1.0f); // not specified
+
+        setSrgbTextureInput(path, emissiveColorInput, pbrMetallicRoughness->base_color_texture, GfVec4f(pbrMetallicRoughness->base_color_factor), &unlitColorFallback);
+        setAlphaTextureInput(pbrMetallicRoughness);
+      }
+      else
+      {
+        emissiveColorInput.Set(GfVec3f(1.0f));
+      }
+      return;
+    }
+
     if (material->has_emissive_strength)
     {
       const cgltf_emissive_strength* emissiveStrength = &material->emissive_strength;
@@ -169,7 +208,6 @@ namespace guc
     // We need to set these values regardless of whether pbrMetallicRoughness is present or not, because UsdPreviewSurface's
     // default values differ (and we want to come as close as possible to the MaterialX look, although the shading model differs).
     auto diffuseColorInput = shader.CreateInput(_tokens->diffuseColor, SdfValueTypeNames->Float3);
-    auto opacityInput = shader.CreateInput(_tokens->opacity, SdfValueTypeNames->Float);
     auto metallicInput = shader.CreateInput(_tokens->metallic, SdfValueTypeNames->Float);
     auto roughnessInput = shader.CreateInput(_tokens->roughness, SdfValueTypeNames->Float);
 
@@ -182,23 +220,11 @@ namespace guc
       GfVec4f metallicRoughnessFallback(1.0f); // same as glTF spec sec. 5.22.5: "When undefined, the texture MUST be sampled as having 1.0 in G and B components."
       setFloatTextureInput(path, metallicInput, pbrMetallicRoughness->metallic_roughness_texture, _tokens->b, GfVec4f(pbrMetallicRoughness->metallic_factor), &metallicRoughnessFallback);
       setFloatTextureInput(path, roughnessInput, pbrMetallicRoughness->metallic_roughness_texture, _tokens->g, GfVec4f(pbrMetallicRoughness->roughness_factor), &metallicRoughnessFallback);
-
-      if (material->alpha_mode != cgltf_alpha_mode_opaque)
-      {
-        GfVec4f opacityFallback(1.0f); // image fallback value is 0.0, but opacity default should be 1.0
-        setFloatTextureInput(path, opacityInput, pbrMetallicRoughness->base_color_texture, _tokens->a, GfVec4f(pbrMetallicRoughness->base_color_factor[3]), &opacityFallback);
-
-        if (material->alpha_mode == cgltf_alpha_mode_mask)
-        {
-          auto opacityThresholdInput = shader.CreateInput(_tokens->opacityThreshold, SdfValueTypeNames->Float);
-          opacityThresholdInput.Set(material->alpha_cutoff);
-        }
-      }
+      setAlphaTextureInput(pbrMetallicRoughness);
     }
     else
     {
       diffuseColorInput.Set(GfVec3f(1.0f)); // 0.18 in UsdPreviewSurface spec
-      opacityInput.Set(1.0f);
       metallicInput.Set(1.0f); // 0.0 in UsdPreviewSurface spec
       roughnessInput.Set(1.0f); // 0.5 in UsdPreviewSurface spec
     }
@@ -253,6 +279,7 @@ namespace guc
       float saturation = (baseColorMaxValue <= std::numeric_limits<float>::min()) ? 0.0f : (baseColorRange / baseColorMaxValue);
       float opacity = 0.25f + 0.75f * saturation * (1.0f - transmission->transmission_factor);
 
+      auto opacityInput = shader.CreateInput(_tokens->opacity, SdfValueTypeNames->Float); // not set because of OPAQUE mode check
       opacityInput.Set(opacity);
     }
   }

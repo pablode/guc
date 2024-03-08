@@ -428,12 +428,45 @@ namespace guc
 
     try
     {
-      createGltfPbrNodes(material, materialName);
+      if (material->unlit)
+      {
+        createUnlitSurfaceNodes(material, materialName);
+      }
+      else
+      {
+        createGltfPbrNodes(material, materialName);
+      }
     }
     catch (const mx::Exception& ex)
     {
       TF_RUNTIME_ERROR("Failed to create glTF PBR nodes for material '%s': %s", materialName.c_str(), ex.what());
     }
+  }
+
+  void MaterialXMaterialConverter::createUnlitSurfaceNodes(const cgltf_material* material, const std::string& materialName)
+  {
+    createMaterialNodes(material, materialName, "surface_unlit", [this](const cgltf_material* material,
+                                                                        mx::NodeGraphPtr nodeGraph,
+                                                                        mx::NodePtr shaderNode) {
+      mx::InputPtr emissionInput = shaderNode->addInput("emission_color", MTLX_TYPE_COLOR3);
+
+      if (material->has_pbr_metallic_roughness)
+      {
+        const cgltf_pbr_metallic_roughness* pbrMetallicRoughness = &material->pbr_metallic_roughness;
+
+        if (material->alpha_mode != cgltf_alpha_mode_opaque)
+        {
+          mx::InputPtr opacityInput = shaderNode->addInput("opacity", MTLX_TYPE_FLOAT);
+          setAlphaTextureInput(nodeGraph, opacityInput, &pbrMetallicRoughness->base_color_texture, pbrMetallicRoughness->base_color_factor[3]);
+        }
+
+        setDiffuseTextureInput(nodeGraph, emissionInput, &pbrMetallicRoughness->base_color_texture, detail::makeMxColor3(pbrMetallicRoughness->base_color_factor));
+      }
+      else
+      {
+        emissionInput->setValue(mx::Color3(1.0f));
+      }
+    });
   }
 
   void MaterialXMaterialConverter::createGltfPbrNodes(const cgltf_material* material, const std::string& materialName)

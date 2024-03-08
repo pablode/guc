@@ -38,7 +38,7 @@ namespace guc
     void convert(const cgltf_material* material, const std::string& materialName);
 
   private:
-    MaterialX::DocumentPtr m_doc;
+    mx::DocumentPtr m_doc;
     const ImageMetadataMap& m_imageMetadataMap;
     std::string m_defaultColorSetName;
     std::string m_defaultOpacitySetName;
@@ -49,13 +49,21 @@ namespace guc
 
   private:
     void createGltfPbrNodes(const cgltf_material* material,
-                             const std::string& materialName);
+                            const std::string& materialName);
 
+    using ShaderNodeCreationCallback =
+      std::function<void(const cgltf_material*, mx::NodeGraphPtr, mx::NodePtr)>;
+
+    void createMaterialNodes(const cgltf_material* material,
+                             const std::string& materialName,
+                             const std::string& shaderNodeType,
+                             ShaderNodeCreationCallback callback);
+
+  private:
     void setGltfPbrInputs(const cgltf_material* material,
                           mx::NodeGraphPtr nodeGraph,
                           mx::NodePtr shaderNode);
 
-  private:
     void setDiffuseTextureInput(mx::NodeGraphPtr nodeGraph,
                                 mx::InputPtr shaderInput,
                                 const cgltf_texture_view* textureView,

@@ -536,23 +536,6 @@ namespace guc
                                                     mx::NodeGraphPtr nodeGraph,
                                                     mx::NodePtr shaderNode)
   {
-    mx::InputPtr baseColorInput = shaderNode->addInput("base_color", MTLX_TYPE_COLOR3);
-    mx::InputPtr alphaInput = shaderNode->addInput("alpha", MTLX_TYPE_FLOAT);
-    mx::InputPtr occlusionInput = shaderNode->addInput("occlusion", MTLX_TYPE_FLOAT);
-    mx::InputPtr metallicInput = shaderNode->addInput("metallic", MTLX_TYPE_FLOAT);
-    mx::InputPtr roughnessInput = shaderNode->addInput("roughness", MTLX_TYPE_FLOAT);
-
-    // FIXME: overwrite default values for the following inputs, as they are incorrect in
-    //        MaterialX 1.38.4. Remove this in later versions (see MaterialX PR #971).
-    auto baseColorDefault = mx::Color3(1.0f);
-    auto alphaDefault = 1.0f;
-
-    baseColorInput->setValue(baseColorDefault);
-    alphaInput->setValue(alphaDefault);
-    occlusionInput->setValue(1.0f);
-    metallicInput->setValue(1.0f);
-    roughnessInput->setValue(1.0f);
-
     mx::InputPtr emissiveInput = shaderNode->addInput("emissive", MTLX_TYPE_COLOR3);
     mx::Color3 emissiveFactor = detail::makeMxColor3(material->emissive_factor);
     auto emissiveDefault = mx::Color3(1.0f, 1.0f, 1.0f); // spec sec. 5.19.7
@@ -593,6 +576,7 @@ namespace guc
       shaderNode->removeInput("normal");
     }
 
+    mx::InputPtr occlusionInput = shaderNode->addInput("occlusion", MTLX_TYPE_FLOAT);
     setOcclusionTextureInput(nodeGraph, occlusionInput, material->occlusion_texture);
 
     mx::InputPtr alphaModeInput = shaderNode->addInput("alpha_mode", MTLX_TYPE_INTEGER);
@@ -604,30 +588,39 @@ namespace guc
       alphaCutoffInput->setValue(material->alpha_cutoff);
     }
 
+    mx::InputPtr baseColorInput = shaderNode->addInput("base_color", MTLX_TYPE_COLOR3);
+
     if (material->has_pbr_metallic_roughness)
     {
       const cgltf_pbr_metallic_roughness* pbrMetallicRoughness = &material->pbr_metallic_roughness;
 
       if (material->alpha_mode != cgltf_alpha_mode_opaque)
       {
+        mx::InputPtr alphaInput = shaderNode->addInput("alpha", MTLX_TYPE_FLOAT);
         setAlphaTextureInput(nodeGraph, alphaInput, &pbrMetallicRoughness->base_color_texture, pbrMetallicRoughness->base_color_factor[3]);
       }
 
       setDiffuseTextureInput(nodeGraph, baseColorInput, &pbrMetallicRoughness->base_color_texture, detail::makeMxColor3(pbrMetallicRoughness->base_color_factor));
 
-      auto metallicDefault = 1.0f; // spec sec. 5.22.5
+      float metallicDefault = 1.0f; // spec sec. 5.22.5
+      mx::InputPtr metallicInput = shaderNode->addInput("metallic", MTLX_TYPE_FLOAT);
       setFloatTextureInput(nodeGraph, metallicInput, pbrMetallicRoughness->metallic_roughness_texture, 2, pbrMetallicRoughness->metallic_factor, metallicDefault);
 
-      auto roughnessDefault = 1.0f; // spec sec. 5.22.5
+      float roughnessDefault = 1.0f; // spec sec. 5.22.5
+      mx::InputPtr roughnessInput = shaderNode->addInput("roughness", MTLX_TYPE_FLOAT);
       setFloatTextureInput(nodeGraph, roughnessInput, pbrMetallicRoughness->metallic_roughness_texture, 1, pbrMetallicRoughness->roughness_factor, roughnessDefault);
     }
     // Regardless of the existence of base color and texture, we still need to multiply by vertex color / opacity
     else
     {
+      auto baseColorDefault = mx::Color3(1.0f);
       setDiffuseTextureInput(nodeGraph, baseColorInput, nullptr, baseColorDefault);
 
       if (material->alpha_mode != cgltf_alpha_mode_opaque)
       {
+        float alphaDefault = 1.0f;
+
+        mx::InputPtr alphaInput = shaderNode->addInput("alpha", MTLX_TYPE_FLOAT);
         setAlphaTextureInput(nodeGraph, alphaInput, nullptr, alphaDefault);
       }
     }

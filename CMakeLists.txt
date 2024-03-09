@@ -11,7 +11,7 @@ find_package(pxr CONFIG REQUIRED)
 
 # Find MaterialX library provided by the USD installation.
 # Since we use UsdMtlx, using a custom MaterialX version leads to conflicts.
-find_package(MaterialX REQUIRED HINTS ${pxr_DIR})
+find_package(MaterialX 1.38.6 REQUIRED HINTS ${pxr_DIR})
 
 # We need to open PNG and JPEG files in order to read the number of channels
 # for shading node creation. OIIO should be provided by the USD installation.

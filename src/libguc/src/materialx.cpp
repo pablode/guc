@@ -448,23 +448,16 @@ namespace guc
     createMaterialNodes(material, materialName, "unlit_surface", [this](const cgltf_material* material,
                                                                         mx::NodeGraphPtr nodeGraph,
                                                                         mx::NodePtr shaderNode) {
-      mx::InputPtr emissionInput = shaderNode->addInput("emission", MTLX_TYPE_COLOR3);
-
       if (material->has_pbr_metallic_roughness)
       {
         const cgltf_pbr_metallic_roughness* pbrMetallicRoughness = &material->pbr_metallic_roughness;
 
         if (material->alpha_mode != cgltf_alpha_mode_opaque)
         {
-          mx::InputPtr opacityInput = shaderNode->addInput("opacity", MTLX_TYPE_FLOAT);
-          setAlphaTextureInput(nodeGraph, opacityInput, &pbrMetallicRoughness->base_color_texture, pbrMetallicRoughness->base_color_factor[3]);
+          addAlphaTextureInput(nodeGraph, shaderNode, "opacity", &pbrMetallicRoughness->base_color_texture, pbrMetallicRoughness->base_color_factor[3]);
         }
 
-        setDiffuseTextureInput(nodeGraph, emissionInput, &pbrMetallicRoughness->base_color_texture, detail::makeMxColor3(pbrMetallicRoughness->base_color_factor));
-      }
-      else
-      {
-        emissionInput->setValue(mx::Color3(1.0f));
+        addDiffuseTextureInput(nodeGraph, shaderNode, "emission", &pbrMetallicRoughness->base_color_texture, detail::makeMxColor3(pbrMetallicRoughness->base_color_factor));
       }
     });
   }
@@ -474,7 +467,7 @@ namespace guc
     createMaterialNodes(material, materialName, "gltf_pbr", [this](const cgltf_material* material,
                                                                    mx::NodeGraphPtr nodeGraph,
                                                                    mx::NodePtr shaderNode) {
-      setGltfPbrInputs(material, nodeGraph, shaderNode);
+      addGltfPbrInputs(material, nodeGraph, shaderNode);
     });
   }
 
@@ -532,52 +525,17 @@ namespace guc
     materialSurfaceInput->setNodeName(shaderNode->getName());
   }
 
-  void MaterialXMaterialConverter::setGltfPbrInputs(const cgltf_material* material,
+  void MaterialXMaterialConverter::addGltfPbrInputs(const cgltf_material* material,
                                                     mx::NodeGraphPtr nodeGraph,
                                                     mx::NodePtr shaderNode)
   {
-    mx::InputPtr emissiveInput = shaderNode->addInput("emissive", MTLX_TYPE_COLOR3);
     mx::Color3 emissiveFactor = detail::makeMxColor3(material->emissive_factor);
     auto emissiveDefault = mx::Color3(1.0f, 1.0f, 1.0f); // spec sec. 5.19.7
-    setSrgbTextureInput(nodeGraph, emissiveInput, material->emissive_texture, emissiveFactor, emissiveDefault);
+    addSrgbTextureInput(nodeGraph, shaderNode, "emissive", material->emissive_texture, emissiveFactor, emissiveDefault);
 
-    mx::InputPtr normalInput = shaderNode->addInput("normal", MTLX_TYPE_VECTOR3);
-    if (setNormalTextureInput(nodeGraph, normalInput, material->normal_texture))
-    {
-#ifndef NDEBUG
-      if (TfGetEnvSetting(GUC_ENABLE_MTLX_GLTF_PBR_TANGENT))
-      {
-        mx::NodePtr tangentNode;
+    addNormalTextureInput(nodeGraph, shaderNode, "normal", material->normal_texture);
 
-        if (TfGetEnvSetting(GUC_ENABLE_MTLX_VIEWER_COMPAT))
-        {
-          tangentNode = nodeGraph->addNode("tangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
-
-          auto spaceInput = tangentNode->addInput("space", MTLX_TYPE_STRING);
-          spaceInput->setValue("world");
-        }
-        else
-        {
-          tangentNode = makeGeompropValueNode(nodeGraph, "tangents", MTLX_TYPE_VECTOR3);
-
-          tangentNode = detail::makeVectorToWorldSpaceNode(nodeGraph, tangentNode);
-
-          tangentNode = detail::makeNormalizeNode(nodeGraph, tangentNode);
-        }
-
-        mx::InputPtr tangentInput = shaderNode->addInput("tangent", MTLX_TYPE_VECTOR3);
-        connectNodeGraphNodeToShaderInput(nodeGraph, tangentInput, tangentNode);
-      }
-#endif
-    }
-    else
-    {
-      // in case no texture has been found, fall back to the implicit declaration (defaultgeomprop="Nworld")
-      shaderNode->removeInput("normal");
-    }
-
-    mx::InputPtr occlusionInput = shaderNode->addInput("occlusion", MTLX_TYPE_FLOAT);
-    setOcclusionTextureInput(nodeGraph, occlusionInput, material->occlusion_texture);
+    addOcclusionTextureInput(nodeGraph, shaderNode, material->occlusion_texture);
 
     if (material->alpha_mode != cgltf_alpha_mode_opaque)
     {
@@ -591,40 +549,33 @@ namespace guc
       alphaCutoffInput->setValue(material->alpha_cutoff);
     }
 
-    mx::InputPtr baseColorInput = shaderNode->addInput("base_color", MTLX_TYPE_COLOR3);
-
     if (material->has_pbr_metallic_roughness)
     {
       const cgltf_pbr_metallic_roughness* pbrMetallicRoughness = &material->pbr_metallic_roughness;
 
       if (material->alpha_mode != cgltf_alpha_mode_opaque)
       {
-        mx::InputPtr alphaInput = shaderNode->addInput("alpha", MTLX_TYPE_FLOAT);
-        setAlphaTextureInput(nodeGraph, alphaInput, &pbrMetallicRoughness->base_color_texture, pbrMetallicRoughness->base_color_factor[3]);
+        addAlphaTextureInput(nodeGraph, shaderNode, "alpha", &pbrMetallicRoughness->base_color_texture, pbrMetallicRoughness->base_color_factor[3]);
       }
 
-      setDiffuseTextureInput(nodeGraph, baseColorInput, &pbrMetallicRoughness->base_color_texture, detail::makeMxColor3(pbrMetallicRoughness->base_color_factor));
+      addDiffuseTextureInput(nodeGraph, shaderNode, "base_color", &pbrMetallicRoughness->base_color_texture, detail::makeMxColor3(pbrMetallicRoughness->base_color_factor));
 
       float metallicDefault = 1.0f; // spec sec. 5.22.5
-      mx::InputPtr metallicInput = shaderNode->addInput("metallic", MTLX_TYPE_FLOAT);
-      setFloatTextureInput(nodeGraph, metallicInput, pbrMetallicRoughness->metallic_roughness_texture, 2, pbrMetallicRoughness->metallic_factor, metallicDefault);
+      addFloatTextureInput(nodeGraph, shaderNode, "metallic", pbrMetallicRoughness->metallic_roughness_texture, 2, pbrMetallicRoughness->metallic_factor, metallicDefault);
 
       float roughnessDefault = 1.0f; // spec sec. 5.22.5
-      mx::InputPtr roughnessInput = shaderNode->addInput("roughness", MTLX_TYPE_FLOAT);
-      setFloatTextureInput(nodeGraph, roughnessInput, pbrMetallicRoughness->metallic_roughness_texture, 1, pbrMetallicRoughness->roughness_factor, roughnessDefault);
+      addFloatTextureInput(nodeGraph, shaderNode, "roughness", pbrMetallicRoughness->metallic_roughness_texture, 1, pbrMetallicRoughness->roughness_factor, roughnessDefault);
     }
     // Regardless of the existence of base color and texture, we still need to multiply by vertex color / opacity
     else
     {
       auto baseColorDefault = mx::Color3(1.0f);
-      setDiffuseTextureInput(nodeGraph, baseColorInput, nullptr, baseColorDefault);
+      addDiffuseTextureInput(nodeGraph, shaderNode, "base_color", nullptr, baseColorDefault);
 
       if (material->alpha_mode != cgltf_alpha_mode_opaque)
       {
         float alphaDefault = 1.0f;
-
-        mx::InputPtr alphaInput = shaderNode->addInput("alpha", MTLX_TYPE_FLOAT);
-        setAlphaTextureInput(nodeGraph, alphaInput, nullptr, alphaDefault);
+        addAlphaTextureInput(nodeGraph, shaderNode, "alpha", nullptr, alphaDefault);
       }
     }
 
@@ -640,38 +591,29 @@ namespace guc
     {
       const cgltf_clearcoat* clearcoat = &material->clearcoat;
 
-      mx::InputPtr clearcoatInput = shaderNode->addInput("clearcoat", MTLX_TYPE_FLOAT);
       auto clearcoatDefault = 1.0f; // according to spec
-      setFloatTextureInput(nodeGraph, clearcoatInput, clearcoat->clearcoat_texture, 0, clearcoat->clearcoat_factor, clearcoatDefault);
+      addFloatTextureInput(nodeGraph, shaderNode, "clearcoat", clearcoat->clearcoat_texture, 0, clearcoat->clearcoat_factor, clearcoatDefault);
 
-      mx::InputPtr clearcoatRoughnessInput = shaderNode->addInput("clearcoat_roughness", MTLX_TYPE_FLOAT);
       auto clearcodeRoughnessDefault = 1.0f; // according to spec
-      setFloatTextureInput(nodeGraph, clearcoatRoughnessInput, clearcoat->clearcoat_roughness_texture, 1, clearcoat->clearcoat_roughness_factor, clearcodeRoughnessDefault);
+      addFloatTextureInput(nodeGraph, shaderNode, "clearcoat_roughness", clearcoat->clearcoat_roughness_texture, 1, clearcoat->clearcoat_roughness_factor, clearcodeRoughnessDefault);
 
-      mx::InputPtr clearcoatNormalInput = shaderNode->addInput("clearcoat_normal", MTLX_TYPE_VECTOR3);
-      if (!setNormalTextureInput(nodeGraph, clearcoatNormalInput, clearcoat->clearcoat_normal_texture))
-      {
-        // in case no texture has been found, fall back to the implicit declaration (defaultgeomprop="Nworld")
-        shaderNode->removeInput("clearcoat_normal");
-      }
+      addNormalTextureInput(nodeGraph, shaderNode, "clearcoat_normal", clearcoat->clearcoat_normal_texture);
     }
 
     if (material->has_transmission)
     {
       const cgltf_transmission* transmission = &material->transmission;
 
-      mx::InputPtr transmissionInput = shaderNode->addInput("transmission", MTLX_TYPE_FLOAT);
       auto transmissionDefault = 0.0f; // not given by spec
-      setFloatTextureInput(nodeGraph, transmissionInput, transmission->transmission_texture, 0, transmission->transmission_factor, transmissionDefault);
+      addFloatTextureInput(nodeGraph, shaderNode, "transmission", transmission->transmission_texture, 0, transmission->transmission_factor, transmissionDefault);
     }
 
     if (material->has_volume)
     {
       const cgltf_volume* volume = &material->volume;
 
-      mx::InputPtr thicknessInput = shaderNode->addInput("thickness", MTLX_TYPE_FLOAT);
       auto thicknessDefault = 0.0f; // not given by spec
-      setFloatTextureInput(nodeGraph, thicknessInput, volume->thickness_texture, 1, volume->thickness_factor, thicknessDefault);
+      addFloatTextureInput(nodeGraph, shaderNode, "thickness", volume->thickness_texture, 1, volume->thickness_factor, thicknessDefault);
 
       mx::InputPtr attenuationDistanceInput = shaderNode->addInput("attenuation_distance", MTLX_TYPE_FLOAT);
       attenuationDistanceInput->setValue(volume->attenuation_distance);
@@ -692,41 +634,35 @@ namespace guc
     {
       const cgltf_iridescence* iridescence = &material->iridescence;
 
-      mx::InputPtr iridescenceInput = shaderNode->addInput("iridescence", MTLX_TYPE_FLOAT);
       float iridescenceDefault = 1.0f;
-      setFloatTextureInput(nodeGraph, iridescenceInput, iridescence->iridescence_texture, 0, iridescence->iridescence_factor, iridescenceDefault);
+      addFloatTextureInput(nodeGraph, shaderNode, "iridescence", iridescence->iridescence_texture, 0, iridescence->iridescence_factor, iridescenceDefault);
 
       mx::InputPtr iridescenceIorInput = shaderNode->addInput("iridescence_ior", MTLX_TYPE_FLOAT);
       iridescenceIorInput->setValue(iridescence->iridescence_ior);
 
-      mx::InputPtr iridescenceThicknessInput = shaderNode->addInput("iridescence_thickness", MTLX_TYPE_FLOAT);
-      setIridescenceThicknessInput(nodeGraph, iridescenceThicknessInput, iridescence);
+      addIridescenceThicknessInput(nodeGraph, shaderNode, iridescence);
     }
 
     if (material->has_specular)
     {
       const cgltf_specular* specular = &material->specular;
 
-      mx::InputPtr specularInput = shaderNode->addInput("specular", MTLX_TYPE_FLOAT);
       auto specularDefault = 1.0f; // not given by spec
-      setFloatTextureInput(nodeGraph, specularInput, specular->specular_texture, 3, specular->specular_factor, specularDefault);
+      addFloatTextureInput(nodeGraph, shaderNode, "specular", specular->specular_texture, 3, specular->specular_factor, specularDefault);
 
-      mx::InputPtr specularColorInput = shaderNode->addInput("specular_color", MTLX_TYPE_COLOR3);
       auto specularColorDefault = mx::Color3(1.0f); // not given by spec
-      setSrgbTextureInput(nodeGraph, specularColorInput, specular->specular_color_texture, detail::makeMxColor3(specular->specular_color_factor), specularColorDefault);
+      addSrgbTextureInput(nodeGraph, shaderNode, "specular_color", specular->specular_color_texture, detail::makeMxColor3(specular->specular_color_factor), specularColorDefault);
     }
 
     if (material->has_sheen)
     {
       const cgltf_sheen* sheen = &material->sheen;
 
-      mx::InputPtr sheenColorInput = shaderNode->addInput("sheen_color", MTLX_TYPE_COLOR3);
       auto sheenColorDefault = mx::Color3(0.0f); // not given by spec
-      setSrgbTextureInput(nodeGraph, sheenColorInput, sheen->sheen_color_texture, detail::makeMxColor3(sheen->sheen_color_factor), sheenColorDefault);
+      addSrgbTextureInput(nodeGraph, shaderNode, "sheen_color", sheen->sheen_color_texture, detail::makeMxColor3(sheen->sheen_color_factor), sheenColorDefault);
 
-      mx::InputPtr sheenRoughnessInput = shaderNode->addInput("sheen_roughness", MTLX_TYPE_FLOAT);
       auto sheenRoughnessDefault = 0.0f; // not given by spec
-      setFloatTextureInput(nodeGraph, sheenRoughnessInput, sheen->sheen_roughness_texture, 3, sheen->sheen_roughness_factor, sheenRoughnessDefault);
+      addFloatTextureInput(nodeGraph, shaderNode, "sheen_roughness", sheen->sheen_roughness_texture, 3, sheen->sheen_roughness_factor, sheenRoughnessDefault);
     }
 
     // Unfortunately, hdStorm blending is messed up because the material is not flagged as 'translucent':
@@ -745,11 +681,15 @@ namespace guc
     }
   }
 
-  void MaterialXMaterialConverter::setDiffuseTextureInput(mx::NodeGraphPtr nodeGraph,
-                                                          mx::InputPtr shaderInput,
+  void MaterialXMaterialConverter::addDiffuseTextureInput(mx::NodeGraphPtr nodeGraph,
+                                                          mx::NodePtr shaderNode,
+                                                          const std::string& inputName,
                                                           const cgltf_texture_view* textureView,
                                                           const mx::Color3& factor)
   {
+    // TODO: right now, we assume that vertex colors exist - hence, an input is always needed
+    mx::InputPtr shaderInput = shaderNode->addInput(inputName, MTLX_TYPE_COLOR3);
+
     auto defaultVertexValue = mx::Value::createValue(mx::Vector3(1.0f, 1.0f, 1.0f));
     mx::NodePtr geompropNode = makeGeompropValueNode(nodeGraph, m_defaultColorSetName, MTLX_TYPE_COLOR3, defaultVertexValue);
 
@@ -777,11 +717,15 @@ namespace guc
     connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, multiplyNode2);
   }
 
-  void MaterialXMaterialConverter::setAlphaTextureInput(mx::NodeGraphPtr nodeGraph,
-                                                        mx::InputPtr shaderInput,
+  void MaterialXMaterialConverter::addAlphaTextureInput(mx::NodeGraphPtr nodeGraph,
+                                                        mx::NodePtr shaderNode,
+                                                        const std::string& inputName,
                                                         const cgltf_texture_view* textureView,
                                                         float factor)
   {
+    // TODO: right now, we assume that vertex colors/opacities exist - hence, an input is always needed
+    mx::InputPtr shaderInput = shaderNode->addInput(inputName, MTLX_TYPE_FLOAT);
+
     auto defaultOpacityValue = mx::Value::createValue(1.0f);
     mx::NodePtr geompropNode = makeGeompropValueNode(nodeGraph, m_defaultOpacitySetName, MTLX_TYPE_FLOAT, defaultOpacityValue);
 
@@ -819,15 +763,18 @@ namespace guc
     connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, multiplyNode2);
   }
 
-  bool MaterialXMaterialConverter::setNormalTextureInput(mx::NodeGraphPtr nodeGraph,
-                                                         mx::InputPtr shaderInput,
+  void MaterialXMaterialConverter::addNormalTextureInput(mx::NodeGraphPtr nodeGraph,
+                                                         mx::NodePtr shaderNode,
+                                                         const std::string& inputName,
                                                          const cgltf_texture_view& textureView)
   {
     std::string filePath;
     if (!getTextureFilePath(textureView, filePath))
     {
-      return false;
+      return;
     }
+
+    mx::InputPtr shaderInput = shaderNode->addInput(inputName, MTLX_TYPE_VECTOR3);
 
     // here, we basically implement the normalmap node, but with variable handedness by using the bitangent
     // https://github.com/AcademySoftwareFoundation/MaterialX/blob/main/libraries/stdlib/genglsl/mx_normalmap.glsl
@@ -974,11 +921,35 @@ namespace guc
 
     connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, normalizeNode2);
 
-    return true;
+#ifndef NDEBUG
+    if (TfGetEnvSetting(GUC_ENABLE_MTLX_GLTF_PBR_TANGENT))
+    {
+      mx::NodePtr tangentNode;
+
+      if (TfGetEnvSetting(GUC_ENABLE_MTLX_VIEWER_COMPAT))
+      {
+        tangentNode = nodeGraph->addNode("tangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+
+        auto spaceInput = tangentNode->addInput("space", MTLX_TYPE_STRING);
+        spaceInput->setValue("world");
+      }
+      else
+      {
+        tangentNode = makeGeompropValueNode(nodeGraph, "tangents", MTLX_TYPE_VECTOR3);
+
+        tangentNode = detail::makeVectorToWorldSpaceNode(nodeGraph, tangentNode);
+
+        tangentNode = detail::makeNormalizeNode(nodeGraph, tangentNode);
+      }
+
+      mx::InputPtr tangentInput = shaderNode->addInput("tangent", MTLX_TYPE_VECTOR3);
+      connectNodeGraphNodeToShaderInput(nodeGraph, tangentInput, tangentNode);
+    }
+#endif
   }
 
-  void MaterialXMaterialConverter::setOcclusionTextureInput(mx::NodeGraphPtr nodeGraph,
-                                                            mx::InputPtr shaderInput,
+  void MaterialXMaterialConverter::addOcclusionTextureInput(mx::NodeGraphPtr nodeGraph,
+                                                            mx::NodePtr shaderNode,
                                                             const cgltf_texture_view& textureView)
   {
     std::string filePath;
@@ -986,6 +957,8 @@ namespace guc
     {
       return;
     }
+
+    mx::InputPtr shaderInput = shaderNode->addInput("occlusion", MTLX_TYPE_FLOAT);
 
     // glTF spec 2.0 3.9.3.
     // if 'strength' attribute is present, it affects occlusion as follows:
@@ -1018,15 +991,27 @@ namespace guc
     connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, addNode);
   }
 
-  void MaterialXMaterialConverter::setIridescenceThicknessInput(mx::NodeGraphPtr nodeGraph,
-                                                                mx::InputPtr shaderInput,
+  void MaterialXMaterialConverter::addIridescenceThicknessInput(mx::NodeGraphPtr nodeGraph,
+                                                                mx::NodePtr shaderNode,
                                                                 const cgltf_iridescence* iridescence)
   {
     std::string filePath;
-    if (!getTextureFilePath(iridescence->iridescence_thickness_texture, filePath))
+    bool validTexture = getTextureFilePath(iridescence->iridescence_thickness_texture, filePath);
+
+    mx::InputPtr shaderInput;
+    bool isThicknessMaxNonDefault = iridescence->iridescence_thickness_max != 100.0f;
+    if (validTexture || (!validTexture && isThicknessMaxNonDefault))
     {
-      // "The thickness of the thin-film is set to iridescenceThicknessMaximum if iridescenceThicknessTexture is not given."
-      shaderInput->setValue(iridescence->iridescence_thickness_max);
+      shaderInput = shaderNode->addInput("iridescence_thickness", MTLX_TYPE_FLOAT);
+    }
+
+    if (!validTexture)
+    {
+      if (isThicknessMaxNonDefault)
+      {
+        // "The thickness of the thin-film is set to iridescenceThicknessMaximum if iridescenceThicknessTexture is not given."
+        shaderInput->setValue(iridescence->iridescence_thickness_max);
+      }
       return;
     }
 
@@ -1050,16 +1035,24 @@ namespace guc
     connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, mixNode);
   }
 
-  void MaterialXMaterialConverter::setSrgbTextureInput(mx::NodeGraphPtr nodeGraph,
-                                                       mx::InputPtr input,
+  void MaterialXMaterialConverter::addSrgbTextureInput(mx::NodeGraphPtr nodeGraph,
+                                                       mx::NodePtr shaderNode,
+                                                       const std::string& inputName,
                                                        const cgltf_texture_view& textureView,
                                                        mx::Color3 factor,
                                                        mx::Color3 fallback)
   {
-    mx::ValuePtr factorValue = mx::Value::createValue(factor);
-
     std::string filePath;
-    if (getTextureFilePath(textureView, filePath))
+    bool validTexture = getTextureFilePath(textureView, filePath);
+
+    mx::InputPtr input;
+    if (validTexture || (!validTexture && factor != fallback))
+    {
+      input = shaderNode->addInput(inputName, MTLX_TYPE_COLOR3);
+    }
+
+    mx::ValuePtr factorValue = mx::Value::createValue(factor);
+    if (validTexture)
     {
       auto defaultValuePtr = mx::Value::createValue(fallback);
       mx::NodePtr valueNode = addFloat3TextureNodes(nodeGraph, textureView, filePath, true, defaultValuePtr);
@@ -1068,23 +1061,31 @@ namespace guc
 
       connectNodeGraphNodeToShaderInput(nodeGraph, input, multiplyNode);
     }
-    else
+    else if (factor != fallback)
     {
       input->setValueString(factorValue->getValueString());
     }
   }
 
-  void MaterialXMaterialConverter::setFloatTextureInput(mx::NodeGraphPtr nodeGraph,
-                                                        mx::InputPtr input,
+  void MaterialXMaterialConverter::addFloatTextureInput(mx::NodeGraphPtr nodeGraph,
+                                                        mx::NodePtr shaderNode,
+                                                        const std::string& inputName,
                                                         const cgltf_texture_view& textureView,
                                                         int channelIndex,
                                                         float factor,
                                                         float fallback)
   {
-    mx::ValuePtr factorValue = mx::Value::createValue(factor);
-
     std::string filePath;
-    if (getTextureFilePath(textureView, filePath))
+    bool validTexture = getTextureFilePath(textureView, filePath);
+
+    mx::InputPtr input;
+    if (validTexture || (!validTexture && factor != fallback))
+    {
+      input = shaderNode->addInput(inputName, MTLX_TYPE_FLOAT);
+    }
+
+    mx::ValuePtr factorValue = mx::Value::createValue(factor);
+    if (validTexture)
     {
       mx::NodePtr valueNode = addFloatTextureNodes(nodeGraph, textureView, filePath, channelIndex, fallback);
 
@@ -1092,7 +1093,7 @@ namespace guc
 
       connectNodeGraphNodeToShaderInput(nodeGraph, input, multiplyNode);
     }
-    else
+    else if (factor != fallback)
     {
       input->setValueString(factorValue->getValueString());
     }

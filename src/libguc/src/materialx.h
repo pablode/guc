@@ -63,45 +63,50 @@ namespace guc
                              ShaderNodeCreationCallback callback);
 
   private:
-    void setGltfPbrInputs(const cgltf_material* material,
+    void addGltfPbrInputs(const cgltf_material* material,
                           mx::NodeGraphPtr nodeGraph,
                           mx::NodePtr shaderNode);
 
-    void setDiffuseTextureInput(mx::NodeGraphPtr nodeGraph,
-                                mx::InputPtr shaderInput,
+    void addDiffuseTextureInput(mx::NodeGraphPtr nodeGraph,
+                                mx::NodePtr shaderNode,
+                                const std::string& inputName,
                                 const cgltf_texture_view* textureView,
                                 const mx::Color3& factor);
 
-    void setAlphaTextureInput(mx::NodeGraphPtr nodeGraph,
-                              mx::InputPtr shaderInput,
+    void addAlphaTextureInput(mx::NodeGraphPtr nodeGraph,
+                              mx::NodePtr shaderNode,
+                              const std::string& inputName,
                               const cgltf_texture_view* textureView,
                               float factor);
 
-    bool setNormalTextureInput(mx::NodeGraphPtr nodeGraph,
-                               mx::InputPtr shaderInput,
+    void addNormalTextureInput(mx::NodeGraphPtr nodeGraph,
+                               mx::NodePtr shaderNode,
+                               const std::string& inputName,
                                const cgltf_texture_view& textureView);
 
-    void setOcclusionTextureInput(mx::NodeGraphPtr nodeGraph,
-                                  mx::InputPtr shaderInput,
+    void addOcclusionTextureInput(mx::NodeGraphPtr nodeGraph,
+                                  mx::NodePtr shaderNode,
                                   const cgltf_texture_view& textureView);
 
-    void setIridescenceThicknessInput(mx::NodeGraphPtr nodeGraph,
-                                      mx::InputPtr shaderInput,
+    void addIridescenceThicknessInput(mx::NodeGraphPtr nodeGraph,
+                                      mx::NodePtr shaderNode,
                                       const cgltf_iridescence* iridescence);
 
   private:
-    void setSrgbTextureInput(mx::NodeGraphPtr nodeGraph,
-                             mx::InputPtr input,
+    void addSrgbTextureInput(mx::NodeGraphPtr nodeGraph,
+                             mx::NodePtr shaderNode,
+                             const std::string& inputName,
                              const cgltf_texture_view& textureView,
                              mx::Color3 factor,
-                             mx::Color3 fallback);
+                             mx::Color3 factorDefault);
 
-    void setFloatTextureInput(mx::NodeGraphPtr nodeGraph,
-                              mx::InputPtr input,
+    void addFloatTextureInput(mx::NodeGraphPtr nodeGraph,
+                              mx::NodePtr shaderNode,
+                              const std::string& inputName,
                               const cgltf_texture_view& textureView,
                               int channelIndex,
                               float factor,
-                              float fallback);
+                              float factorDefault);
 
   private:
     // These two functions not only set up the image nodes with the correct value
@@ -131,8 +136,7 @@ namespace guc
     mx::NodePtr addFloatTextureNodes(mx::NodeGraphPtr nodeGraph,
                                      const cgltf_texture_view& textureView,
                                      std::string& filePath,
-                                     int channelIndex,
-                                     float defaultValue);
+                                     int channelIndex);
 
     mx::NodePtr addFloat3TextureNodes(mx::NodeGraphPtr nodeGraph,
                                       const cgltf_texture_view& textureView,

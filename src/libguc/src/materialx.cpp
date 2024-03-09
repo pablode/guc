@@ -579,8 +579,11 @@ namespace guc
     mx::InputPtr occlusionInput = shaderNode->addInput("occlusion", MTLX_TYPE_FLOAT);
     setOcclusionTextureInput(nodeGraph, occlusionInput, material->occlusion_texture);
 
-    mx::InputPtr alphaModeInput = shaderNode->addInput("alpha_mode", MTLX_TYPE_INTEGER);
-    alphaModeInput->setValue(int(material->alpha_mode));
+    if (material->alpha_mode != cgltf_alpha_mode_opaque)
+    {
+      mx::InputPtr alphaModeInput = shaderNode->addInput("alpha_mode", MTLX_TYPE_INTEGER);
+      alphaModeInput->setValue(int(material->alpha_mode));
+    }
 
     if (material->alpha_mode == cgltf_alpha_mode_mask)
     {

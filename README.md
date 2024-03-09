@@ -26,7 +26,7 @@ All glTF features except animation and skinning are implemented and get continuo
 
 ### Build
 
-You need USD <a href="https://github.com/PixarAnimationStudios/OpenUSD/tree/v24.03">v24.03</a> with MaterialX and `--openimageio` support enabled.
+You need USD v23.11+ (e.g. <a href="https://github.com/PixarAnimationStudios/OpenUSD/releases/tag/v24.03">v24.03</a>) with MaterialX and `--openimageio` support enabled.
 
 Do a recursive clone of the repository and set up a build folder:
 ```
@@ -48,7 +48,7 @@ cmake --build . -j8 --target guc --config Release
 
 > Note: set `BUILD_SHARED_LIBS` for shared builds, and `CMAKE_MSVC_RUNTIME_LIBRARY` to USD's MSVC ABI.
 
-> Note: if you run into issues with module or shared libary loading, try building USD with the `--opencolorio` flag.
+> Note: if module or shared libary loading fails, try building USD with the `--opencolorio` flag.
 
 ### Usage
 
@@ -82,7 +82,7 @@ KHR_materials_iridescence           | ✅ Complete
 KHR_materials_sheen                 | ✅ Complete
 KHR_materials_specular              | ✅ Complete
 KHR_materials_transmission          | ✅ Complete
-KHR_materials_unlit                 | 🚧 Planned
+KHR_materials_unlit                 | 🚧 In Progress
 KHR_materials_variants              | ✅ Complete
 KHR_materials_volume                | ✅ Partial <sup>2</sup>
 KHR_texture_transform               | ✅ Complete

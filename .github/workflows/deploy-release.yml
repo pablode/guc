@@ -2,11 +2,6 @@ name: Deploy Release
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - '**.md'
 
 jobs:
   build-2403:

@@ -9,16 +9,23 @@ on:
       - '**.md'
 
 jobs:
-  build:
+  build-2403:
     name: Build guc for USD v24.03
     uses: ./.github/workflows/build-usd.yml
     with:
       usd-version: 24.03
       build-config: Release
 
+  build-2311:
+    name: Build guc for USD v23.11
+    uses: ./.github/workflows/build-usd.yml
+    with:
+      usd-version: 23.11
+      build-config: Release
+
   deploy-release:
     name: Deploy Release
-    needs: build
+    needs: [build-2403, build-2311]
     runs-on: ubuntu-latest
 
     steps:

@@ -1,0 +1,40 @@
+name: Run Tests (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      enable-graphical-tests-mtlx:
+        description: Enable MaterialX graphical tests
+        type: boolean
+        default: false
+      enable-graphical-tests-preview:
+        description: Enable preview graphical tests
+        type: boolean
+        default: false
+      enable-usdchecker:
+        description: Run usdchecker on converted USD files
+        type: boolean
+        default: true
+      usd-version:
+        description: The version of USD to build against
+        type: string
+        default: 24.03
+      tests-branch:
+        description: Tests branch name
+        type: string
+        default: 'main'
+      test-filter:
+        description: Filter (regular expression)
+        type: string
+
+jobs:
+  run-tests:
+    name: Run Tests
+    uses: ./.github/workflows/run-tests.yml
+    with:
+      enable-graphical-tests-mtlx: ${{ inputs.enable-graphical-tests-mtlx }}
+      enable-graphical-tests-preview: ${{ inputs.enable-graphical-tests-preview }}
+      enable-usdchecker: ${{ inputs.enable-usdchecker }}
+      usd-version: ${{ inputs.usd-version }}
+      tests-branch: ${{ inputs.tests-branch }}
+      test-filter: ${{ inputs.test-filter }}

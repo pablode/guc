@@ -1,32 +1,26 @@
-name: USD v24.03
+name: Run Tests
 
 on:
-  push:
-    paths-ignore:
-      - '**.md'
-  pull_request:
-    paths-ignore:
-      - '**.md'
-  workflow_dispatch:
+  workflow_call:
     inputs:
       enable-graphical-tests-mtlx:
-        description: Enable MaterialX graphical tests
+        required: false
         type: boolean
-        default: false
       enable-graphical-tests-preview:
-        description: Enable preview graphical tests
+        required: false
         type: boolean
-        default: false
       enable-usdchecker:
-        description: Run usdchecker on converted USD files
+        required: false
         type: boolean
         default: true
-      tests-branch:
-        description: Tests branch name
+      usd-version:
+        required: true
         type: string
-        default: 'main'
+      tests-branch:
+        required: true
+        type: string
       test-filter:
-        description: Filter (regular expression)
+        required: false
         type: string
 
 defaults:
@@ -35,18 +29,18 @@ defaults:
 
 jobs:
   build-debug:
-    name: Build guc for USD v24.03 (Debug)
+    name: Build guc for USD v${{ inputs.usd-version }} (Debug)
     uses: ./.github/workflows/build-usd.yml
     with:
-      usd-version: 24.03
+      usd-version: ${{ inputs.usd-version }}
       build-config: Debug
       extra-cmake-flags: -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
 
   build-release:
-    name: Build guc for USD v24.03 (Release)
+    name: Build guc for USD v${{ inputs.usd-version }} (Release)
     uses: ./.github/workflows/build-usd.yml
     with:
-      usd-version: 24.03
+      usd-version: ${{ inputs.usd-version }}
       build-config: Release
       extra-cmake-flags: -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
 
@@ -61,14 +55,14 @@ jobs:
         include:
         - os-family: Linux
           image: ubuntu-20.04
-          usd-download-url: "https://github.com/pablode/USD/releases/download/v24.03-ci-release/USD24.03_Linux_x64_Python3.9.tar.gz"
-          artifact-name: guc_USD24.03_Linux_x64_Python3.9.tar.gz
+          usd-download-url: "https://github.com/pablode/USD/releases/download/v${{ inputs.usd-version }}-ci-release/USD${{ inputs.usd-version }}_Linux_x64_Python3.9.tar.gz"
+          artifact-name: guc_USD${{ inputs.usd-version }}_Linux_x64_Python3.9.tar.gz
           executable-name: guc
 
         - os-family: Windows
           image: windows-2019
-          usd-download-url: "https://github.com/pablode/USD/releases/download/v24.03-ci-release/USD24.03_Windows_x64_Python3.9.tar.gz"
-          artifact-name: guc_USD24.03_Windows_x64_Python3.9.tar.gz
+          usd-download-url: "https://github.com/pablode/USD/releases/download/v${{ inputs.usd-version }}-ci-release/USD${{ inputs.usd-version }}_Windows_x64_Python3.9.tar.gz"
+          artifact-name: guc_USD${{ inputs.usd-version }}_Windows_x64_Python3.9.tar.gz
           executable-name: guc.exe
 
     steps:
@@ -123,8 +117,8 @@ jobs:
     needs: build-debug
 
     env:
-      USD_DOWNLOAD_URL: "https://github.com/pablode/USD/releases/download/v24.03-ci-release/USD24.03_Linux_x64_Python3.9.tar.gz"
-      GUC_ARTIFACT_NAME: guc_USD24.03_Linux_x64_Python3.9.tar.gz
+      USD_DOWNLOAD_URL: "https://github.com/pablode/USD/releases/download/v${{ inputs.usd-version }}-ci-release/USD${{ inputs.usd-version }}_Linux_x64_Python3.9.tar.gz"
+      GUC_ARTIFACT_NAME: guc_USD${{ inputs.usd-version }}_Linux_x64_Python3.9.tar.gz
       USD_INSTALL_PATH: /home/runner/work/USD/USD/INSTALL
 
     steps:

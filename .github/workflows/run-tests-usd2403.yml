@@ -1,0 +1,17 @@
+name: USD v24.03
+
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+
+jobs:
+  run-tests:
+    name: Run Tests for USD v24.03
+    uses: ./.github/workflows/run-tests.yml
+    with:
+      usd-version: 24.03
+      tests-branch: main

@@ -58,9 +58,7 @@ Usage: guc <gltf_path> <usd_path> [options]
 Options:
 --emit-mtlx                             Emit MaterialX materials in addition to UsdPreviewSurfaces
 --mtlx-as-usdshade                      Convert and inline MaterialX materials with UsdMtlx
---explicit-colorspace-transforms        Explicitly transform colorspaces using MaterialX nodes
 --gltf-pbr-impl runtime|file|flattened  How the MaterialX glTF PBR is provided. Default: runtime
---hdstorm-compat                        Apply compatibility tweaks for the USD hdStorm renderer
 --default-material-variant              Index of the material variant that is selected by default
 ```
 

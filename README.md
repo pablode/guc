@@ -43,7 +43,7 @@ cmake .. -Wno-dev \
 
 Build the executable:
 ```
-cmake --build . -j8 --target guc --config Release
+cmake --build . -j8 --config Release
 ```
 
 > Note: set `BUILD_SHARED_LIBS` for shared builds, and `CMAKE_MSVC_RUNTIME_LIBRARY` to USD's MSVC ABI.
@@ -90,7 +90,7 @@ KHR_texture_transform               | ✅ Complete
 
 ### Sdf plugin
 
-The _usdGlTF_ library implements USD's Sdf file format interface. Enable the `GUC_BUILD_USDGLTF` CMake option and install it as follows:
+The _usdGlTF_ library implements USD's Sdf file format interface. Enable the `GUC_BUILD_USDGLTF` CMake option before building and install it as follows:
 ```
 cmake --install . --component usdGlTF --config Release --prefix <USD_INSTALL_DIR>/plugin/usd
 ```

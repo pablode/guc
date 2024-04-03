@@ -709,6 +709,14 @@ namespace guc
       return;
     }
 
+    // Set extent information
+    if (auto boundable = UsdGeomBoundable(prim))
+    {
+        VtArray<GfVec3f> extent;
+        UsdGeomBoundable::ComputeExtentFromPlugins(boundable, UsdTimeCode::Default(), &extent);
+        boundable.CreateExtentAttr(VtValue(extent));
+    }
+
     m_uniquePaths[(void*) lightData] = path;
   }
 

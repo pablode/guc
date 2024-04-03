@@ -55,14 +55,14 @@ jobs:
         include:
         - os-family: Linux
           image: ubuntu-20.04
-          usd-download-url: "https://github.com/pablode/USD/releases/download/v${{ inputs.usd-version }}-ci-release/USD${{ inputs.usd-version }}_Linux_x64_Python3.9.tar.gz"
-          artifact-name: guc_USD${{ inputs.usd-version }}_Linux_x64_Python3.9.tar.gz
+          usd-download-url: "https://github.com/pablode/USD/releases/download/v${{ inputs.usd-version }}-ci-release2/USD${{ inputs.usd-version }}_Linux_x64_Python3.9.tar.gz"
+          artifact-name: guc_USD${{ inputs.usd-version }}_Linux_x64.tar.gz
           executable-name: guc
 
         - os-family: Windows
           image: windows-2019
-          usd-download-url: "https://github.com/pablode/USD/releases/download/v${{ inputs.usd-version }}-ci-release/USD${{ inputs.usd-version }}_Windows_x64_Python3.9.tar.gz"
-          artifact-name: guc_USD${{ inputs.usd-version }}_Windows_x64_Python3.9.tar.gz
+          usd-download-url: "https://github.com/pablode/USD/releases/download/v${{ inputs.usd-version }}-ci-release2/USD${{ inputs.usd-version }}_Windows_x64_Python3.9.tar.gz"
+          artifact-name: guc_USD${{ inputs.usd-version }}_Windows_x64.tar.gz
           executable-name: guc.exe
 
     steps:
@@ -95,7 +95,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9'
+        python-version: '3.9.13'
 
     - name: Fetch example glTF file
       run: mkdir test && curl "https://github.com/KhronosGroup/glTF-Sample-Models/raw/db9ff67c1116cfe28eb36320916bccd8c4127cc1/2.0/ToyCar/glTF-Binary/ToyCar.glb" -L -v -o test/asset.glb
@@ -117,8 +117,8 @@ jobs:
     needs: build-debug
 
     env:
-      USD_DOWNLOAD_URL: "https://github.com/pablode/USD/releases/download/v${{ inputs.usd-version }}-ci-release/USD${{ inputs.usd-version }}_Linux_x64_Python3.9.tar.gz"
-      GUC_ARTIFACT_NAME: guc_USD${{ inputs.usd-version }}_Linux_x64_Python3.9.tar.gz
+      USD_DOWNLOAD_URL: "https://github.com/pablode/USD/releases/download/v${{ inputs.usd-version }}-ci-release2/USD${{ inputs.usd-version }}_Linux_x64_Python3.9.tar.gz"
+      GUC_ARTIFACT_NAME: guc_USD${{ inputs.usd-version }}_Linux_x64.tar.gz
       USD_INSTALL_PATH: /home/runner/work/USD/USD/INSTALL
 
     steps:
@@ -173,7 +173,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9'
+        python-version: '3.9.13'
 
       # usdrecord needs python (may change soon!)
     - name: Install Python packages

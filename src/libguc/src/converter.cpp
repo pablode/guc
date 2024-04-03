@@ -739,7 +739,7 @@ namespace guc
       std::string materialName = DEFAULT_MATERIAL_NAME;
 
       const auto getMaterialName = [&](const cgltf_material* material) {
-        int materialIndex = (material - &m_data->materials[0]);
+        int materialIndex = cgltf_material_index(m_data, material);
         TF_VERIFY(materialIndex >= 0);
         return m_materialNames[materialIndex].c_str();
       };

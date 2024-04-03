@@ -150,62 +150,6 @@ namespace guc
     return nullptr;
   }
 
-  // NOTE: the following three functions are copied from the cgltf library and
-  // are therefore licensed under its accompanying MIT license.
-  cgltf_size cgltf_calc_size(cgltf_type type, cgltf_component_type component_type)
-  {
-    cgltf_size component_size = cgltf_component_size(component_type);
-    if (type == cgltf_type_mat2 && component_size == 1)
-    {
-      return 8 * component_size;
-    }
-    else if (type == cgltf_type_mat3 && (component_size == 1 || component_size == 2))
-    {
-      return 12 * component_size;
-    }
-    return component_size * cgltf_num_components(type);
-  }
-
-  int cgltf_unhex(char ch)
-  {
-    return
-      (unsigned)(ch - '0') < 10 ? (ch - '0') :
-      (unsigned)(ch - 'A') < 6 ? (ch - 'A') + 10 :
-      (unsigned)(ch - 'a') < 6 ? (ch - 'a') + 10 :
-      -1;
-  }
-
-  cgltf_size cgltf_decode_uri(char* uri)
-  {
-    char* write = uri;
-    char* i = uri;
-
-    while (*i)
-    {
-      if (*i == '%')
-      {
-        int ch1 = cgltf_unhex(i[1]);
-
-        if (ch1 >= 0)
-        {
-          int ch2 = cgltf_unhex(i[2]);
-
-          if (ch2 >= 0)
-          {
-            *write++ = (char)(ch1 * 16 + ch2);
-            i += 3;
-            continue;
-          }
-        }
-      }
-
-      *write++ = *i++;
-    }
-
-    *write = 0;
-    return write - uri;
-  }
-
   bool cgltf_transform_required(const cgltf_texture_transform& transform)
   {
     return !GfIsClose(transform.offset[0], 0.0f, 1e-5f) ||

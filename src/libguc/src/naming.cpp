@@ -74,7 +74,7 @@ namespace guc
     //
     // Furthermore, 'color' maps directly to the COLOR_ glTF attribute name and goes well
     // with the already existing 'displayColor' primvar. It's just not for the 'display'
-    // purpose, but rather part of the acutal data used for shading.
+    // purpose, but rather part of the actual data used for shading.
     std::string colorSetBaseName = "color";
     return colorSetBaseName + std::to_string(index);
   }

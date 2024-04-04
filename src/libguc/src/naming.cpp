@@ -103,9 +103,10 @@ namespace guc
     baseName = mx::createValidName(baseName);
     baseName = TfMakeValidIdentifier(baseName);
 
-    if (baseName.empty() || baseName[0] == '_') // HdStorm has problems with underscore prefixes
+    // Remove underscore prefix to prevent compile errors in HdStorm
+    if (baseName.empty() || baseName[0] == '_')
     {
-      baseName = DEFAULT_MATERIAL_NAME;
+      baseName = DEFAULT_MATERIAL_NAME + baseName;
     }
 
     std::string name = baseName;

@@ -31,13 +31,15 @@ namespace guc
   {
   public:
     UsdPreviewSurfaceMaterialConverter(UsdStageRefPtr stage,
-                                       const ImageMetadataMap& imageMetadataMap);
+                                       const ImageMetadataMap& imageMetadataMap,
+                                       bool readPrimvars);
 
     void convert(const cgltf_material* material, const SdfPath& path);
 
   private:
     UsdStageRefPtr m_stage;
     const ImageMetadataMap& m_imageMetadataMap;
+    const bool m_readPrimvars;
 
   private:
     void setNormalTextureInput(const SdfPath& basePath,
@@ -71,10 +73,10 @@ namespace guc
                          const GfVec4f* bias,
                          const GfVec4f* fallback);
 
-    void addTextureTransformNode(const SdfPath& basePath,
-                                 const cgltf_texture_transform& transform,
-                                 int stIndex,
-                                 UsdShadeInput& textureStInput);
+    UsdShadeInput addTextureTransformNode(const SdfPath& basePath,
+                                          const cgltf_texture_transform& transform,
+                                          int stIndex,
+                                          UsdShadeInput& textureStInput);
 
     bool addTextureNode(const SdfPath& basePath,
                         const cgltf_texture_view& textureView,

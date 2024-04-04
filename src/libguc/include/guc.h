@@ -22,6 +22,13 @@ extern "C" {
 #include <stdbool.h>
 #endif
 
+enum guc_primvar_mode
+{
+  GUC_PRIMVAR_MODE_AUTO,
+  GUC_PRIMVAR_MODE_EXPLICIT,
+  GUC_PRIMVAR_MODE_IMPLICIT
+};
+
 struct guc_options
 {
   // Generate and reference a MaterialX document containing an accurate translation
@@ -43,6 +50,18 @@ struct guc_options
   // If the asset supports the KHR_materials_variants extension, select the material
   // variant at the given index by default.
   int default_material_variant;
+
+  // Determines how shading networks are supplied with primvar data:
+  // AUTO:     implicit primvars are used when no secondary texture sets, normal maps and
+  //           vertex colors are present. Otherwise, explicit primvar reading is used.
+  // EXPLICIT: nodes generated in shading networks read primvars with explicit names.
+  // IMPLICIT: primvar reading network nodes are omitted and the data is supplied by the
+  //           renderer. This option is supported by most runtimes but can cause incorrect
+  //           rendering of non-trivial assets. The Hydra render engine now employs
+  //           heuristics to determine the most suitable primvars. It searches for
+  //           specific names ('st') and roles (texcoord2f). Following primvars are likely
+  //           to be not detected: secondary texture UVs, vertex colors, tangent and bitangents.
+  enum guc_primvar_mode primvar_mode;
 };
 
 bool guc_convert(const char* gltf_path,

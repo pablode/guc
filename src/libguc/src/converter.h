@@ -26,8 +26,7 @@
 #include <filesystem>
 #include <string_view>
 
-#include "materialx.h"
-#include "usdpreviewsurface.h"
+#include "image.h"
 
 namespace fs = std::filesystem;
 using namespace PXR_NS;
@@ -37,6 +36,13 @@ namespace guc
   class Converter
   {
   public:
+    enum class PrimvarMode
+    {
+      Auto,
+      Explicit,
+      Implicit
+    };
+
     struct Params
     {
       fs::path srcDir;
@@ -48,6 +54,7 @@ namespace guc
       bool mtlxAsUsdShade;
       bool hdStormCompat;
       int defaultMaterialVariant;
+      PrimvarMode primvarMode;
     };
 
   public:
@@ -79,13 +86,11 @@ namespace guc
   private:
     const cgltf_data* m_data;
     UsdStageRefPtr m_stage;
-    const Params& m_params;
+    Params m_params;
 
   private:
     ImageMetadataMap m_imgMetadata;
     MaterialX::DocumentPtr m_mtlxDoc;
-    MaterialXMaterialConverter m_mtlxConverter;
-    UsdPreviewSurfaceMaterialConverter m_usdPreviewSurfaceConverter;
     std::unordered_map<void*, SdfPath> m_uniquePaths;
     std::vector<std::string> m_materialNames;
   };

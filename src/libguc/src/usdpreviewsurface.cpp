@@ -132,9 +132,11 @@ namespace detail
 namespace guc
 {
   UsdPreviewSurfaceMaterialConverter::UsdPreviewSurfaceMaterialConverter(UsdStageRefPtr stage,
-                                                                         const ImageMetadataMap& imageMetadataMap)
+                                                                         const ImageMetadataMap& imageMetadataMap,
+                                                                         bool readPrimvars)
     : m_stage(stage)
     , m_imageMetadataMap(imageMetadataMap)
+    , m_readPrimvars(readPrimvars)
   {
   }
 
@@ -374,10 +376,10 @@ namespace guc
     }
   }
 
-  void UsdPreviewSurfaceMaterialConverter::addTextureTransformNode(const SdfPath& basePath,
-                                                                   const cgltf_texture_transform& transform,
-                                                                   int stIndex,
-                                                                   UsdShadeInput& textureStInput)
+  UsdShadeInput UsdPreviewSurfaceMaterialConverter::addTextureTransformNode(const SdfPath& basePath,
+                                                                            const cgltf_texture_transform& transform,
+                                                                            int stIndex,
+                                                                            UsdShadeInput& textureStInput)
   {
     auto nodePath = makeUniqueStageSubpath(m_stage, basePath, "node", "");
 
@@ -398,11 +400,11 @@ namespace guc
     auto translationInput = node.CreateInput(_tokens->translation, SdfValueTypeNames->Float2);
     translationInput.Set(offset);
 
-    auto untransformedInput = node.CreateInput(_tokens->in, SdfValueTypeNames->Float2);
-    setStPrimvarInput(untransformedInput, basePath, stIndex);
-
     auto transformedOutput = node.CreateOutput(_tokens->result, SdfValueTypeNames->Float2);
     textureStInput.ConnectToSource(transformedOutput);
+
+    auto untransformedInput = node.CreateInput(_tokens->in, SdfValueTypeNames->Float2);
+    return untransformedInput;
   }
 
   bool UsdPreviewSurfaceMaterialConverter::addTextureNode(const SdfPath& basePath,
@@ -464,11 +466,16 @@ namespace guc
 
     if (textureView.has_transform && cgltf_transform_required(transform))
     {
-      addTextureTransformNode(basePath, transform, stIndex, stInput);
+      stInput = addTextureTransformNode(basePath, transform, stIndex, stInput);
     }
-    else
+
+    if (m_readPrimvars)
     {
       setStPrimvarInput(stInput, basePath, stIndex);
+    }
+    else if (stIndex > 0)
+    {
+      TF_WARN("secondary texture sets not supported by implicit primvars");
     }
 
     return true;

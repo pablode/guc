@@ -31,6 +31,7 @@ void print_usage()
   fprintf(stderr, "--mtlx-as-usdshade                       Convert and inline MaterialX materials with UsdMtlx\n");
   fprintf(stderr, "--hdstorm-compat                         Apply compatibility tweaks for the USD hdStorm renderer\n");
   fprintf(stderr, "--default-material-variant <number>      Index of the material variant that is selected by default\n");
+  fprintf(stderr, "--primvar-mode <auto|explicit|implicit>  How shading networks read primvars. Default: auto\n");
 }
 
 int main(int argc, const char* argv[])
@@ -49,6 +50,7 @@ int main(int argc, const char* argv[])
   options.mtlx_as_usdshade = false;
   options.hdstorm_compat = false;
   options.default_material_variant = 0;
+  options.primvar_mode = GUC_PRIMVAR_MODE_AUTO;
 
   for (int i = 3; i < argc; i++)
   {
@@ -78,6 +80,25 @@ int main(int argc, const char* argv[])
         const char* val = argv[i];
         options.default_material_variant = atoi(val); // fall back to 0 on error
         continue;
+      }
+      else if (!strcmp(arg, "primvar-mode") && ++i < argc)
+      {
+        const char* val = argv[i];
+        if (!strcmp(val, "auto"))
+        {
+          // default value
+          continue;
+        }
+        else if (!strcmp(val, "explicit"))
+        {
+          options.primvar_mode = GUC_PRIMVAR_MODE_EXPLICIT;
+          continue;
+        }
+        else if (!strcmp(val, "implicit"))
+        {
+          options.primvar_mode = GUC_PRIMVAR_MODE_IMPLICIT;
+          continue;
+        }
       }
     }
 

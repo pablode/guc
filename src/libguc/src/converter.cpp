@@ -227,6 +227,43 @@ namespace detail
     customData[_tokens->generated] = true;
     attr.SetCustomDataByKey(_tokens->guc, VtValue(customData));
   }
+
+  bool requiresExplicitPrimvarReading(const cgltf_data* data)
+  {
+    // Find primvars renderers usually not detect
+    for (size_t i = 0; i < data->meshes_count; i++)
+    {
+      const cgltf_mesh& mesh = data->meshes[i];
+      for (size_t j = 0; j < mesh.primitives_count; j++)
+      {
+        const cgltf_primitive& primitive = mesh.primitives[j];
+        for (size_t k = 0; k < primitive.attributes_count; k++)
+        {
+          const cgltf_attribute& attribute = primitive.attributes[k];
+          if (strstr(attribute.name, "COLOR") && strcmp(attribute.name, "COLOR_0") != 0)
+          {
+            return true;
+          }
+          if (strstr(attribute.name, "TEXCOORD") && strcmp(attribute.name, "TEXCOORD_0") != 0)
+          {
+            return true;
+          }
+        }
+      }
+    }
+    // Normal mapping should be fine in most cases, but both MaterialX and
+    // UsdPreviewSurface do not specify the exact tangent frame calculation.
+    for (size_t i = 0; i < data->materials_count; i++)
+    {
+      const cgltf_material& material = data->materials[i];
+      const cgltf_texture_view& texView = material.normal_texture;
+      if (texView.texture)
+      {
+        return true;
+      }
+    }
+    return false;
+  }
 }
 
 namespace guc
@@ -236,8 +273,6 @@ namespace guc
     , m_stage(stage)
     , m_params(params)
     , m_mtlxDoc(mx::createDocument())
-    , m_mtlxConverter(m_mtlxDoc, m_imgMetadata, params.hdStormCompat)
-    , m_usdPreviewSurfaceConverter(m_stage, m_imgMetadata)
   {
   }
 
@@ -292,7 +327,15 @@ namespace guc
       fileExports.push_back({ metadata.filePath, metadata.refPath });
     }
 
-    // Step 3: create materials
+    // Step 3: determine primvar mode if auto
+    if (m_params.primvarMode == PrimvarMode::Auto)
+    {
+      bool readExplicit = detail::requiresExplicitPrimvarReading(m_data);
+      m_params.primvarMode = readExplicit ? PrimvarMode::Explicit : PrimvarMode::Implicit;
+      TF_DEBUG(GUC).Msg("resolved auto primvar mode to %s\n", readExplicit ? "explicit" : "implicit");
+    }
+
+    // Step 4: create materials
     bool hasMaterials = (m_data->materials_count > 0);
     bool createDefaultMaterial = false;
 
@@ -315,7 +358,7 @@ namespace guc
       createMaterials(fileExports, createDefaultMaterial);
     }
 
-    // Step 4: create scene graph (nodes, meshes, lights, cameras, ...)
+    // Step 5: create scene graph (nodes, meshes, lights, cameras, ...)
     auto createNode = [this](const cgltf_node* nodeData, SdfPath path)
     {
       std::string baseName(nodeData->name ? nodeData->name : "node");
@@ -396,6 +439,14 @@ namespace guc
 
   void Converter::createMaterials(FileExports& fileExports, bool createDefaultMaterial)
   {
+    bool explicitPrimvarReading = m_params.primvarMode == PrimvarMode::Explicit;
+
+    UsdPreviewSurfaceMaterialConverter previewSurfaceConverter(m_stage,
+      m_imgMetadata, explicitPrimvarReading);
+
+    // TODO: respect primvar reading in mtlx networks
+    MaterialXMaterialConverter mtlxConverter(m_mtlxDoc, m_imgMetadata, m_params.hdStormCompat);
+
     // We import the MaterialX bxdf/pbrlib/stdlib documents mainly for validation, but
     // because UsdMtlx tries to output them, we only do so when not exporting UsdShade.
     if (m_params.emitMtlx && !m_params.mtlxAsUsdShade)
@@ -434,11 +485,11 @@ namespace guc
       TF_DEBUG(GUC).Msg("creating default material\n");
 
       SdfPath previewPath = makeUsdPreviewSurfaceMaterialPath(DEFAULT_MATERIAL_NAME);
-      m_usdPreviewSurfaceConverter.convert(&DEFAULT_MATERIAL, previewPath);
+      previewSurfaceConverter.convert(&DEFAULT_MATERIAL, previewPath);
 
       if (m_params.emitMtlx)
       {
-        m_mtlxConverter.convert(&DEFAULT_MATERIAL, DEFAULT_MATERIAL_NAME);
+        mtlxConverter.convert(&DEFAULT_MATERIAL, DEFAULT_MATERIAL_NAME);
       }
       materialNameSet.insert(DEFAULT_MATERIAL_NAME);
     }
@@ -458,11 +509,11 @@ namespace guc
       }
 
       SdfPath previewPath = makeUsdPreviewSurfaceMaterialPath(m_materialNames[i]);
-      m_usdPreviewSurfaceConverter.convert(gmat, previewPath);
+      previewSurfaceConverter.convert(gmat, previewPath);
 
       if (m_params.emitMtlx)
       {
-        m_mtlxConverter.convert(gmat, materialName);
+        mtlxConverter.convert(gmat, materialName);
       }
     }
 

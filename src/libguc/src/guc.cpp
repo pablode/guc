@@ -54,6 +54,7 @@ bool convertToUsd(fs::path src_dir,
   params.mtlxAsUsdShade = options->mtlx_as_usdshade;
   params.hdStormCompat = options->hdstorm_compat;
   params.defaultMaterialVariant = options->default_material_variant;
+  params.primvarMode = (Converter::PrimvarMode) options->primvar_mode;
 
   Converter converter(gltf_data, stage, params);
 

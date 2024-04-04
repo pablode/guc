@@ -27,12 +27,12 @@ void print_usage()
   fprintf(stderr, "Usage: guc <gltf_path> <usd_path> [options]\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "Options:\n");
-  fprintf(stderr, "--emit-mtlx                             Emit MaterialX materials in addition to UsdPreviewSurfaces\n");
-  fprintf(stderr, "--mtlx-as-usdshade                      Convert and inline MaterialX materials with UsdMtlx\n");
-  fprintf(stderr, "--explicit-colorspace-transforms        Explicitly transform colorspaces using MaterialX nodes\n");
-  fprintf(stderr, "--gltf-pbr-impl runtime|file|flattened  How the MaterialX glTF PBR is provided. Default: runtime\n");
-  fprintf(stderr, "--hdstorm-compat                        Apply compatibility tweaks for the USD hdStorm renderer\n");
-  fprintf(stderr, "--default-material-variant              Index of the material variant that is selected by default\n");
+  fprintf(stderr, "--emit-mtlx                              Emit MaterialX materials in addition to UsdPreviewSurfaces\n");
+  fprintf(stderr, "--mtlx-as-usdshade                       Convert and inline MaterialX materials with UsdMtlx\n");
+  fprintf(stderr, "--explicit-colorspace-transforms         Explicitly transform colorspaces using MaterialX nodes\n");
+  fprintf(stderr, "--gltf-pbr-impl <runtime|file|flattened> How the MaterialX glTF PBR is provided. Default: runtime\n");
+  fprintf(stderr, "--hdstorm-compat                         Apply compatibility tweaks for the USD hdStorm renderer\n");
+  fprintf(stderr, "--default-material-variant <number>      Index of the material variant that is selected by default\n");
 }
 
 int main(int argc, const char* argv[])

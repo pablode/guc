@@ -36,9 +36,7 @@ mkdir guc/build && cd guc/build
 
 Pass following parameters in the CMake generation phase:
 ```
-cmake .. -Wno-dev \
-         -Dpxr_DIR=<USD_INSTALL_DIR> \
-         -DCMAKE_BUILD_TYPE=Release
+cmake .. -Wno-dev -DCMAKE_BUILD_TYPE=Release
 ```
 
 Build the executable:

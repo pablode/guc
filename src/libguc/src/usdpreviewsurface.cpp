@@ -153,7 +153,7 @@ namespace guc
 
     auto setAlphaTextureInput = [&](const cgltf_pbr_metallic_roughness* pbrMetallicRoughness)
     {
-      if (material->alpha_mode != cgltf_alpha_mode_opaque)
+      if (material->alpha_mode == cgltf_alpha_mode_opaque)
       {
         // Do nothing.
         return;

@@ -12,7 +12,7 @@ on:
         type: boolean
         default: false
       enable-usdchecker:
-        description: Run usdchecker on converted USD files
+        description: Run usdchecker
         type: boolean
         default: true
       usd-version:

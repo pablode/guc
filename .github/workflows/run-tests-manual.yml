@@ -19,8 +19,8 @@ on:
         description: The version of USD to build against
         type: string
         default: 24.03
-      tests-branch:
-        description: Tests branch name
+      tests-revision:
+        description: Test repo revision
         type: string
         default: 'main'
       test-filter:
@@ -36,5 +36,5 @@ jobs:
       enable-graphical-tests-preview: ${{ inputs.enable-graphical-tests-preview }}
       enable-usdchecker: ${{ inputs.enable-usdchecker }}
       usd-version: ${{ inputs.usd-version }}
-      tests-branch: ${{ inputs.tests-branch }}
+      tests-revision: ${{ inputs.tests-revision }}
       test-filter: ${{ inputs.test-filter }}

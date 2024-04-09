@@ -14,4 +14,3 @@ jobs:
     uses: ./.github/workflows/run-tests.yml
     with:
       usd-version: 24.03
-      tests-branch: main

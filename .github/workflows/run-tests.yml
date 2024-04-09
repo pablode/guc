@@ -16,9 +16,10 @@ on:
       usd-version:
         required: true
         type: string
-      tests-branch:
-        required: true
+      tests-revision:
+        required: false
         type: string
+        default: '3f42126eca725ced264f141d9ab955b106eff7e1'
       test-filter:
         required: false
         type: string
@@ -194,7 +195,7 @@ jobs:
       with:
         repository: pablode/guc-tests
         submodules: recursive
-        ref: ${{ inputs.tests-branch }}
+        ref: ${{ inputs.tests-revision }}
 
     - name: Run tests
       run: bash ./run_tests.sh "${{ inputs.test-filter }}"

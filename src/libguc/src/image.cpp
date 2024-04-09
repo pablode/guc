@@ -19,7 +19,12 @@
 #include <pxr/base/arch/fileSystem.h>
 #include <pxr/base/tf/diagnostic.h>
 
+#ifdef GUC_USE_OIIO
 #include <OpenImageIO/imageio.h>
+#else
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+#endif
 
 #include <optional>
 #include <unordered_set>
@@ -176,22 +181,32 @@ namespace guc
 
   bool readImageMetadata(const char* path, int& channelCount, bool& isSrgbInUSD)
   {
+#ifdef GUC_USE_OIIO
     using namespace OIIO;
 
     auto image = ImageInput::open(path);
-    if (!image)
+    if (image)
     {
-      TF_RUNTIME_ERROR("unable to open file for reading: %s", path);
-      return false;
+      const ImageSpec& spec = image->spec();
+      channelCount = spec.nchannels;
+      // Detection logic of HioOIIO_Image::IsColorSpaceSRGB for _sourceColorSpace auto (default value)
+      // https://github.com/PixarAnimationStudios/USD/blob/857ffda41f4f1553fe1019ac7c7b4f08c233a7bb/pxr/imaging/plugin/hioOiio/oiioImage.cpp
+      isSrgbInUSD = (channelCount == 3 || channelCount == 4) && spec.format == TypeDesc::UINT8;
+      image->close();
+      return true;
     }
-
-    const ImageSpec& spec = image->spec();
-    channelCount = spec.nchannels;
-    // Detection logic of HioOIIO_Image::IsColorSpaceSRGB for _sourceColorSpace auto (default value)
-    // https://github.com/PixarAnimationStudios/USD/blob/857ffda41f4f1553fe1019ac7c7b4f08c233a7bb/pxr/imaging/plugin/hioOiio/oiioImage.cpp
-    isSrgbInUSD = (channelCount == 3 || channelCount == 4) && spec.format == TypeDesc::UINT8;
-    image->close();
-    return true;
+#else
+    int width, height;
+    int ok = stbi_info(path, &width, &height, &channelCount);
+    if (ok)
+    {
+      bool isHdr = bool(stbi_is_hdr(path));
+      isSrgbInUSD = (channelCount == 3 || channelCount == 4) && !isHdr; // UINT8 by default in stb_image
+      return true;
+    }
+#endif
+    TF_RUNTIME_ERROR("unable to open file for reading: %s", path);
+    return false;
   }
 
   std::optional<ImageMetadata> processImage(const cgltf_image* image,

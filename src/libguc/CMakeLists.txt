@@ -27,6 +27,17 @@ set(LIBGUC_SHARED_SRCS
   src/image.cpp
 )
 
+set(LIBGUC_PUBLIC_HEADERS
+  include/guc.h
+)
+
+set(LIBGUC_DEFINES
+  GUC_VERSION_MAJOR=${CMAKE_PROJECT_VERSION_MAJOR}
+  GUC_VERSION_MINOR=${CMAKE_PROJECT_VERSION_MINOR}
+  GUC_VERSION_PATCH=${CMAKE_PROJECT_VERSION_PATCH}
+  GUC_VERSION_STRING="${CMAKE_PROJECT_VERSION}"
+)
+
 set(LIBGUC_SHARED_LIBRARIES
   # Header-only library without link dependencies --
   # we can get away with not installing the target.
@@ -40,19 +51,14 @@ set(LIBGUC_SHARED_LIBRARIES
   usdMtlx
   MaterialXCore
   MaterialXFormat
-  OpenImageIO::OpenImageIO
 )
 
-set(LIBGUC_VERSION_DEFINES
-  GUC_VERSION_MAJOR=${CMAKE_PROJECT_VERSION_MAJOR}
-  GUC_VERSION_MINOR=${CMAKE_PROJECT_VERSION_MINOR}
-  GUC_VERSION_PATCH=${CMAKE_PROJECT_VERSION_PATCH}
-  GUC_VERSION_STRING="${CMAKE_PROJECT_VERSION}"
-)
-
-set(LIBGUC_PUBLIC_HEADERS
-  include/guc.h
-)
+if(OpenImageIO_FOUND)
+  list(APPEND LIBGUC_DEFINES "GUC_USE_OIIO")
+  list(APPEND LIBGUC_SHARED_LIBRARIES OpenImageIO::OpenImageIO)
+else()
+  list(APPEND LIBGUC_SHARED_LIBRARIES $<BUILD_INTERFACE:stb_image>)
+endif()
 
 #
 # libguc
@@ -88,7 +94,7 @@ endif()
 target_compile_definitions(
   libguc
   PUBLIC
-    ${LIBGUC_VERSION_DEFINES}
+    ${LIBGUC_DEFINES}
   PRIVATE
     # Workaround for https://github.com/PixarAnimationStudios/USD/issues/1471#issuecomment-799813477
     "$<$<OR:$<CONFIG:>,$<CONFIG:Debug>>:TBB_USE_DEBUG>"
@@ -141,7 +147,7 @@ if(GUC_BUILD_USDGLTF)
   target_compile_definitions(
     usdGlTF
     PRIVATE
-      ${LIBGUC_VERSION_DEFINES}
+      ${LIBGUC_DEFINES}
       # Workaround for https://github.com/PixarAnimationStudios/USD/issues/1471#issuecomment-799813477
       "$<$<OR:$<CONFIG:>,$<CONFIG:Debug>>:TBB_USE_DEBUG>"
   )

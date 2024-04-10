@@ -37,6 +37,14 @@ jobs:
       build-config: Debug
       extra-cmake-flags: -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
 
+  build-debug-stbi:
+    name: Build guc for USD v${{ inputs.usd-version }} (Debug, stb_image)
+    uses: ./.github/workflows/build-usd.yml
+    with:
+      usd-version: ${{ inputs.usd-version }}
+      build-config: Debug
+      extra-cmake-flags: -DCMAKE_COMPILE_WARNING_AS_ERROR=ON -DCMAKE_DISABLE_FIND_PACKAGE_OpenImageIO=1
+
   build-release:
     name: Build guc for USD v${{ inputs.usd-version }} (Release)
     uses: ./.github/workflows/build-usd.yml

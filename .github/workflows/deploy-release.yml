@@ -32,10 +32,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download artifacts
+      - name: Download USD v24.03 artifacts
         uses: actions/download-artifact@v3
         with:
-          name: ${{ needs.build.outputs.archive-name }}
+          name: ${{ needs.build-2403.outputs.archive-name }}
+
+      - name: Download USD v23.11 artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ needs.build-2311.outputs.archive-name }}
 
       - name: Deploy draft release
         uses: softprops/action-gh-release@d4e8205d7e959a9107da6396278b2f1f07af0f9b

@@ -1,0 +1,21 @@
+name: Deploy Release (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version-name:
+        required: false
+        type: string
+        default: 'Version XXX'
+      release-notes:
+        required: false
+        type: string
+        default: 'TBD'
+
+jobs:
+  deploy-release:
+    name: Deploy Release
+    uses: ./.github/workflows/deploy-release.yml
+    with:
+      version-name: ${{ inputs.version-name }}
+      release-notes: ${{ inputs.release-notes }}

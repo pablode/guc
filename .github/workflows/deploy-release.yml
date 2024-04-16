@@ -1,7 +1,15 @@
 name: Deploy Release
 
 on:
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      version-name:
+        required: true
+        type: string
+      release-notes:
+        required: false
+        type: string
+        default: 'TBD'
 
 jobs:
   build-2403:
@@ -32,8 +40,8 @@ jobs:
       - name: Deploy draft release
         uses: softprops/action-gh-release@d4e8205d7e959a9107da6396278b2f1f07af0f9b
         with:
-          name: "Version XXX"
-          body: "TBD"
+          name: ${{ inputs.version-name }}
+          body: ${{ inputs.release-notes }}
           files: |
             *.tar.gz
           fail_on_unmatched_files: true

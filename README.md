@@ -26,7 +26,7 @@ All glTF features except animation and skinning are implemented and get continuo
 
 ### Build
 
-You need USD v23.11+ (e.g. <a href="https://github.com/PixarAnimationStudios/OpenUSD/releases/tag/v24.03">v24.03</a>) with MaterialX and `--openimageio` support enabled.
+You need USD v23.11+ (e.g. <a href="https://github.com/PixarAnimationStudios/OpenUSD/releases/tag/v24.03">v24.03</a>) with MaterialX support enabled.
 
 Do a recursive clone of the repository and set up a build folder:
 ```

@@ -17,73 +17,118 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include <guc.h>
 
-void print_usage()
-{
-  fprintf(stderr, "guc %s - glTF to USD converter\n", GUC_VERSION_STRING);
-  fprintf(stderr, "\n");
-  fprintf(stderr, "Usage: guc <gltf_path> <usd_path> [options]\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "Options:\n");
-  fprintf(stderr, "--emit-mtlx                              Emit MaterialX materials in addition to UsdPreviewSurfaces\n");
-  fprintf(stderr, "--mtlx-as-usdshade                       Convert and inline MaterialX materials with UsdMtlx\n");
-  fprintf(stderr, "--hdstorm-compat                         Apply compatibility tweaks for the USD hdStorm renderer\n");
-  fprintf(stderr, "--default-material-variant <number>      Index of the material variant that is selected by default\n");
-}
+#include <cargs.h>
 
-int main(int argc, const char* argv[])
-{
-  if (argc < 3)
+static struct cag_option cmd_options[] = {
   {
-    print_usage();
-    return EXIT_FAILURE;
+    .identifier = 'm',
+    .access_letters = "m",
+    .access_name = "emit-mtlx",
+    .value_name = NULL,
+    .description = "Emit MaterialX materials in addition to UsdPreviewSurfaces"
+  },
+  {
+    .identifier = 'u',
+    .access_letters = "u",
+    .access_name = "mtlx-as-usdshade",
+    .value_name = NULL,
+    .description = "Convert and inline MaterialX materials into the USD layer using UsdMtlx"
+  },
+  {
+    .identifier = 'c',
+    .access_letters = "c",
+    .access_name = "hdstorm-compat",
+    .value_name = NULL,
+    .description = "Apply compatibility tweaks for the USD Storm Hydra render delegate"
+  },
+  {
+    .identifier = 'v',
+    .access_letters = "v",
+    .access_name = "default-material-variant",
+    .value_name = "<index>",
+    .description = "Index of the material variant that is selected by default"
+  },
+  {
+    .identifier = 'h',
+    .access_letters = "h",
+    .access_name = "help",
+    .value_name = NULL,
+    .description = "Show the command help"
   }
+};
 
-  const char* gltf_path = argv[1];
-  const char* usd_path = argv[2];
+int main(int argc, char* argv[])
+{
+  struct guc_options options = {
+    .emit_mtlx = false,
+    .mtlx_as_usdshade = false,
+    .hdstorm_compat = false,
+    .default_material_variant = 0
+  };
 
-  struct guc_options options;
-  options.emit_mtlx = false;
-  options.mtlx_as_usdshade = false;
-  options.hdstorm_compat = false;
-  options.default_material_variant = 0;
-
-  for (int i = 3; i < argc; i++)
+  cag_option_context context;
+  cag_option_init(&context, cmd_options, CAG_ARRAY_SIZE(cmd_options), argc, argv);
+  while (cag_option_fetch(&context))
   {
-    const char* arg = argv[i];
-
-    if (strlen(arg) > 2)
+    switch (cag_option_get_identifier(&context))
     {
-      arg += 2;
-
-      if (!strcmp(arg, "emit-mtlx"))
-      {
-        options.emit_mtlx = true;
-        continue;
-      }
-      else if (!strcmp(arg, "mtlx-as-usdshade"))
-      {
-        options.mtlx_as_usdshade = true;
-        continue;
-      }
-      else if (!strcmp(arg, "hdstorm-compat"))
-      {
-        options.hdstorm_compat = true;
-        continue;
-      }
-      else if (!strcmp(arg, "default-material-variant") && ++i < argc)
-      {
-        const char* val = argv[i];
-        options.default_material_variant = atoi(val); // fall back to 0 on error
-        continue;
-      }
+    case 'm':
+      options.emit_mtlx = true;
+      break;
+    case 'u':
+      options.mtlx_as_usdshade = true;
+      break;
+    case 'c':
+      options.hdstorm_compat = true;
+      break;
+    case 'v': {
+      const char* value = cag_option_get_value(&context);
+      options.default_material_variant = atoi(value); // fall back to 0 on error
+      break;
     }
+    case 'h': {
+      printf("guc %s - glTF to USD converter\n\n", GUC_VERSION_STRING);
+      printf("Usage: guc [options] [--] <gltf_path> <usd_path>\n\n");
+      printf("Options:\n");
+      cag_option_print(cmd_options, CAG_ARRAY_SIZE(cmd_options), stdout);
+      return EXIT_SUCCESS;
+    }
+    case '?': {
+      cag_option_print_error(&context, stderr);
+      return EXIT_FAILURE;
+    }
+    }
+  }
 
-    print_usage();
+  int param_index = cag_option_get_index(&context);
+
+  if (param_index < argc && !strcmp(argv[param_index], "--"))
+  {
+    param_index++;
+  }
+
+  if (param_index >= argc)
+  {
+    fprintf(stderr, "Missing positional argument <gltf_path>.\n");
     return EXIT_FAILURE;
   }
+  if ((param_index + 1) >= argc)
+  {
+    fprintf(stderr, "Missing positional argument <usd_path>.\n");
+    return EXIT_FAILURE;
+  }
+  if ((argc - param_index) != 2)
+  {
+    fprintf(stderr, "Too many positional arguments.\n");
+    return EXIT_FAILURE;
+  }
+
+  const char* gltf_path = argv[param_index];
+  const char* usd_path = argv[param_index + 1];
 
   bool result = guc_convert(gltf_path, usd_path, &options);
 

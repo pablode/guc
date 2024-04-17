@@ -15,3 +15,6 @@ target_include_directories(MikkTSpace
 add_library(stb_image INTERFACE)
 set_target_properties(stb_image PROPERTIES LINKER_LANGUAGE C)
 target_include_directories(stb_image INTERFACE stb_image)
+
+# cargs
+add_subdirectory(cargs)

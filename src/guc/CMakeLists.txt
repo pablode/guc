@@ -13,6 +13,7 @@ target_link_libraries(
   guc
   PRIVATE
     libguc
+    cargs
 )
 
 set_target_properties(

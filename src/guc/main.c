@@ -19,9 +19,11 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include <cargs.h>
+
 #include <guc.h>
 
-#include <cargs.h>
+#include "license.h"
 
 static struct cag_option cmd_options[] = {
   {
@@ -51,6 +53,13 @@ static struct cag_option cmd_options[] = {
     .access_name = "default-material-variant",
     .value_name = "<index>",
     .description = "Index of the material variant that is selected by default"
+  },
+  {
+    .identifier = 'l',
+    .access_letters = "l",
+    .access_name = "licenses",
+    .value_name = NULL,
+    .description = "Print the license of guc and third-party libraries"
   },
   {
     .identifier = 'h',
@@ -89,6 +98,10 @@ int main(int argc, char* argv[])
       const char* value = cag_option_get_value(&context);
       options.default_material_variant = atoi(value); // fall back to 0 on error
       break;
+    }
+    case 'l': {
+      printf("%s\n", license_text);
+      return EXIT_SUCCESS;
     }
     case 'h': {
       printf("guc %s - glTF to USD converter\n\n", GUC_VERSION_STRING);

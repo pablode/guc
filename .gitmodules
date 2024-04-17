@@ -4,3 +4,6 @@
 [submodule "extern/MikkTSpace"]
 	path = extern/MikkTSpace
 	url = https://github.com/mmikk/MikkTSpace
+[submodule "extern/cargs"]
+	path = extern/cargs
+	url = https://github.com/likle/cargs.git

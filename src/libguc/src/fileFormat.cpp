@@ -91,7 +91,7 @@ UsdGlTFFileFormat::~UsdGlTFFileFormat()
 bool UsdGlTFFileFormat::CanRead(const std::string& filePath) const
 {
   // FIXME: implement? In my tests, this is not even called.
-  return false;
+  return true;
 }
 
 bool UsdGlTFFileFormat::Read(SdfLayer* layer,

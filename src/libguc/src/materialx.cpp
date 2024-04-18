@@ -800,12 +800,14 @@ namespace guc
 
     std::string filePath = metadata.filePath;
 
-    int channelIndex = 3;
-    if (metadata.channelCount != 4)
+    int channelIndex = (metadata.channelCount == 4) ? 3 : 1;
+
+    if (metadata.channelCount == 1 || metadata.channelCount == 3)
     {
-      TF_WARN("glTF spec violation: alpha must be encoded in the 4th channel of an RGBA texture (§5.22.2). %s only has %d channels.", filePath.c_str(), metadata.channelCount);
-      // Fall back to transparency channel of greyscale texture, or greyscale channel itself when texture is not transparent.
-      channelIndex = (metadata.channelCount == 2) ? 1 : 0;
+      // The spec does not address greyscale textures, but this is clarified here: https://github.com/KhronosGroup/glTF/issues/2298
+      TF_WARN("glTF spec violation: alpha must be encoded in the 4th channel of an RGBA texture (§5.22.2). %s only has %d channel(s).", filePath.c_str(), metadata.channelCount);
+      // Fall back to the first channel, as the author probably intended
+      channelIndex = 0;
     }
 
     auto defaultTextureValue = 1.0f; // spec sec. 5.22.2

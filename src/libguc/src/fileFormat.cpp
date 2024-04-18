@@ -37,6 +37,12 @@ TF_DEFINE_PUBLIC_TOKENS(
   USDGLTF_FILE_FORMAT_TOKENS
 );
 
+TF_DEFINE_PRIVATE_TOKENS(
+  _tokens,
+  (gltf)
+  (glb)
+);
+
 TF_REGISTRY_FUNCTION(TfType)
 {
   SDF_DEFINE_FILE_FORMAT(UsdGlTFFileFormat, SdfFileFormat);
@@ -80,7 +86,7 @@ UsdGlTFFileFormat::UsdGlTFFileFormat()
     UsdGlTFFileFormatTokens->Id,
     UsdGlTFFileFormatTokens->Version,
     UsdGlTFFileFormatTokens->Target,
-    UsdGlTFFileFormatTokens->Id)
+    /* extensions: */{ _tokens->gltf, _tokens->glb })
 {
 }
 

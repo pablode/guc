@@ -16,6 +16,15 @@
                         "primary": true,
                         "target": "usd"
                     }
+                },
+                "SdfMetadata": {
+                    "emitMtlx": {
+                        "type": "bool",
+                        "default": "false",
+                        "displayGroup": "Core",
+                        "appliesTo": [ "layers" ],
+                        "documentation:": "Emit MaterialX materials in addition to UsdPreviewSurfaces."
+                    }
                 }
             },
             "LibraryPath": "@PLUG_INFO_LIBRARY_PATH@",

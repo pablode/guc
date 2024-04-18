@@ -17,8 +17,10 @@
 #pragma once
 
 #include <pxr/pxr.h>
+#include <pxr/usd/sdf/data.h>
 #include <pxr/usd/sdf/fileFormat.h>
 #include <pxr/base/tf/staticTokens.h>
+#include <pxr/usd/pcp/dynamicFileFormatInterface.h>
 #include <iosfwd>
 #include <string>
 
@@ -32,9 +34,11 @@ PXR_NAMESPACE_OPEN_SCOPE
 TF_DECLARE_PUBLIC_TOKENS(UsdGlTFFileFormatTokens, USDGLTF_FILE_FORMAT_TOKENS);
 
 TF_DECLARE_WEAK_AND_REF_PTRS(UsdGlTFFileFormat);
+TF_DECLARE_WEAK_AND_REF_PTRS(UsdGlTFData);
 
-class UsdGlTFFileFormat : public SdfFileFormat {
-public:
+class UsdGlTFFileFormat : public SdfFileFormat, public PcpDynamicFileFormatInterface
+{
+protected:
   SDF_FILE_FORMAT_FACTORY_ACCESS;
 
   UsdGlTFFileFormat();
@@ -42,6 +46,8 @@ public:
   virtual ~UsdGlTFFileFormat();
 
 public:
+  SdfAbstractDataRefPtr InitData(const FileFormatArguments& args) const override;
+
   bool CanRead(const std::string &file) const override;
 
   bool Read(SdfLayer* layer,
@@ -59,6 +65,18 @@ public:
   bool WriteToStream(const SdfSpecHandle &spec,
                      std::ostream& out,
                      size_t indent) const override;
+
+public:
+  void ComposeFieldsForFileFormatArguments(const std::string& assetPath,
+                                           const PcpDynamicFileFormatContext& context,
+                                           FileFormatArguments* args,
+                                           VtValue *dependencyContextData) const override;
+};
+
+class UsdGlTFData : public SdfData
+{
+public:
+  bool emitMtlx = false;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

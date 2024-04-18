@@ -20,6 +20,7 @@
 #include <pxr/base/tf/registryManager.h>
 #include <pxr/base/tf/envSetting.h>
 #include <pxr/usd/usd/usdcFileFormat.h>
+#include <pxr/usd/pcp/dynamicFileFormatContext.h>
 
 #include <filesystem>
 
@@ -41,15 +42,13 @@ TF_DEFINE_PRIVATE_TOKENS(
   _tokens,
   (gltf)
   (glb)
+  (emitMtlx)
 );
 
 TF_REGISTRY_FUNCTION(TfType)
 {
   SDF_DEFINE_FILE_FORMAT(UsdGlTFFileFormat, SdfFileFormat);
 }
-
-TF_DEFINE_ENV_SETTING(USDGLTF_ENABLE_MTLX, false,
-                      "Whether the UsdGlTF Sdf plugin emits MaterialX materials or not.")
 
 // glTF files can contain embedded images. In order to support them in our Sdf file
 // format plugin, we create a temporary directory for each glTF file, write the images
@@ -94,6 +93,19 @@ UsdGlTFFileFormat::~UsdGlTFFileFormat()
 {
 }
 
+SdfAbstractDataRefPtr UsdGlTFFileFormat::InitData(const FileFormatArguments& args) const
+{
+  UsdGlTFDataRefPtr data(new UsdGlTFData());
+
+  auto emitMtlxIt = args.find(_tokens->emitMtlx.GetText());
+  if (emitMtlxIt != args.end())
+  {
+    data->emitMtlx = (emitMtlxIt->second == "true");
+  }
+
+  return data;
+}
+
 bool UsdGlTFFileFormat::CanRead(const std::string& filePath) const
 {
   // FIXME: implement? In my tests, this is not even called.
@@ -111,13 +123,16 @@ bool UsdGlTFFileFormat::Read(SdfLayer* layer,
     return false;
   }
 
+  SdfAbstractDataRefPtr layerData = InitData(layer->GetFileFormatArguments());
+  UsdGlTFDataConstPtr data = TfDynamic_cast<const UsdGlTFDataConstPtr>(layerData);
+
   Converter::Params params = {};
   params.srcDir = fs::path(resolvedPath).parent_path();
   params.dstDir = s_tmpDirHolder.makeDir();
   params.mtlxFileName = ""; // Not needed because of Mtlx-as-UsdShade option
   params.copyExistingFiles = false;
   params.genRelativePaths = false;
-  params.emitMtlx = TfGetEnvSetting(USDGLTF_ENABLE_MTLX);
+  params.emitMtlx = data->emitMtlx;
   params.mtlxAsUsdShade = true;
   params.explicitColorspaceTransforms = false;
   params.gltfPbrImpl = Converter::GltfPbrImpl::Runtime;
@@ -144,6 +159,7 @@ bool UsdGlTFFileFormat::ReadFromString(SdfLayer* layer,
 {
   // glTF files often reference other files (e.g. a .bin payload or images).
   // Hence, without a file location, most glTF files can not be loaded correctly.
+  // TODO: but we could still try and return false on failure
   return false;
 }
 
@@ -163,6 +179,18 @@ bool UsdGlTFFileFormat::WriteToStream(const SdfSpecHandle &spec,
   // Not supported, and never will be. Write USDC instead.
   SdfFileFormatConstPtr usdcFormat =  SdfFileFormat::FindById(UsdUsdcFileFormatTokens->Id);
   return usdcFormat->WriteToStream(spec, out, indent);
+}
+
+void UsdGlTFFileFormat::ComposeFieldsForFileFormatArguments(const std::string& assetPath,
+                                                            const PcpDynamicFileFormatContext& context,
+                                                            FileFormatArguments* args,
+                                                            VtValue *dependencyContextData) const
+{
+  VtValue emitMtlxValue;
+  if (context.ComposeValue(_tokens->emitMtlx, &emitMtlxValue))
+  {
+    (*args)[_tokens->emitMtlx] = TfStringify(emitMtlxValue);
+  }
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

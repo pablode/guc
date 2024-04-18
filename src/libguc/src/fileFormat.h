@@ -25,7 +25,7 @@
 PXR_NAMESPACE_OPEN_SCOPE
 
 #define USDGLTF_FILE_FORMAT_TOKENS     \
-  ((Id,      "glTF"))                  \
+  ((Id,      "gltf"))                  \
   ((Version, GUC_VERSION_STRING))      \
   ((Target,  "usd"))
 

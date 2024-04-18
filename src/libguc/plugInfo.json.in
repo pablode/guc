@@ -12,7 +12,7 @@
                             "gltf", "glb"
                         ],
                         "supportsWriting": false,
-                        "formatId": "glTF",
+                        "formatId": "gltf",
                         "primary": true,
                         "target": "usd"
                     }

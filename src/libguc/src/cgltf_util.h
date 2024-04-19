@@ -22,6 +22,8 @@ namespace guc
 {
   bool load_gltf(const char* gltfPath, cgltf_data** data);
 
+  void free_gltf(cgltf_data* data);
+
   const char* cgltf_error_string(cgltf_result result);
 
   const cgltf_accessor* cgltf_find_accessor(const cgltf_primitive* primitive,

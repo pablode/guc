@@ -12,6 +12,10 @@ on:
       extra-cmake-flags:
         required: false
         type: string
+      upload-archive:
+        required: false
+        type: boolean
+        default: true
 
     outputs:
       archive-name:
@@ -49,6 +53,7 @@ jobs:
       build-config: ${{ inputs.build-config }}
       usd-download-url: ${{ matrix.usd-download-url }}
       usd-install-path: ${{ matrix.usd-install-path }}
+      upload-archive: ${{ inputs.upload-archive }}
       archive-name: build-${{ inputs.build-config }}-${{ github.sha }}
       archive-file-name: ${{ matrix.archive-file-name }}
       extra-cmake-flags: ${{ inputs.extra-cmake-flags }}

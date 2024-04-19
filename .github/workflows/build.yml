@@ -16,6 +16,9 @@ on:
       usd-install-path:
         required: true
         type: string
+      upload-archive:
+        required: true
+        type: boolean
       archive-name:
         required: true
         type: string
@@ -66,10 +69,12 @@ jobs:
         cmake --install . --config ${{ inputs.build-config }} --component usdGlTF --prefix "$PWD/../INSTALL/plugin/usd"
 
     - name: Create archive
+      if: ${{ inputs.upload-archive }}
       working-directory: INSTALL
       run: tar -zcvf ${{ inputs.archive-file-name }} *
 
     - name: Upload archive
+      if: ${{ inputs.upload-archive }}
       uses: actions/upload-artifact@v3
       with:
         name: ${{ inputs.archive-name }}

@@ -44,6 +44,7 @@ jobs:
       usd-version: ${{ inputs.usd-version }}
       build-config: Debug
       extra-cmake-flags: -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+      upload-archive: false
 
   build-release:
     name: Build guc for USD v${{ inputs.usd-version }} (Release)

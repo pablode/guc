@@ -35,15 +35,15 @@ jobs:
     with:
       usd-version: ${{ inputs.usd-version }}
       build-config: Debug
-      extra-cmake-flags: -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+      extra-cmake-flags: -DCMAKE_COMPILE_WARNING_AS_ERROR=ON -DCMAKE_DISABLE_FIND_PACKAGE_OpenImageIO=1
 
-  build-debug-stbi:
-    name: Build guc for USD v${{ inputs.usd-version }} (Debug, stb_image)
+  build-debug-oiio:
+    name: Build guc for USD v${{ inputs.usd-version }} (Debug, OpenImageIO)
     uses: ./.github/workflows/build-usd.yml
     with:
       usd-version: ${{ inputs.usd-version }}
       build-config: Debug
-      extra-cmake-flags: -DCMAKE_COMPILE_WARNING_AS_ERROR=ON -DCMAKE_DISABLE_FIND_PACKAGE_OpenImageIO=1
+      extra-cmake-flags: -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
 
   build-release:
     name: Build guc for USD v${{ inputs.usd-version }} (Release)
@@ -51,7 +51,7 @@ jobs:
     with:
       usd-version: ${{ inputs.usd-version }}
       build-config: Release
-      extra-cmake-flags: -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+      extra-cmake-flags: -DCMAKE_COMPILE_WARNING_AS_ERROR=ON -DCMAKE_DISABLE_FIND_PACKAGE_OpenImageIO=1
 
   smoke-test:
     name: Smoke Test ${{ matrix.os-family }} (Release)

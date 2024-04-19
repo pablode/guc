@@ -18,6 +18,9 @@
 
 #include <pxr/base/tf/diagnostic.h>
 #include <pxr/base/gf/math.h>
+#include <pxr/usd/ar/asset.h>
+#include <pxr/usd/ar/resolver.h>
+#include <pxr/usd/ar/resolvedPath.h>
 
 #define CGLTF_IMPLEMENTATION
 #include <cgltf.h>
@@ -47,6 +50,37 @@ namespace detail
            strcmp(name, "KHR_materials_volume") == 0 ||
            strcmp(name, "KHR_texture_transform") == 0;
   }
+
+  cgltf_result readFile(const cgltf_memory_options* memory_options,
+                        const cgltf_file_options* file_options,
+                        const char* path,
+                        cgltf_size* size,
+                        void** data)
+  {
+    TF_DEBUG(GUC).Msg("reading file %s\n", path);
+
+    ArResolver& resolver = ArGetResolver();
+    std::shared_ptr<ArAsset> asset = resolver.OpenAsset(ArResolvedPath(path));
+    if (!asset)
+    {
+      return cgltf_result_file_not_found;
+    }
+
+    (*size) = asset->GetSize();
+    (*data) = malloc(*size);
+
+    std::shared_ptr<const char> buffer = asset->GetBuffer();
+    memcpy(*data, buffer.get(), *size);
+
+    return cgltf_result_success;
+  }
+
+  void releaseFile(const cgltf_memory_options* memory_options,
+                   const cgltf_file_options* file_options,
+                   void* data)
+  {
+    free(data);
+  }
 }
 
 namespace guc
@@ -54,7 +88,13 @@ namespace guc
   bool load_gltf(const char* gltfPath, cgltf_data** data)
   {
     cgltf_result result;
+
+    cgltf_file_options file_options = {};
+    file_options.read = detail::readFile;
+    file_options.release = detail::releaseFile;
+
     cgltf_options options = {};
+    options.file = file_options;
 
     result = cgltf_parse_file(&options, gltfPath, data);
     if (result != cgltf_result_success)

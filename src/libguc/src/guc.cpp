@@ -107,7 +107,7 @@ bool guc_convert(const char* gltf_path,
   Converter::FileExports fileExports;
   bool result = convertToUsd(src_dir, gltf_data, base_usd_path, copyExistingFiles, options, fileExports);
 
-  cgltf_free(gltf_data);
+  free_gltf(gltf_data);
 
   if (!result)
   {

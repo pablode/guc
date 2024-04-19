@@ -27,6 +27,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <unordered_map>
 
 #include "debugCodes.h"
 
@@ -51,6 +52,11 @@ namespace detail
            strcmp(name, "KHR_texture_transform") == 0;
   }
 
+  struct BufferHolder
+  {
+    std::unordered_map<const char*, std::shared_ptr<const char>> map;
+  };
+
   cgltf_result readFile(const cgltf_memory_options* memory_options,
                         const cgltf_file_options* file_options,
                         const char* path,
@@ -66,11 +72,18 @@ namespace detail
       return cgltf_result_file_not_found;
     }
 
-    (*size) = asset->GetSize();
-    (*data) = malloc(*size);
-
     std::shared_ptr<const char> buffer = asset->GetBuffer();
-    memcpy(*data, buffer.get(), *size);
+    if (!buffer)
+    {
+      return cgltf_result_io_error;
+    }
+
+    const char* bufferPtr = buffer.get();
+    (*size) = asset->GetSize();
+    (*data) = (void*) bufferPtr;
+
+    auto bufferHolder = (BufferHolder*) file_options->user_data;
+    bufferHolder->map[bufferPtr] = buffer;
 
     return cgltf_result_success;
   }
@@ -79,7 +92,9 @@ namespace detail
                    const cgltf_file_options* file_options,
                    void* data)
   {
-    free(data);
+    auto bufferPtr = (const char*) data;
+    auto bufferHolder = (BufferHolder*) file_options->user_data;
+    bufferHolder->map.erase(bufferPtr);
   }
 }
 
@@ -87,35 +102,37 @@ namespace guc
 {
   bool load_gltf(const char* gltfPath, cgltf_data** data)
   {
-    cgltf_result result;
+    detail::BufferHolder* bufferHolder = new detail::BufferHolder;
 
-    cgltf_file_options file_options = {};
-    file_options.read = detail::readFile;
-    file_options.release = detail::releaseFile;
+    cgltf_file_options fileOptions = {};
+    fileOptions.read = detail::readFile;
+    fileOptions.release = detail::releaseFile;
+    fileOptions.user_data = bufferHolder;
 
     cgltf_options options = {};
-    options.file = file_options;
+    options.file = fileOptions;
 
-    result = cgltf_parse_file(&options, gltfPath, data);
+    cgltf_result result = cgltf_parse_file(&options, gltfPath, data);
     if (result != cgltf_result_success)
     {
       TF_RUNTIME_ERROR("unable to parse glTF file: %s", cgltf_error_string(result));
+      delete bufferHolder;
       return false;
     }
 
     result = cgltf_load_buffers(&options, *data, gltfPath);
     if (result != cgltf_result_success)
     {
-      cgltf_free(*data);
       TF_RUNTIME_ERROR("unable to load glTF buffers: %s", cgltf_error_string(result));
+      free_gltf(*data);
       return false;
     }
 
     result = cgltf_validate(*data);
     if (result != cgltf_result_success)
     {
-      cgltf_free(*data);
       TF_RUNTIME_ERROR("unable to validate glTF: %s", cgltf_error_string(result));
+      free_gltf(*data);
       return false;
     }
 
@@ -130,6 +147,7 @@ namespace guc
       }
 
       TF_RUNTIME_ERROR("extension %s not supported", ext);
+      free_gltf(*data);
       return false;
     }
 
@@ -147,6 +165,13 @@ namespace guc
     }
 
     return true;
+  }
+
+  void free_gltf(cgltf_data* data)
+  {
+    auto bufferHolder = (detail::BufferHolder*) data->file.user_data;
+    cgltf_free(data); // releases buffers in buffer holder
+    delete bufferHolder;
   }
 
   const char* cgltf_error_string(cgltf_result result)

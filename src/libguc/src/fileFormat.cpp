@@ -145,7 +145,7 @@ bool UsdGlTFFileFormat::Read(SdfLayer* layer,
   Converter::FileExports fileExports; // only used for USDZ
   converter.convert(fileExports);
 
-  cgltf_free(gltf_data);
+  free_gltf(gltf_data);
 
   layer->TransferContent(tmpLayer);
 

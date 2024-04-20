@@ -697,7 +697,7 @@ namespace guc
       if (lightData->type == cgltf_light_type_spot)
       {
         prim = light.GetPrim();
-        auto shapingApi = UsdLuxShapingAPI(prim);
+        auto shapingApi = UsdLuxShapingAPI::Apply(prim);
         // FIXME: translate spot_inner_cone_angle and spot_outer_cone_angle to either ConeFocusAttr or ConeSoftnessAttr
         shapingApi.CreateShapingConeAngleAttr(VtValue(lightData->spot_outer_cone_angle));
       }

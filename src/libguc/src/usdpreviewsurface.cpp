@@ -171,7 +171,7 @@ namespace guc
       }
     };
 
-    auto emissiveColorInput = shader.CreateInput(_tokens->emissiveColor, SdfValueTypeNames->Float3);
+    auto emissiveColorInput = shader.CreateInput(_tokens->emissiveColor, SdfValueTypeNames->Color3f);
     auto emissiveFactor = GfVec4f(material->emissive_factor);
 
     if (material->unlit) // Not really 'unlit', but there's no better way
@@ -202,12 +202,12 @@ namespace guc
     auto occlusionInput = shader.CreateInput(_tokens->occlusion, SdfValueTypeNames->Float);
     setOcclusionTextureInput(path, occlusionInput, material->occlusion_texture);
 
-    auto normalInput = shader.CreateInput(_tokens->normal, SdfValueTypeNames->Float3);
+    auto normalInput = shader.CreateInput(_tokens->normal, SdfValueTypeNames->Normal3f);
     setNormalTextureInput(path, normalInput, material->normal_texture);
 
     // We need to set these values regardless of whether pbrMetallicRoughness is present or not, because UsdPreviewSurface's
     // default values differ (and we want to come as close as possible to the MaterialX look, although the shading model differs).
-    auto diffuseColorInput = shader.CreateInput(_tokens->diffuseColor, SdfValueTypeNames->Float3);
+    auto diffuseColorInput = shader.CreateInput(_tokens->diffuseColor, SdfValueTypeNames->Color3f);
     auto metallicInput = shader.CreateInput(_tokens->metallic, SdfValueTypeNames->Float);
     auto roughnessInput = shader.CreateInput(_tokens->roughness, SdfValueTypeNames->Float);
 
@@ -258,7 +258,7 @@ namespace guc
 
       GfVec4f specularColorFallback(1.0f); // use default from glTF specular ext spec
 
-      auto specularColorInput = shader.CreateInput(_tokens->specularColor, SdfValueTypeNames->Float3);
+      auto specularColorInput = shader.CreateInput(_tokens->specularColor, SdfValueTypeNames->Color3f);
       setSrgbTextureInput(path, specularColorInput, specular->specular_color_texture, GfVec4f(specular->specular_color_factor), &specularColorFallback);
 
       auto useSpecularWorkflowInput = shader.CreateInput(_tokens->useSpecularWorkflow, SdfValueTypeNames->Int);

@@ -18,9 +18,13 @@
 
 #include <pxr/base/arch/fileSystem.h>
 #include <pxr/base/tf/diagnostic.h>
+#include <pxr/usd/ar/asset.h>
+#include <pxr/usd/ar/resolver.h>
+#include <pxr/usd/ar/resolvedPath.h>
 
 #ifdef GUC_USE_OIIO
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/filesystem.h>
 #else
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -35,8 +39,10 @@
 
 namespace fs = std::filesystem;
 
-namespace guc
+namespace detail
 {
+  using namespace guc;
+
   bool readImageDataFromBufferView(const cgltf_buffer_view* bufferView, std::vector<uint8_t>& dstData)
   {
     const uint8_t* srcData = (uint8_t*) bufferView->buffer->data;
@@ -179,14 +185,21 @@ namespace guc
     return false;
   }
 
-  bool readImageMetadata(const char* path, int& channelCount)
+  bool decodeImageMetadata(const std::shared_ptr<const char>& buffer,
+                           size_t bufferSize,
+                           const char* path, // only a hint
+                           int& channelCount)
   {
 #ifdef GUC_USE_OIIO
     using namespace OIIO;
 
-    auto image = ImageInput::open(path);
+    Filesystem::IOMemReader memReader((void*) buffer.get(), bufferSize);
+
+    auto image = ImageInput::open(path, nullptr, &memReader);
     if (image)
     {
+      assert(image->supports("ioproxy"));
+
       const ImageSpec& spec = image->spec();
       channelCount = spec.nchannels;
       image->close();
@@ -194,7 +207,7 @@ namespace guc
     }
 #else
     int width, height;
-    int ok = stbi_info(path, &width, &height, &channelCount);
+    int ok = stbi_info_from_memory((const stbi_uc*) buffer.get(), bufferSize, &width, &height, &channelCount);
     if (ok)
     {
       return true;
@@ -202,6 +215,27 @@ namespace guc
 #endif
     TF_RUNTIME_ERROR("unable to open file for reading: %s", path);
     return false;
+  }
+
+  bool readImageMetadata(const char* path, int& channelCount)
+  {
+    TF_DEBUG(GUC).Msg("reading image %s\n", path);
+
+    ArResolver& resolver = ArGetResolver();
+    std::shared_ptr<ArAsset> asset = resolver.OpenAsset(ArResolvedPath(path));
+    if (!asset)
+    {
+      return false;
+    }
+
+    std::shared_ptr<const char> buffer = asset->GetBuffer();
+    if (!buffer)
+    {
+      return false;
+    }
+
+    size_t bufferSize = asset->GetSize();
+    return decodeImageMetadata(buffer, bufferSize, path, channelCount);
   }
 
   std::optional<ImageMetadata> processImage(const cgltf_image* image,
@@ -316,7 +350,10 @@ namespace guc
 
     return metadata;
   }
+}
 
+namespace guc
+{
   void processImages(const cgltf_image* images,
                      size_t imageCount,
                      const fs::path& srcDir,
@@ -331,7 +368,7 @@ namespace guc
     {
       const cgltf_image* image = &images[i];
 
-      auto meta = processImage(image, srcDir, dstDir, copyExistingFiles, genRelativePaths, generatedFileNames);
+      auto meta = detail::processImage(image, srcDir, dstDir, copyExistingFiles, genRelativePaths, generatedFileNames);
 
       if (meta.has_value())
       {

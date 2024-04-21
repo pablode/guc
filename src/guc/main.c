@@ -29,7 +29,6 @@ void print_usage()
   fprintf(stderr, "Options:\n");
   fprintf(stderr, "--emit-mtlx                              Emit MaterialX materials in addition to UsdPreviewSurfaces\n");
   fprintf(stderr, "--mtlx-as-usdshade                       Convert and inline MaterialX materials with UsdMtlx\n");
-  fprintf(stderr, "--explicit-colorspace-transforms         Explicitly transform colorspaces using MaterialX nodes\n");
   fprintf(stderr, "--hdstorm-compat                         Apply compatibility tweaks for the USD hdStorm renderer\n");
   fprintf(stderr, "--default-material-variant <number>      Index of the material variant that is selected by default\n");
 }
@@ -48,7 +47,6 @@ int main(int argc, const char* argv[])
   struct guc_options options;
   options.emit_mtlx = false;
   options.mtlx_as_usdshade = false;
-  options.explicit_colorspace_transforms = false;
   options.hdstorm_compat = false;
   options.default_material_variant = 0;
 
@@ -68,11 +66,6 @@ int main(int argc, const char* argv[])
       else if (!strcmp(arg, "mtlx-as-usdshade"))
       {
         options.mtlx_as_usdshade = true;
-        continue;
-      }
-      else if (!strcmp(arg, "explicit-colorspace-transforms"))
-      {
-        options.explicit_colorspace_transforms = true;
         continue;
       }
       else if (!strcmp(arg, "hdstorm-compat"))

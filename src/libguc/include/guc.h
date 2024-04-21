@@ -37,19 +37,7 @@ struct guc_options
   // versions.
   bool mtlx_as_usdshade;
 
-  // MaterialX's 'colorspace' functionality may not be fully supported by an
-  // application. We work around this by implementing colorspace transformations using
-  // native MaterialX math nodes. MaterialX image nodes are assumed to return raw,
-  // untransformed values, since the default document colorspace is 'linear'.
-  bool explicit_colorspace_transforms;
-
-  // HdMtlx and therefore Storm do not seem to properly support MaterialX colorspaces.
-  // https://github.com/PixarAnimationStudios/USD/issues/1523
-  // https://github.com/PixarAnimationStudios/USD/issues/1632
-  // To work around this issue, we force-enable explicit colorspace transformations and
-  // undo colorspace transformations that exist because of USD's sRGB detection logic:
-  // https://github.com/PixarAnimationStudios/USD/blob/857ffda41f4f1553fe1019ac7c7b4f08c233a7bb/pxr/imaging/plugin/hioOiio/oiioImage.cpp#L470-L471
-  // Additionally, we make hdStorm recognize alpha materials as translucent.
+  // Workaround to make hdStorm recognize alpha materials as translucent.
   bool hdstorm_compat;
 
   // If the asset supports the KHR_materials_variants extension, select the material

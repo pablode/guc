@@ -134,7 +134,6 @@ bool UsdGlTFFileFormat::Read(SdfLayer* layer,
   params.genRelativePaths = false;
   params.emitMtlx = data->emitMtlx;
   params.mtlxAsUsdShade = true;
-  params.explicitColorspaceTransforms = false;
   params.hdStormCompat = false;
   params.defaultMaterialVariant = 0;
 

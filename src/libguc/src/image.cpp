@@ -179,7 +179,7 @@ namespace guc
     return false;
   }
 
-  bool readImageMetadata(const char* path, int& channelCount, bool& isSrgbInUSD)
+  bool readImageMetadata(const char* path, int& channelCount)
   {
 #ifdef GUC_USE_OIIO
     using namespace OIIO;
@@ -189,9 +189,6 @@ namespace guc
     {
       const ImageSpec& spec = image->spec();
       channelCount = spec.nchannels;
-      // Detection logic of HioOIIO_Image::IsColorSpaceSRGB for _sourceColorSpace auto (default value)
-      // https://github.com/PixarAnimationStudios/USD/blob/857ffda41f4f1553fe1019ac7c7b4f08c233a7bb/pxr/imaging/plugin/hioOiio/oiioImage.cpp
-      isSrgbInUSD = (channelCount == 3 || channelCount == 4) && spec.format == TypeDesc::UINT8;
       image->close();
       return true;
     }
@@ -200,8 +197,6 @@ namespace guc
     int ok = stbi_info(path, &width, &height, &channelCount);
     if (ok)
     {
-      bool isHdr = bool(stbi_is_hdr(path));
-      isSrgbInUSD = (channelCount == 3 || channelCount == 4) && !isHdr; // UINT8 by default in stb_image
       return true;
     }
 #endif
@@ -313,7 +308,7 @@ namespace guc
     metadata.refPath = dstRefPath;
 
     // Read the metadata required for MaterialX shading network creation
-    if (!readImageMetadata(dstFilePath.c_str(), metadata.channelCount, metadata.isSrgbInUSD))
+    if (!readImageMetadata(dstFilePath.c_str(), metadata.channelCount))
     {
       TF_RUNTIME_ERROR("unable to read metadata of image %s", dstFilePath.c_str());
       return std::nullopt;

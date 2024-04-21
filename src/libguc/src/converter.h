@@ -46,7 +46,6 @@ namespace guc
       bool genRelativePaths;
       bool emitMtlx;
       bool mtlxAsUsdShade;
-      bool explicitColorspaceTransforms;
       bool hdStormCompat;
       int defaultMaterialVariant;
     };

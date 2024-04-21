@@ -31,7 +31,6 @@ namespace guc
   public:
     MaterialXMaterialConverter(mx::DocumentPtr doc,
                                const ImageMetadataMap& imageMetadataMap,
-                               bool explicitColorspaceTransforms,
                                bool hdstormCompat);
 
     void convert(const cgltf_material* material, const std::string& materialName);
@@ -42,7 +41,6 @@ namespace guc
     std::string m_defaultColorSetName;
     std::string m_defaultOpacitySetName;
 
-    bool m_explicitColorSpaceTransforms;
     bool m_hdstormCompat;
 
   private:
@@ -163,7 +161,6 @@ namespace guc
   private:
     bool getTextureMetadata(const cgltf_texture_view& textureView, ImageMetadata& metadata) const;
     bool getTextureFilePath(const cgltf_texture_view& textureView, std::string& filePath) const;
-    bool isTextureSrgbInUsd(const cgltf_texture_view& textureView) const;
     int getTextureChannelCount(const cgltf_texture_view& textureView) const;
 
     std::string getTextureValueType(const cgltf_texture_view& textureView, bool color) const;

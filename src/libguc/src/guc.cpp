@@ -52,7 +52,6 @@ bool convertToUsd(fs::path src_dir,
   params.genRelativePaths = true;
   params.emitMtlx = options->emit_mtlx;
   params.mtlxAsUsdShade = options->mtlx_as_usdshade;
-  params.explicitColorspaceTransforms = options->explicit_colorspace_transforms;
   params.hdStormCompat = options->hdstorm_compat;
   params.defaultMaterialVariant = options->default_material_variant;
 

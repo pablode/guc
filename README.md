@@ -51,13 +51,17 @@ cmake --build . -j8 --config Release
 ### Usage
 
 ```
-Usage: guc <gltf_path> <usd_path> [options]
+guc 0.4 - glTF to USD converter
+
+Usage: guc [options] [--] <gltf_path> <usd_path>
 
 Options:
---emit-mtlx                             Emit MaterialX materials in addition to UsdPreviewSurfaces
---mtlx-as-usdshade                      Convert and inline MaterialX materials with UsdMtlx
---gltf-pbr-impl runtime|file|flattened  How the MaterialX glTF PBR is provided. Default: runtime
---default-material-variant              Index of the material variant that is selected by default
+  -m, --emit-mtlx                            Emit MaterialX materials in addition to UsdPreviewSurfaces
+  -u, --mtlx-as-usdshade                     Convert and inline MaterialX materials into the USD layer using UsdMtlx
+  -c, --hdstorm-compat                       Apply compatibility tweaks for the USD Storm Hydra render delegate
+  -v, --default-material-variant=<index>     Index of the material variant that is selected by default
+  -l, --licenses                             Print the license of guc and third-party libraries
+  -h, --help                                 Show the command help
 ```
 
 Both glTF and GLB file types are valid input. USDA, USDC and USDZ formats can be written.

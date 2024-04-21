@@ -100,13 +100,20 @@ namespace guc
   std::string makeUniqueMaterialName(std::string baseName,
                                      const std::unordered_set<std::string>& existingNames)
   {
-    baseName = mx::createValidName(baseName);
-    baseName = TfMakeValidIdentifier(baseName);
-
-    // Remove underscore prefix to prevent compile errors in HdStorm
-    if (baseName.empty() || baseName[0] == '_')
+    if (baseName.empty())
     {
-      baseName = DEFAULT_MATERIAL_NAME + baseName;
+      baseName = DEFAULT_MATERIAL_NAME;
+    }
+    else
+    {
+      baseName = mx::createValidName(baseName);
+      baseName = TfMakeValidIdentifier(baseName);
+
+      // Remove underscore prefix to prevent compile errors in HdStorm
+      if (baseName[0] == '_')
+      {
+        baseName = DEFAULT_MATERIAL_NAME + baseName;
+      }
     }
 
     std::string name = baseName;

@@ -448,8 +448,6 @@ namespace guc
     createMaterialNodes(material, materialName, "surface_unlit", [this](const cgltf_material* material,
                                                                         mx::NodeGraphPtr nodeGraph,
                                                                         mx::NodePtr shaderNode) {
-      mx::InputPtr emissionInput = shaderNode->addInput("emission_color", MTLX_TYPE_COLOR3);
-
       if (material->has_pbr_metallic_roughness)
       {
         const cgltf_pbr_metallic_roughness* pbrMetallicRoughness = &material->pbr_metallic_roughness;

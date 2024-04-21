@@ -31,7 +31,6 @@ namespace guc
   public:
     MaterialXMaterialConverter(mx::DocumentPtr doc,
                                const ImageMetadataMap& imageMetadataMap,
-                               bool flattenNodes,
                                bool explicitColorspaceTransforms,
                                bool hdstormCompat);
 
@@ -43,7 +42,6 @@ namespace guc
     std::string m_defaultColorSetName;
     std::string m_defaultOpacitySetName;
 
-    bool m_flattenNodes;
     bool m_explicitColorSpaceTransforms;
     bool m_hdstormCompat;
 

@@ -195,32 +195,6 @@ namespace detail
     arr = newArr;
   }
 
-  bool findMtlxGltfPbrFilePath(fs::path& path)
-  {
-    const NdrStringVec& searchPaths = UsdMtlxSearchPaths();
-
-    for (const auto& searchDir : searchPaths)
-    {
-      for (const auto& fileEntry : fs::recursive_directory_iterator(searchDir))
-      {
-        const auto& filePath = fileEntry.path();
-        const auto& fileName = filePath.filename();
-
-        if (fileName != MTLX_GLTF_PBR_FILE_NAME)
-        {
-          continue;
-        }
-
-        TF_DEBUG(GUC).Msg("found MaterialX glTF PBR at %s\n", filePath.string().c_str());
-
-        path = fs::absolute(filePath);
-        return true;
-      }
-    }
-
-    return false;
-  }
-
   void markAttributeAsGenerated(UsdAttribute attr)
   {
     VtDictionary customData;
@@ -236,9 +210,7 @@ namespace guc
     , m_stage(stage)
     , m_params(params)
     , m_mtlxDoc(mx::createDocument())
-    , m_mtlxConverter(m_mtlxDoc, m_imgMetadata,
-        params.gltfPbrImpl == GltfPbrImpl::Flattened,
-        params.explicitColorspaceTransforms, params.hdStormCompat)
+    , m_mtlxConverter(m_mtlxDoc, m_imgMetadata, params.explicitColorspaceTransforms, params.hdStormCompat)
     , m_usdPreviewSurfaceConverter(m_stage, m_imgMetadata)
   {
   }
@@ -471,38 +443,6 @@ namespace guc
     if (!m_params.emitMtlx)
     {
       return;
-    }
-
-    // Export MaterialX glTF PBR file if wanted
-    if (m_params.gltfPbrImpl == GltfPbrImpl::File)
-    {
-      fs::path implFilePath;
-      if (!detail::findMtlxGltfPbrFilePath(implFilePath))
-      {
-        TF_RUNTIME_ERROR("can't find %s - portable node impl not possible", MTLX_GLTF_PBR_FILE_NAME);
-      }
-      else if (!m_params.copyExistingFiles)
-      {
-        const std::string& refPath = m_params.genRelativePaths ? MTLX_GLTF_PBR_FILE_NAME : implFilePath.string();
-        fileExports.push_back({ implFilePath.string(), refPath });
-      }
-      else
-      {
-        fs::path dstFilePath = m_params.dstDir / MTLX_GLTF_PBR_FILE_NAME;
-
-        TF_DEBUG(GUC).Msg("copying glTF PBR mtlx file from %s to %s\n",
-          implFilePath.string().c_str(), dstFilePath.string().c_str());
-
-        if (!fs::copy_file(implFilePath, dstFilePath, fs::copy_options::overwrite_existing))
-        {
-          TF_RUNTIME_ERROR("can't copy %s to destination path - portable node impl not possible", MTLX_GLTF_PBR_FILE_NAME);
-        }
-        else
-        {
-          mx::prependXInclude(m_mtlxDoc, mx::FilePath(MTLX_GLTF_PBR_FILE_NAME));
-          fileExports.push_back({ dstFilePath.string(), MTLX_GLTF_PBR_FILE_NAME });
-        }
-      }
     }
 
     std::string validationErrMsg;

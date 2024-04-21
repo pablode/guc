@@ -22,13 +22,6 @@ extern "C" {
 #include <stdbool.h>
 #endif
 
-enum guc_gltf_pbr_impl
-{
-  GUC_GLTF_PBR_IMPL_RUNTIME,
-  GUC_GLTF_PBR_IMPL_FILE,
-  GUC_GLTF_PBR_IMPL_FLATTENED
-};
-
 struct guc_options
 {
   // Generate and reference a MaterialX document containing an accurate translation
@@ -49,14 +42,6 @@ struct guc_options
   // native MaterialX math nodes. MaterialX image nodes are assumed to return raw,
   // untransformed values, since the default document colorspace is 'linear'.
   bool explicit_colorspace_transforms;
-
-  // Determines where the MaterialX glTF PBR implementation is assumed to live.
-  // RUNTIME:   the node definition and implementation is provided by the target
-  //            MaterialX runtime (default)
-  // FILE:      a separate .mtlx file is exported that contains the glTF PBR
-  // FLATTENED: the shading network is flattened to stdlib and pbrlib nodes. This
-  //            option may negatively affect document parsing and compilation times.
-  enum guc_gltf_pbr_impl gltf_pbr_impl;
 
   // HdMtlx and therefore Storm do not seem to properly support MaterialX colorspaces.
   // https://github.com/PixarAnimationStudios/USD/issues/1523

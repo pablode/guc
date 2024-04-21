@@ -53,7 +53,6 @@ bool convertToUsd(fs::path src_dir,
   params.emitMtlx = options->emit_mtlx;
   params.mtlxAsUsdShade = options->mtlx_as_usdshade;
   params.explicitColorspaceTransforms = options->explicit_colorspace_transforms;
-  params.gltfPbrImpl = (Converter::GltfPbrImpl) options->gltf_pbr_impl;
   params.hdStormCompat = options->hdstorm_compat;
   params.defaultMaterialVariant = options->default_material_variant;
 
@@ -71,20 +70,6 @@ bool guc_convert(const char* gltf_path,
                  const char* usd_path,
                  const guc_options* options)
 {
-  if (options->mtlx_as_usdshade && options->gltf_pbr_impl == GUC_GLTF_PBR_IMPL_FLATTENED)
-  {
-    TF_RUNTIME_ERROR("mtlx-as-usdshade not supported with node flattening");
-    return false;
-  }
-#if PXR_VERSION >= 2308
-  if (options->gltf_pbr_impl == GUC_GLTF_PBR_IMPL_FILE)
-  {
-    // Disable option to avoid an internal access violation in tf
-    TF_RUNTIME_ERROR("file glTF PBR implementation option not supported with USD v23.08+");
-    return false;
-  }
-#endif
-
   // The path we write USDA/USDC files to. If the user wants a USDZ file, we first
   // write these files to a temporary location, zip them, and copy the ZIP file to
   // the destination directory.

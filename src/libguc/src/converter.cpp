@@ -210,7 +210,7 @@ namespace guc
     , m_stage(stage)
     , m_params(params)
     , m_mtlxDoc(mx::createDocument())
-    , m_mtlxConverter(m_mtlxDoc, m_imgMetadata, params.explicitColorspaceTransforms, params.hdStormCompat)
+    , m_mtlxConverter(m_mtlxDoc, m_imgMetadata, params.hdStormCompat)
     , m_usdPreviewSurfaceConverter(m_stage, m_imgMetadata)
   {
   }

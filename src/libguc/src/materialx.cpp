@@ -64,37 +64,6 @@ namespace detail
     return mx::Color3(ptr[0], ptr[1], ptr[2]);
   }
 
-  // Same logic as: https://github.com/PixarAnimationStudios/USD/blob/3b097e3ba8fabf1777a1256e241ea15df83f3065/pxr/imaging/hdSt/textureUtils.cpp#L74-L94
-  float convertLinearFloatToSrgb(float in)
-  {
-    float out;
-    if (in <= 0.0031308f) {
-      out = 12.92f * in;
-    }
-    else {
-      out = 1.055f * pow(in, 1.0f / 2.4f) - 0.055f;
-    }
-    return GfClamp(out, 0.0f, 1.0f);
-  }
-
-  mx::ValuePtr convertFloat3ValueToSrgb(mx::ValuePtr value)
-  {
-    if (value->isA<mx::Color3>())
-    {
-      auto color = value->asA<mx::Color3>();
-      return mx::Value::createValue(mx::Color3(convertLinearFloatToSrgb(color[0]),
-                                               convertLinearFloatToSrgb(color[1]),
-                                               convertLinearFloatToSrgb(color[2])));
-    }
-    else
-    {
-      auto vector = value->asA<mx::Vector3>();
-      return mx::Value::createValue(mx::Vector3(convertLinearFloatToSrgb(vector[0]),
-                                                convertLinearFloatToSrgb(vector[1]),
-                                                convertLinearFloatToSrgb(vector[2])));
-    }
-  }
-
   std::string getMtlxFilterType(int filter)
   {
     switch (filter)
@@ -245,110 +214,6 @@ namespace detail
     return multiplyNode;
   }
 
-  // These two functions implement the following code with MaterialX nodes:
-  // https://github.com/PixarAnimationStudios/USD/blob/3b097e3ba8fabf1777a1256e241ea15df83f3065/pxr/imaging/hdSt/textureUtils.cpp#L74-L94
-  mx::NodePtr makeSrgbToLinearConversionNodes(mx::NodeGraphPtr nodeGraph, mx::NodePtr srcNode)
-  {
-    TF_VERIFY(srcNode->getType() == MTLX_TYPE_FLOAT);
-
-    mx::NodePtr leftBranch = nodeGraph->addNode("divide", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
-    {
-      auto in1Input = leftBranch->addInput("in1", MTLX_TYPE_FLOAT);
-      in1Input->setNodeName(srcNode->getName());
-
-      auto in2Input = leftBranch->addInput("in2", MTLX_TYPE_FLOAT);
-      in2Input->setValue(12.92f);
-    }
-
-    mx::NodePtr rightBranch = nodeGraph->addNode("power", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
-    {
-      mx::NodePtr addNode = nodeGraph->addNode("add", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
-      {
-        auto in1Input = addNode->addInput("in1", MTLX_TYPE_FLOAT);
-        in1Input->setNodeName(srcNode->getName());
-
-        auto in2Input = addNode->addInput("in2", MTLX_TYPE_FLOAT);
-        in2Input->setValue(0.055f);
-      }
-
-      mx::NodePtr divideNode = nodeGraph->addNode("divide", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
-      {
-        auto in1Input = divideNode->addInput("in1", MTLX_TYPE_FLOAT);
-        in1Input->setNodeName(addNode->getName());
-
-        auto in2Input = divideNode->addInput("in2", MTLX_TYPE_FLOAT);
-        in2Input->setValue(1.055f);
-      }
-
-      auto in1Input = rightBranch->addInput("in1", MTLX_TYPE_FLOAT);
-      in1Input->setNodeName(divideNode->getName());
-
-      auto in2Input = rightBranch->addInput("in2", MTLX_TYPE_FLOAT);
-      in2Input->setValue(2.4f);
-    }
-
-    mx::NodePtr ifGrEqNode = nodeGraph->addNode("ifgreatereq", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
-    {
-      auto value1Input = ifGrEqNode->addInput("value1", MTLX_TYPE_FLOAT);
-      value1Input->setValue(0.04045f);
-
-      auto value2Input = ifGrEqNode->addInput("value2", MTLX_TYPE_FLOAT);
-      value2Input->setNodeName(srcNode->getName());
-
-      auto in1Input = ifGrEqNode->addInput("in1", MTLX_TYPE_FLOAT);
-      in1Input->setNodeName(leftBranch->getName());
-
-      auto in2Input = ifGrEqNode->addInput("in2", MTLX_TYPE_FLOAT);
-      in2Input->setNodeName(rightBranch->getName());
-    }
-
-    return makeClampNode(nodeGraph, ifGrEqNode);
-  }
-
-  mx::NodePtr makeLinearToSrgbConversionNodes(mx::NodeGraphPtr nodeGraph, mx::NodePtr srcNode)
-  {
-    TF_VERIFY(srcNode->getType() == MTLX_TYPE_FLOAT);
-
-    mx::NodePtr leftBranch = makeMultiplyFactorNodeIfNecessary(nodeGraph, srcNode, mx::Value::createValue(12.92f));
-
-    mx::NodePtr rightBranch = nodeGraph->addNode("subtract", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
-    {
-      mx::NodePtr powerNode = nodeGraph->addNode("power", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
-      {
-        auto in1Input = powerNode->addInput("in1", MTLX_TYPE_FLOAT);
-        in1Input->setNodeName(srcNode->getName());
-
-        auto in2Input = powerNode->addInput("in2", MTLX_TYPE_FLOAT);
-        in2Input->setValue(1.0f / 2.4f);
-      }
-
-      mx::NodePtr multiplyNode = makeMultiplyFactorNodeIfNecessary(nodeGraph, powerNode, mx::Value::createValue(1.055f));
-
-      auto in1Input = rightBranch->addInput("in1", MTLX_TYPE_FLOAT);
-      in1Input->setNodeName(multiplyNode->getName());
-
-      auto in2Input = rightBranch->addInput("in2", MTLX_TYPE_FLOAT);
-      in2Input->setValue(0.055f);
-    }
-
-    mx::NodePtr ifGrEqNode = nodeGraph->addNode("ifgreatereq", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
-    {
-      auto value1Input = ifGrEqNode->addInput("value1", MTLX_TYPE_FLOAT);
-      value1Input->setValue(0.0031308f);
-
-      auto value2Input = ifGrEqNode->addInput("value2", MTLX_TYPE_FLOAT);
-      value2Input->setNodeName(srcNode->getName());
-
-      auto in1Input = ifGrEqNode->addInput("in1", MTLX_TYPE_FLOAT);
-      in1Input->setNodeName(leftBranch->getName());
-
-      auto in2Input = ifGrEqNode->addInput("in2", MTLX_TYPE_FLOAT);
-      in2Input->setNodeName(rightBranch->getName());
-    }
-
-    return makeClampNode(nodeGraph, ifGrEqNode);
-  }
-
   mx::NodePtr makeExtractChannelNode(mx::NodeGraphPtr nodeGraph, mx::NodePtr srcNode, int index)
   {
     mx::NodePtr node = nodeGraph->addNode("extract", mx::EMPTY_STRING, MTLX_TYPE_FLOAT);
@@ -403,20 +268,13 @@ namespace guc
 {
   MaterialXMaterialConverter::MaterialXMaterialConverter(mx::DocumentPtr doc,
                                                          const ImageMetadataMap& imageMetadataMap,
-                                                         bool explicit_colorspace_transforms,
                                                          bool hdstorm_compat)
     : m_doc(doc)
     , m_imageMetadataMap(imageMetadataMap)
     , m_defaultColorSetName(makeColorSetName(0))
     , m_defaultOpacitySetName(makeOpacitySetName(0))
-    , m_explicitColorSpaceTransforms(explicit_colorspace_transforms || hdstorm_compat)
     , m_hdstormCompat(hdstorm_compat)
   {
-    if (!m_explicitColorSpaceTransforms)
-    {
-      // see MaterialX spec "Color Spaces and Color Management Systems"
-      m_doc->setAttribute("colorspace", MTLX_COLORSPACE_LINEAR);
-    }
   }
 
   void MaterialXMaterialConverter::convert(const cgltf_material* material, const std::string& materialName)
@@ -1072,9 +930,6 @@ namespace guc
   {
     std::string texValueType = getTextureValueType(textureView, false);
 
-    // USD may incorrectly detect the texture as sRGB and perform a colorspace conversion on the RGB components.
-    bool isSrgbInUsd = m_hdstormCompat && isTextureSrgbInUsd(textureView) && (channelIndex != 3);
-
     mx::NodePtr valueNode = addTextureNode(nodeGraph, filePath, texValueType, false, textureView, mx::Value::createValue(1.0f));
 
     if (texValueType != MTLX_TYPE_FLOAT)
@@ -1093,12 +948,6 @@ namespace guc
       valueNode = detail::makeExtractChannelNode(nodeGraph, valueNode, remapChannelToAlpha ? 3 : channelIndex);
     }
 
-    if (isSrgbInUsd)
-    {
-      // Undo USD's incorrect sRGB->linear colorspace conversion.
-      valueNode = detail::makeLinearToSrgbConversionNodes(nodeGraph, valueNode);
-    }
-
     return valueNode;
   }
 
@@ -1110,16 +959,6 @@ namespace guc
   {
     std::string desiredValueType = color ? MTLX_TYPE_COLOR3 : MTLX_TYPE_VECTOR3;
     std::string texValueType = getTextureValueType(textureView, color);
-
-    bool isSrgbInUsd = m_hdstormCompat && isTextureSrgbInUsd(textureView);
-    bool convertToSrgb = color && !isSrgbInUsd;
-    bool vec3IncorrectlyLinearized = !color && isSrgbInUsd;
-
-    // Bring the default value into the texture colorspace before performing colorspace transformation
-    if (m_explicitColorSpaceTransforms && vec3IncorrectlyLinearized)
-    {
-      defaultValue = detail::convertFloat3ValueToSrgb(defaultValue);
-    }
 
     mx::NodePtr valueNode = addTextureNode(nodeGraph, filePath, texValueType, color, textureView, defaultValue);
 
@@ -1140,32 +979,6 @@ namespace guc
       {
         valueNode = detail::makeConversionNode(nodeGraph, valueNode, desiredValueType);
       }
-    }
-
-    if (m_explicitColorSpaceTransforms && (convertToSrgb || vec3IncorrectlyLinearized))
-    {
-      auto channel1Node = detail::makeExtractChannelNode(nodeGraph, valueNode, 0);
-      channel1Node = vec3IncorrectlyLinearized ? detail::makeLinearToSrgbConversionNodes(nodeGraph, channel1Node) : detail::makeSrgbToLinearConversionNodes(nodeGraph, channel1Node);
-
-      auto channel2Node = detail::makeExtractChannelNode(nodeGraph, valueNode, 1);
-      channel2Node = vec3IncorrectlyLinearized ? detail::makeLinearToSrgbConversionNodes(nodeGraph, channel2Node) : detail::makeSrgbToLinearConversionNodes(nodeGraph, channel2Node);
-
-      auto channel3Node = detail::makeExtractChannelNode(nodeGraph, valueNode, 2);
-      channel3Node = vec3IncorrectlyLinearized ? detail::makeLinearToSrgbConversionNodes(nodeGraph, channel3Node) : detail::makeSrgbToLinearConversionNodes(nodeGraph, channel3Node);
-
-      auto combineNode = nodeGraph->addNode("combine3", mx::EMPTY_STRING, desiredValueType);
-      {
-        auto input1 = combineNode->addInput("in1", channel1Node->getType());
-        input1->setNodeName(channel1Node->getName());
-
-        auto input2 = combineNode->addInput("in2", channel2Node->getType());
-        input2->setNodeName(channel2Node->getName());
-
-        auto input3 = combineNode->addInput("in3", channel3Node->getType());
-        input3->setNodeName(channel3Node->getName());
-      }
-
-      valueNode = combineNode;
     }
 
     return valueNode;
@@ -1235,18 +1048,12 @@ namespace guc
 
     mx::InputPtr fileInput = node->addInput("file", MTLX_TYPE_FILENAME);
     fileInput->setValue(filePath, MTLX_TYPE_FILENAME);
-    if (!m_explicitColorSpaceTransforms)
-    {
-      fileInput->setAttribute("colorspace", isSrgb ? MTLX_COLORSPACE_SRGB : MTLX_COLORSPACE_LINEAR);
-    }
+    fileInput->setAttribute("colorspace", isSrgb ? MTLX_COLORSPACE_SRGB : MTLX_COLORSPACE_LINEAR);
 
     if (defaultValue)
     {
       mx::InputPtr defaultInput = node->addInput("default", textureType);
-      if (!m_explicitColorSpaceTransforms)
-      {
-        defaultInput->setAttribute("colorspace", MTLX_COLORSPACE_LINEAR);
-      }
+      defaultInput->setAttribute("colorspace", MTLX_COLORSPACE_LINEAR);
 
       auto defaultValueString = detail::getTextureTypeAdjustedDefaultValueString(defaultValue, textureType);
       defaultInput->setValueString(defaultValueString);
@@ -1336,7 +1143,7 @@ namespace guc
       }
     }
 
-    if (!m_explicitColorSpaceTransforms && geompropName == m_defaultColorSetName)
+    if (geompropName == m_defaultColorSetName)
     {
       node->setAttribute("colorspace", MTLX_COLORSPACE_LINEAR);
     }
@@ -1391,13 +1198,6 @@ namespace guc
     }
     filePath = metadata.refPath;
     return true;
-  }
-
-  bool MaterialXMaterialConverter::isTextureSrgbInUsd(const cgltf_texture_view& textureView) const
-  {
-    ImageMetadata metadata;
-    TF_VERIFY(getTextureMetadata(textureView, metadata));
-    return metadata.isSrgbInUSD;
   }
 
   int MaterialXMaterialConverter::getTextureChannelCount(const cgltf_texture_view& textureView) const

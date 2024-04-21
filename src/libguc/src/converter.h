@@ -37,13 +37,6 @@ namespace guc
   class Converter
   {
   public:
-    enum class GltfPbrImpl
-    {
-      Runtime,
-      File,
-      Flattened
-    };
-
     struct Params
     {
       fs::path srcDir;
@@ -54,7 +47,6 @@ namespace guc
       bool emitMtlx;
       bool mtlxAsUsdShade;
       bool explicitColorspaceTransforms;
-      GltfPbrImpl gltfPbrImpl;
       bool hdStormCompat;
       int defaultMaterialVariant;
     };

@@ -403,14 +403,12 @@ namespace guc
 {
   MaterialXMaterialConverter::MaterialXMaterialConverter(mx::DocumentPtr doc,
                                                          const ImageMetadataMap& imageMetadataMap,
-                                                         bool flatten_nodes,
                                                          bool explicit_colorspace_transforms,
                                                          bool hdstorm_compat)
     : m_doc(doc)
     , m_imageMetadataMap(imageMetadataMap)
     , m_defaultColorSetName(makeColorSetName(0))
     , m_defaultOpacitySetName(makeOpacitySetName(0))
-    , m_flattenNodes(flatten_nodes)
     , m_explicitColorSpaceTransforms(explicit_colorspace_transforms || hdstorm_compat)
     , m_hdstormCompat(hdstorm_compat)
   {
@@ -481,43 +479,10 @@ namespace guc
     std::string shaderName = "SR_" + materialName;
 
     mx::NodeGraphPtr nodeGraph = m_doc->addNodeGraph(nodegraphName);
-    mx::GraphElementPtr shaderNodeRoot = m_flattenNodes ? std::static_pointer_cast<mx::GraphElement>(nodeGraph) : std::static_pointer_cast<mx::GraphElement>(m_doc);
-    mx::NodePtr shaderNode = shaderNodeRoot->addNode(shaderNodeType, shaderName, MTLX_TYPE_SURFACESHADER);
+    mx::NodePtr shaderNode = m_doc->addNode(shaderNodeType, shaderName, MTLX_TYPE_SURFACESHADER);
 
     // Fill nodegraph with helper nodes (e.g. textures) and set shadernode params.
     callback(material, nodeGraph, shaderNode);
-
-    if (m_flattenNodes)
-    {
-      // Expand glTF PBR node to implementation nodes.
-      nodeGraph->flattenSubgraphs();
-
-      // According to https://github.com/PixarAnimationStudios/USD/issues/1502, to be compatible
-      // with UsdMtlx, we need to have all nodes except the surface node inside a nodegraph. For
-      // that, we extract the surface node to the nodegraph outside after flattening.
-
-      // 1. Find surface shader in nodegraph.
-      auto surfaceNodes = nodeGraph->getNodesOfType(MTLX_TYPE_SURFACESHADER);
-      assert(surfaceNodes.size() == 1);
-      mx::NodePtr surfaceNode = surfaceNodes[0];
-
-      // 2. Create new surface node.
-      mx::NodePtr newSurfaceNode = m_doc->addNode("surface", shaderName, MTLX_TYPE_SURFACESHADER);
-      for (mx::InputPtr surfaceInput : surfaceNode->getInputs())
-      {
-        std::string nodegraphOutputName = "out_" + surfaceInput->getName();
-
-        mx::OutputPtr nodegraphOutput = nodeGraph->addOutput(nodegraphOutputName, surfaceInput->getType());
-        nodegraphOutput->setNodeName(surfaceInput->getNodeName());
-
-        mx::InputPtr newSurfaceInput = newSurfaceNode->addInput(surfaceInput->getName(), surfaceInput->getType());
-        newSurfaceInput->setNodeGraphString(nodegraphName);
-        newSurfaceInput->setOutputString(nodegraphOutputName);
-      }
-
-      // 3. Remove old surface from nodegraph.
-      nodeGraph->removeNode(surfaceNode->getName());
-    }
 
     // Create material and connect surface to it
     mx::NodePtr materialNode = m_doc->addNode("surfacematerial", materialName, MTLX_TYPE_MATERIAL);
@@ -671,8 +636,7 @@ namespace guc
     // Unfortunately, hdStorm blending is messed up because the material is not flagged as 'translucent':
     // https://github.com/PixarAnimationStudios/USD/blob/db8e3266dcaa24aa26b7201bc20ff4d8e81448d6/pxr/imaging/hdSt/materialXFilter.cpp#L441-L507
     // For alpha materials, set a non-zero transmission input to make the renderer believe that we are a translucent Standard Surface.
-    // We don't seem to need this if we flatten the glTF PBR node.
-    if (material->alpha_mode != cgltf_alpha_mode_opaque && m_hdstormCompat && !m_flattenNodes)
+    if (material->alpha_mode != cgltf_alpha_mode_opaque && m_hdstormCompat)
     {
       mx::InputPtr transmissionInput = material->has_transmission ? shaderNode->getInput("transmission") : shaderNode->addInput("transmission", MTLX_TYPE_FLOAT);
 
@@ -1384,21 +1348,13 @@ namespace guc
   {
     const std::string& nodeName = node->getName();
 
-    if (m_flattenNodes)
-    {
-      input->setNodeName(nodeName);
-    }
-    else
-    {
-      std::string outName = "out_" + nodeName;
+    std::string outName = "out_" + nodeName;
 
-      mx::OutputPtr output = nodeGraph->addOutput(outName, node->getType());
-      output->setNodeName(nodeName);
+    mx::OutputPtr output = nodeGraph->addOutput(outName, node->getType());
+    output->setNodeName(nodeName);
 
-      input->setOutputString(outName);
-      input->setNodeGraphString(nodeGraph->getName());
-    }
-
+    input->setOutputString(outName);
+    input->setNodeGraphString(nodeGraph->getName());
     input->removeAttribute("value");
   }
 

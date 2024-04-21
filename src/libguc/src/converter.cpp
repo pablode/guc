@@ -290,7 +290,7 @@ namespace guc
     }
 
     // Step 4: create scene graph (nodes, meshes, lights, cameras, ...)
-    auto createNode = [this](const cgltf_node* nodeData, SdfPath path)
+    auto createNodes = [this](const cgltf_node* nodeData, SdfPath path)
     {
       std::string baseName(nodeData->name ? nodeData->name : "node");
       SdfPath nodePath = makeUniqueStageSubpath(m_stage, path, baseName);
@@ -325,7 +325,13 @@ namespace guc
       {
         const cgltf_node* nodeData = sceneData->nodes[i];
 
-        createNode(nodeData, scenePath);
+        createNodes(nodeData, scenePath);
+      }
+
+      if (sceneData->name)
+      {
+        UsdPrim prim = xform.GetPrim();
+        prim.SetDisplayName(sceneData->name);
       }
     }
 
@@ -363,7 +369,7 @@ namespace guc
       {
         const cgltf_node* nodeData = &m_data->nodes[i];
 
-        createNode(nodeData, nodesPath);
+        createNodes(nodeData, nodesPath);
       }
     }
   }
@@ -437,6 +443,12 @@ namespace guc
       if (m_params.emitMtlx)
       {
         m_mtlxConverter.convert(gmat, materialName);
+      }
+
+      if (gmat->name)
+      {
+        UsdPrim prim = m_stage->GetPrimAtPath(previewPath);
+        prim.SetDisplayName(gmat->name);
       }
     }
 
@@ -551,6 +563,12 @@ namespace guc
 
       createNodesRecursively(childNodeData, childNodePath);
     }
+
+    if (nodeData->name)
+    {
+      UsdPrim prim = xform.GetPrim();
+      prim.SetDisplayName(nodeData->name);
+    }
   }
 
   void Converter::createOrOverCamera(const cgltf_camera* cameraData, SdfPath path)
@@ -601,6 +619,11 @@ namespace guc
     prim.RemoveProperty(TfToken("xformOp:transform"));
     prim.RemoveProperty(TfToken("xformOpOrder"));
 
+    if (cameraData->name)
+    {
+      prim.SetDisplayName(cameraData->name);
+    }
+
     m_uniquePaths[(void*) cameraData] = path;
   }
 
@@ -618,6 +641,7 @@ namespace guc
       auto light = UsdLuxDistantLight::Define(m_stage, path);
       light.CreateIntensityAttr(VtValue(lightData->intensity));
       light.CreateColorAttr(VtValue(GfVec3f(lightData->color)));
+      prim = light.GetPrim(); // overwrite expired prim
     }
     else if (lightData->type == cgltf_light_type_point ||
              lightData->type == cgltf_light_type_spot)
@@ -628,6 +652,7 @@ namespace guc
       // Point lights are not natively supported, we can only hint at them:
       // https://graphics.pixar.com/usd/dev/api/usd_lux_page_front.html#usdLux_Geometry
       light.CreateTreatAsPointAttr(VtValue(true));
+      prim = light.GetPrim(); // overwrite expired prim
 
       if (lightData->range > 0.0f)
       {
@@ -636,7 +661,6 @@ namespace guc
 
       if (lightData->type == cgltf_light_type_spot)
       {
-        prim = light.GetPrim();
         auto shapingApi = UsdLuxShapingAPI::Apply(prim);
         // FIXME: translate spot_inner_cone_angle and spot_outer_cone_angle to either ConeFocusAttr or ConeSoftnessAttr
         shapingApi.CreateShapingConeAngleAttr(VtValue(lightData->spot_outer_cone_angle));
@@ -655,6 +679,11 @@ namespace guc
         VtArray<GfVec3f> extent;
         UsdGeomBoundable::ComputeExtentFromPlugins(boundable, UsdTimeCode::Default(), &extent);
         boundable.CreateExtentAttr(VtValue(extent));
+    }
+
+    if (lightData->name)
+    {
+      prim.SetDisplayName(lightData->name);
     }
 
     m_uniquePaths[(void*) lightData] = path;
@@ -721,6 +750,11 @@ namespace guc
       else
       {
         createMaterialBinding(submesh, materialName);
+      }
+
+      if (meshData->name)
+      {
+        submesh.SetDisplayName(meshData->name);
       }
     }
   }

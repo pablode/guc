@@ -197,7 +197,7 @@ jobs:
       run: glxinfo
 
     - name: Print guc help
-      run: guc || [ $? -eq 1 ]
+      run: guc -h || [ $? -eq 1 ]
 
     - name: Check out tests repository
       uses: actions/checkout@v3

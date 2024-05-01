@@ -1059,7 +1059,7 @@ namespace guc
           }
         }
       }
-      else if (hasTriangleTopology)
+      else if (hasTriangleTopology && m_params.emitMtlx)
       {
         const cgltf_texture_view& textureView = material->normal_texture;
 

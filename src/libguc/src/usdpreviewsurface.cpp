@@ -215,8 +215,27 @@ namespace guc
     {
       const cgltf_pbr_metallic_roughness* pbrMetallicRoughness = &material->pbr_metallic_roughness;
 
+      float baseColorFactor[4];
+      memcpy(baseColorFactor, pbrMetallicRoughness->base_color_factor, sizeof(float) * 4);
+
+      // Brighten up material with custom heuristic if sheen is enabled
+      // TODO: mix in color?
+      if (material->has_sheen)
+      {
+        const cgltf_sheen* sheen = &material->sheen;
+
+        const cgltf_float* sheenColor = sheen->sheen_color_factor;
+
+        float maxColorComponent = fmaxf(sheenColor[0], fmaxf(sheenColor[1], sheenColor[2]));
+
+        for (size_t i = 0; i < 3; i++)
+        {
+          baseColorFactor[i] = fminf(1.0f, baseColorFactor[i] + maxColorComponent * 0.15f);
+        }
+      }
+
       GfVec4f diffuseColorFallback(1.0f); // same as glTF spec sec. 5.22.2: "When undefined, the texture MUST be sampled as having 1.0 in all components."
-      setSrgbTextureInput(path, diffuseColorInput, pbrMetallicRoughness->base_color_texture, GfVec4f(pbrMetallicRoughness->base_color_factor), &diffuseColorFallback);
+      setSrgbTextureInput(path, diffuseColorInput, pbrMetallicRoughness->base_color_texture, GfVec4f(baseColorFactor), &diffuseColorFallback);
       GfVec4f metallicRoughnessFallback(1.0f); // same as glTF spec sec. 5.22.5: "When undefined, the texture MUST be sampled as having 1.0 in G and B components."
       setFloatTextureInput(path, metallicInput, pbrMetallicRoughness->metallic_roughness_texture, _tokens->b, GfVec4f(pbrMetallicRoughness->metallic_factor), &metallicRoughnessFallback);
       setFloatTextureInput(path, roughnessInput, pbrMetallicRoughness->metallic_roughness_texture, _tokens->g, GfVec4f(pbrMetallicRoughness->roughness_factor), &metallicRoughnessFallback);

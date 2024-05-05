@@ -12,3 +12,5 @@ jobs:
     with:
       version-name: Weekly
       release-notes: 'Weekly build of the main branch.'
+      tag-name: weekly
+      publish-prerelease: true

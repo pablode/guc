@@ -10,6 +10,13 @@ on:
         required: false
         type: string
         default: 'TBD'
+      tag-name:
+        required: false
+        type: string
+      publish-prerelease:
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   build-2405:
@@ -50,4 +57,7 @@ jobs:
           files: |
             *.tar.gz
           fail_on_unmatched_files: true
-          draft: true
+          tag_name: ${{ inputs.tag-name }}
+          prerelease: ${{ inputs.publish-prerelease }}
+          draft: ${{ ! inputs.publish-prerelease }}
+          make_latest: false

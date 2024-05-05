@@ -19,6 +19,9 @@
 #include <pxr/base/arch/fileSystem.h>
 #include <pxr/base/tf/registryManager.h>
 #include <pxr/base/tf/envSetting.h>
+#include <pxr/usd/ar/defaultResolverContext.h>
+#include <pxr/usd/ar/resolverContext.h>
+#include <pxr/usd/ar/resolverContextBinder.h>
 #include <pxr/usd/usd/usdcFileFormat.h>
 #include <pxr/usd/pcp/dynamicFileFormatContext.h>
 
@@ -116,6 +119,13 @@ bool UsdGlTFFileFormat::Read(SdfLayer* layer,
                              const std::string& resolvedPath,
                              bool metadataOnly) const
 {
+  fs::path srcDir = fs::path(resolvedPath).parent_path();
+
+  // In case we're accessing an image file in a sibling or parent folder, ArResolver needs
+  // to know the root glTF directory in order to be able to resolve relative file paths.
+  ArDefaultResolverContext ctx({srcDir.string()});
+  ArResolverContextBinder binder(ctx);
+
   cgltf_data* gltf_data = nullptr;
   if (!load_gltf(resolvedPath.c_str(), &gltf_data))
   {
@@ -127,7 +137,7 @@ bool UsdGlTFFileFormat::Read(SdfLayer* layer,
   UsdGlTFDataConstPtr data = TfDynamic_cast<const UsdGlTFDataConstPtr>(layerData);
 
   Converter::Params params = {};
-  params.srcDir = fs::path(resolvedPath).parent_path();
+  params.srcDir = srcDir;
   params.dstDir = s_tmpDirHolder.makeDir();
   params.mtlxFileName = ""; // Not needed because of Mtlx-as-UsdShade option
   params.copyExistingFiles = false;

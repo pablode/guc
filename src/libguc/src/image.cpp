@@ -43,9 +43,11 @@ namespace detail
 {
   using namespace guc;
 
-  bool readImageDataFromBufferView(const cgltf_buffer_view* bufferView, std::vector<uint8_t>& dstData)
+  bool readImageDataFromBufferView(const cgltf_buffer_view* bufferView,
+                                   size_t& dstSize,
+                                   std::shared_ptr<const char>& dstData)
   {
-    const uint8_t* srcData = (uint8_t*) bufferView->buffer->data;
+    const char* srcData = (const char*) bufferView->buffer->data;
 
     if (bufferView->data)
     {
@@ -59,14 +61,20 @@ namespace detail
     }
 
     srcData += bufferView->offset;
-    dstData.resize(bufferView->size);
-    std::memcpy(dstData.data(), srcData, dstData.size());
+
+    dstSize = bufferView->size;
+    dstData = std::shared_ptr<const char>(srcData, [](const char* ptr) {
+      // Do not free the memory - it's owned by cgltf_data which is
+      // externally managed and exceeds the lifetime of this shared_ptr.
+    });
     return true;
   }
 
-  bool readImageDataFromBase64(const char* base64Str, std::vector<uint8_t>& data)
+  bool readImageDataFromBase64(const char* base64Str,
+                               size_t& size,
+                               std::shared_ptr<const char>& data)
   {
-    size_t size = strlen(base64Str);
+    size = strlen(base64Str);
 
     size_t padding = 0;
     if (size >= 2 && base64Str[size - 2] == '=')
@@ -86,60 +94,54 @@ namespace detail
       return false;
     }
 
-    void* rawData;
+    void* dataPtr;
     cgltf_options options = {};
-    cgltf_result result = cgltf_load_buffer_base64(&options, size, base64Str, &rawData);
+    cgltf_result result = cgltf_load_buffer_base64(&options, size, base64Str, &dataPtr);
     if (result != cgltf_result_success)
     {
       TF_RUNTIME_ERROR("unable to read base64-encoded data");
       return false;
     }
 
-    data.resize(size);
-    std::memcpy(data.data(), rawData, size);
-    free(rawData);
+    data = std::shared_ptr<const char>((const char*) dataPtr, [](const char* ptr) {
+      free((void*) ptr);
+    });
     return true;
   }
 
-  bool readImageFromFile(const char* filePath, std::vector<uint8_t>& data)
+  bool readImageFromFile(const char* path,
+                         size_t& size,
+                         std::shared_ptr<const char>& data)
   {
-    // Try to use memory mapping
-    {
-      std::string errMsg;
-      auto mappedPtr = ArchMapFileReadOnly(filePath, &errMsg);
-      if (mappedPtr)
-      {
-        size_t size = ArchGetFileMappingLength(mappedPtr);
-        data.resize(size);
-        std::memcpy(data.data(), mappedPtr.get(), size);
-        return true;
-      }
-      TF_DEBUG(GUC).Msg("unable to mmap %s: %s\n", filePath, errMsg.c_str());
-    }
+    TF_DEBUG(GUC).Msg("reading image %s\n", path);
 
-    // Fall back to traditional file reading
-    FILE* file = ArchOpenFile(filePath, "rb");
-    if (!file)
+    ArResolver& resolver = ArGetResolver();
+    ArResolvedPath resolvedPath = resolver.Resolve(path);
+    if (!resolvedPath)
     {
-      TF_RUNTIME_ERROR("unable to open file for reading: %s", filePath);
       return false;
     }
 
-    size_t size = ArchGetFileLength(file);
-    data.resize(size);
-    int64_t result = ArchPRead(file, data.data(), size, 0);
+    TF_DEBUG(GUC).Msg("resolved image to %s\n", resolvedPath.GetPathString().c_str());
 
-    ArchCloseFile(ArchFileNo(file));
-
-    if (result == -1)
+    std::shared_ptr<ArAsset> asset = resolver.OpenAsset(resolvedPath);
+    if (!asset)
     {
-      TF_RUNTIME_ERROR("unable to read from file %s", filePath);
       return false;
     }
+
+    std::shared_ptr<const char> buffer = asset->GetBuffer();
+    if (!buffer)
+    {
+      return false;
+    }
+
+    size = asset->GetSize();
+    data = asset->GetBuffer();
     return true;
   }
 
-  bool writeImageData(const char* filePath, std::vector<uint8_t>& data)
+  bool writeImageData(const char* filePath, size_t size, const std::shared_ptr<const char>& data)
   {
     FILE* file = ArchOpenFile(filePath, "wb");
     if (!file)
@@ -148,7 +150,7 @@ namespace detail
       return false;
     }
 
-    int64_t result = ArchPWrite(file, data.data(), data.size(), 0);
+    int64_t result = ArchPWrite(file, data.get(), size, 0);
 
     ArchCloseFile(ArchFileNo(file));
 
@@ -160,28 +162,30 @@ namespace detail
     return true;
   }
 
-  bool readExtensionFromDataSignature(const std::vector<uint8_t>& data, std::string& extension)
+  bool readExtensionFromDataSignature(size_t size, const std::shared_ptr<const char>& data, std::string& extension)
   {
-    if (data.size() < 3)
+    const static std::array<uint8_t, 3> JPEG_HEADER = { 0xFF, 0xD8, 0xFF };
+    const static std::array<uint8_t, 8> PNG_HEADER = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+
+    if (size < JPEG_HEADER.size())
     {
       return false;
     }
-    else if (data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF)
+    else if (memcmp(data.get(), JPEG_HEADER.data(), JPEG_HEADER.size()) == 0)
     {
       extension = ".jpg";
       return true;
     }
-    else if (data.size() < 8)
+    else if (size < PNG_HEADER.size())
     {
       return false;
     }
-    else if (data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E &&
-             data[3] == 0x47 && data[4] == 0x0D && data[5] == 0x0A &&
-             data[6] == 0x1A && data[7] == 0x0A)
+    else if (memcmp(data.get(), PNG_HEADER.data(), PNG_HEADER.size()) == 0)
     {
       extension = ".png";
       return true;
     }
+
     return false;
   }
 
@@ -219,23 +223,14 @@ namespace detail
 
   bool readImageMetadata(const char* path, int& channelCount)
   {
-    TF_DEBUG(GUC).Msg("reading image %s\n", path);
-
-    ArResolver& resolver = ArGetResolver();
-    std::shared_ptr<ArAsset> asset = resolver.OpenAsset(ArResolvedPath(path));
-    if (!asset)
+    size_t size;
+    std::shared_ptr<const char> data;
+    if (!readImageFromFile(path, size, data))
     {
       return false;
     }
 
-    std::shared_ptr<const char> buffer = asset->GetBuffer();
-    if (!buffer)
-    {
-      return false;
-    }
-
-    size_t bufferSize = asset->GetSize();
-    return decodeImageMetadata(buffer, bufferSize, path, channelCount);
+    return decodeImageMetadata(data, size, path, channelCount);
   }
 
   std::optional<ImageMetadata> processImage(const cgltf_image* image,
@@ -245,7 +240,8 @@ namespace detail
                                             bool genRelativePaths,
                                             std::unordered_set<std::string>& generatedFileNames)
   {
-    std::vector<uint8_t> data;
+    size_t size = 0;
+    std::shared_ptr<const char> data;
     std::string srcFilePath;
 
     const char* uri = image->uri;
@@ -257,25 +253,24 @@ namespace detail
         return std::nullopt;
       }
 
-      if (!readImageDataFromBase64(comma + 1, data))
+      if (!readImageDataFromBase64(comma + 1, size, data))
       {
         return std::nullopt;
       }
     }
-    else if (uri && strstr(uri, "://") == NULL)
+    else if (uri)
     {
       srcFilePath = std::string(uri);
       cgltf_decode_uri(srcFilePath.data());
-      srcFilePath = (srcDir / srcFilePath).string();
 
-      if (!readImageFromFile(srcFilePath.c_str(), data))
+      if (!readImageFromFile(srcFilePath.c_str(), size, data))
       {
         return std::nullopt;
       }
     }
     else if (image->buffer_view)
     {
-      if (!readImageDataFromBufferView(image->buffer_view, data))
+      if (!readImageDataFromBufferView(image->buffer_view, size, data))
       {
         return std::nullopt;
       }
@@ -287,7 +282,7 @@ namespace detail
     }
 
     std::string fileExt;
-    if (!readExtensionFromDataSignature(data, fileExt))
+    if (!readExtensionFromDataSignature(size, data, fileExt))
     {
       // Doesn't matter what the mime type or path extension is if the image can not be read
       const char* hint = image->name;
@@ -324,7 +319,7 @@ namespace detail
 
       std::string writeFilePath = (dstDir / fs::path(dstRefPath)).string();
       TF_DEBUG(GUC).Msg("writing img %s\n", writeFilePath.c_str());
-      if (!writeImageData(writeFilePath.c_str(), data))
+      if (!writeImageData(writeFilePath.c_str(), size, data))
       {
         return std::nullopt;
       }

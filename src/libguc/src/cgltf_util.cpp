@@ -66,6 +66,14 @@ namespace detail
     TF_DEBUG(GUC).Msg("reading file %s\n", path);
 
     ArResolver& resolver = ArGetResolver();
+    ArResolvedPath resolvedPath = resolver.Resolve(path);
+    if (!resolvedPath)
+    {
+      return cgltf_result_file_not_found;
+    }
+
+    TF_DEBUG(GUC).Msg("resolved path to %s\n", resolvedPath.GetPathString().c_str());
+
     std::shared_ptr<ArAsset> asset = resolver.OpenAsset(ArResolvedPath(path));
     if (!asset)
     {

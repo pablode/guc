@@ -17,6 +17,9 @@
 #include "guc.h"
 
 #include <pxr/base/arch/fileSystem.h>
+#include <pxr/usd/ar/defaultResolverContext.h>
+#include <pxr/usd/ar/resolverContext.h>
+#include <pxr/usd/ar/resolverContextBinder.h>
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usd/zipFile.h>
 #include <pxr/usd/usdUtils/dependencies.h>
@@ -69,13 +72,19 @@ bool guc_convert(const char* gltf_path,
                  const char* usd_path,
                  const guc_options* options)
 {
+  fs::path src_dir = fs::path(gltf_path).parent_path();
+
+  // We unconditionally use USD's asset resolver which needs to be able to resolve
+  // relative file paths.
+  ArDefaultResolverContext ctx({src_dir.string()});
+  ArResolverContextBinder binder(ctx);
+
   // The path we write USDA/USDC files to. If the user wants a USDZ file, we first
   // write these files to a temporary location, zip them, and copy the ZIP file to
   // the destination directory.
   fs::path final_usd_path = usd_path;
   fs::path base_usd_path = usd_path;
   fs::path dst_dir = base_usd_path.parent_path();
-  fs::path src_dir = fs::path(gltf_path).parent_path();
 
   bool export_usdz = base_usd_path.extension() == ".usdz";
 

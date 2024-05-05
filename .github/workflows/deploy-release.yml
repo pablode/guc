@@ -26,16 +26,9 @@ jobs:
       usd-version: 24.03
       build-config: Release
 
-  build-2311:
-    name: Build guc for USD v23.11
-    uses: ./.github/workflows/build-usd.yml
-    with:
-      usd-version: 23.11
-      build-config: Release
-
   deploy-release:
     name: Deploy Release
-    needs: [build-2405, build-2403, build-2311]
+    needs: [build-2405, build-2403]
     runs-on: ubuntu-latest
 
     steps:
@@ -48,11 +41,6 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: ${{ needs.build-2403.outputs.archive-name }}
-
-      - name: Download USD v23.11 artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ needs.build-2311.outputs.archive-name }}
 
       - name: Deploy draft release
         uses: softprops/action-gh-release@d4e8205d7e959a9107da6396278b2f1f07af0f9b

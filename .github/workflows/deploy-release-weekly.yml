@@ -2,8 +2,8 @@ name: Deploy Release (Weekly)
 
 on:
   schedule:
-    # Run every sunday at 11:30 PM
-    - cron: '30 23 * * 0'
+    # Run every sunday at 16:00 UTC (6 PM CET)
+    - cron: '0 16 * * 0'
 
 jobs:
   deploy-release:

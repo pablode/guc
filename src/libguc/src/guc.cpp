@@ -145,7 +145,9 @@ bool guc_convert(const char* gltf_path,
     }
     for (const auto& fileExport : fileExports)
     {
-      std::string srcPath = fileExport.filePath;
+      // We need to pass explicit source paths to UsdZipFileWriter because it uses the lower-level file
+      // API instead of USD's ArResolver: https://github.com/PixarAnimationStudios/OpenUSD/issues/2374
+      std::string srcPath = (src_dir / fileExport.filePath).string();
       std::string dstPathInUsdz = fileExport.refPath;
 
       TF_DEBUG(GUC).Msg("adding %s to USDZ archive at ./%s\n", srcPath.c_str(), dstPathInUsdz.c_str());

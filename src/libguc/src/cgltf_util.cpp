@@ -28,10 +28,13 @@
 #include <assert.h>
 #include <string.h>
 #include <unordered_map>
+#include <filesystem>
 
 #include "debugCodes.h"
 
 using namespace PXR_NS;
+
+namespace fs = std::filesystem;
 
 namespace detail
 {
@@ -65,8 +68,11 @@ namespace detail
   {
     TF_DEBUG(GUC).Msg("reading file %s\n", path);
 
+    // ArResolver fails to resolve paths with prefix "./" - we remove it.
+    fs::path relativePath = fs::relative(path);
+
     ArResolver& resolver = ArGetResolver();
-    ArResolvedPath resolvedPath = resolver.Resolve(path);
+    ArResolvedPath resolvedPath = resolver.Resolve(relativePath.string());
     if (!resolvedPath)
     {
       TF_RUNTIME_ERROR("unable to resolve %s", path);

@@ -115,8 +115,11 @@ namespace detail
   {
     TF_DEBUG(GUC).Msg("reading image %s\n", path);
 
+    // ArResolver fails to resolve paths with prefix "./" - we remove it.
+    fs::path relativePath = fs::relative(path);
+
     ArResolver& resolver = ArGetResolver();
-    ArResolvedPath resolvedPath = resolver.Resolve(path);
+    ArResolvedPath resolvedPath = resolver.Resolve(relativePath.string());
     if (!resolvedPath)
     {
       TF_RUNTIME_ERROR("unable to resolve %s", path);

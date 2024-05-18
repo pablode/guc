@@ -66,7 +66,10 @@ namespace detail
     TF_DEBUG(GUC).Msg("reading file %s\n", path);
 
     ArResolver& resolver = ArGetResolver();
-    ArResolvedPath resolvedPath = resolver.Resolve(path);
+    std::string identifier = resolver.CreateIdentifier(path);
+    TF_DEBUG(GUC).Msg("normalized path to %s\n", identifier.c_str());
+
+    ArResolvedPath resolvedPath = resolver.Resolve(identifier);
     if (!resolvedPath)
     {
       TF_RUNTIME_ERROR("unable to resolve %s", path);

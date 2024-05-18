@@ -69,20 +69,24 @@ namespace detail
     ArResolvedPath resolvedPath = resolver.Resolve(path);
     if (!resolvedPath)
     {
+      TF_RUNTIME_ERROR("unable to resolve %s", path);
       return cgltf_result_file_not_found;
     }
 
-    TF_DEBUG(GUC).Msg("resolved path to %s\n", resolvedPath.GetPathString().c_str());
+    std::string resolvedPathStr = resolvedPath.GetPathString();
+    TF_DEBUG(GUC).Msg("resolved path to %s\n", resolvedPathStr.c_str());
 
     std::shared_ptr<ArAsset> asset = resolver.OpenAsset(ArResolvedPath(path));
     if (!asset)
     {
+      TF_RUNTIME_ERROR("unable to open asset %s", resolvedPathStr.c_str());
       return cgltf_result_file_not_found;
     }
 
     std::shared_ptr<const char> buffer = asset->GetBuffer();
     if (!buffer)
     {
+      TF_RUNTIME_ERROR("unable to open buffer for %s", resolvedPathStr.c_str());
       return cgltf_result_io_error;
     }
 

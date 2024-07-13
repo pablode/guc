@@ -79,14 +79,22 @@ namespace guc
     // Furthermore, 'color' maps directly to the COLOR_ glTF attribute name and goes well
     // with the already existing 'displayColor' primvar. It's just not for the 'display'
     // purpose, but rather part of the actual data used for shading.
-    std::string colorSetBaseName = "color";
-    return colorSetBaseName + std::to_string(index);
+    std::string name = "color";
+    if (index == 0)
+    {
+      return name;
+    }
+    return name + std::to_string(index);
   }
 
   std::string makeOpacitySetName(int index)
   {
-    std::string opacitySetBaseName = "opacity";
-    return opacitySetBaseName + std::to_string(index);
+    std::string name = "opacity";
+    if (index == 0)
+    {
+      return name;
+    }
+    return name + std::to_string(index);
   }
 
   const static std::unordered_set<std::string> MTLX_TYPE_NAME_SET = {

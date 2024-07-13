@@ -135,10 +135,10 @@ Depending on material parameters and available accessors, guc creates following 
 
 Name | Description
 ---  | ---
-colorN | Vertex color set N
+color[N] | Vertex color set N
 displayColor | Display color (constant or per-vertex)
 displayOpacity | Display opacity (constant or per-vertex)
-opacityN | Vertex opacity set N
+opacity[N] | Vertex opacity set N
 st[N] | Texture coordinate set N
 tangents | Three-component tangent vectors
 bitangentSigns | Bitangent handedness

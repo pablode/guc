@@ -761,6 +761,15 @@ namespace guc
 
   void Converter::createMaterialBinding(UsdPrim& prim, const std::string& materialName)
   {
+    if (m_params.emitMtlx)
+    {
+      UsdShadeMaterialBindingAPI::Apply(prim).Bind(
+        UsdShadeMaterial::Get(m_stage, makeMtlxMaterialPath(materialName)),
+        UsdShadeTokens->fallbackStrength,
+        UsdShadeTokens->allPurpose
+      );
+    }
+
 #ifndef NDEBUG
     if (!TfGetEnvSetting(GUC_DISABLE_PREVIEW_MATERIAL_BINDINGS))
 #endif
@@ -768,16 +777,7 @@ namespace guc
       UsdShadeMaterialBindingAPI::Apply(prim).Bind(
         UsdShadeMaterial::Get(m_stage, makeUsdPreviewSurfaceMaterialPath(materialName)),
         UsdShadeTokens->fallbackStrength,
-        UsdShadeTokens->preview
-      );
-    }
-
-    if (m_params.emitMtlx)
-    {
-      UsdShadeMaterialBindingAPI::Apply(prim).Bind(
-        UsdShadeMaterial::Get(m_stage, makeMtlxMaterialPath(materialName)),
-        UsdShadeTokens->fallbackStrength,
-        UsdShadeTokens->allPurpose
+        m_params.emitMtlx ? UsdShadeTokens->preview : UsdShadeTokens->allPurpose
       );
     }
   }

@@ -19,7 +19,7 @@ on:
       tests-revision:
         required: false
         type: string
-        default: '0f365baff2970888c4c28a03f22c95537607553c'
+        default: 'ac0cd249b85d194a418f36e237fbfbbfc284f6a7'
       test-filter:
         required: false
         type: string

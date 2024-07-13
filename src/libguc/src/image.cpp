@@ -127,7 +127,7 @@ namespace detail
     }
 
     std::string resolvedPathStr = resolvedPath.GetPathString();
-    TF_DEBUG(GUC).Msg("resolved image to %s\n", resolvedPathStr.c_str());
+    TF_DEBUG(GUC).Msg("resolved path to %s\n", resolvedPathStr.c_str());
 
     std::shared_ptr<ArAsset> asset = resolver.OpenAsset(resolvedPath);
     if (!asset)

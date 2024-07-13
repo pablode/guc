@@ -57,8 +57,12 @@ namespace guc
 
   std::string makeStSetName(int index)
   {
-    std::string uvSetBaseName = UsdUtilsGetPrimaryUVSetName(); // likely to be "st"
-    return uvSetBaseName + std::to_string(index);
+    std::string name = UsdUtilsGetPrimaryUVSetName(); // likely to be "st"
+    if (index == 0)
+    {
+      return name;
+    }
+    return name + std::to_string(index);
   }
 
   std::string makeColorSetName(int index)

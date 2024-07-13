@@ -139,7 +139,7 @@ colorN | Vertex color set N
 displayColor | Display color (constant or per-vertex)
 displayOpacity | Display opacity (constant or per-vertex)
 opacityN | Vertex opacity set N
-stN | Texture coordinate set N
+st[N] | Texture coordinate set N
 tangents | Three-component tangent vectors
 bitangentSigns | Bitangent handedness
 

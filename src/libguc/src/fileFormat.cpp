@@ -19,6 +19,7 @@
 #include <pxr/base/arch/fileSystem.h>
 #include <pxr/base/tf/registryManager.h>
 #include <pxr/base/tf/envSetting.h>
+#include <pxr/base/tf/stringUtils.h>
 #include <pxr/usd/ar/defaultResolverContext.h>
 #include <pxr/usd/ar/resolverContext.h>
 #include <pxr/usd/ar/resolverContextBinder.h>
@@ -103,7 +104,7 @@ SdfAbstractDataRefPtr UsdGlTFFileFormat::InitData(const FileFormatArguments& arg
   auto emitMtlxIt = args.find(_tokens->emitMtlx.GetText());
   if (emitMtlxIt != args.end())
   {
-    data->emitMtlx = (emitMtlxIt->second == "true");
+    data->emitMtlx = TfUnstringify<bool>(emitMtlxIt->second);
   }
 
   return data;

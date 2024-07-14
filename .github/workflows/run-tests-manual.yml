@@ -18,7 +18,7 @@ on:
       usd-version:
         description: The version of USD to build against
         type: string
-        default: 24.03
+        default: 24.05
       tests-revision:
         description: Test repo revision
         type: string

@@ -1,6 +1,42 @@
 
 # Changelog
 
+## Version 0.4 - 2024-07-15
+
+Added
+* Asset resolver support (thanks, [@expenses](https://github.com/expenses)!)
+* Command line option to print licenses
+* Display name attribute for most glTF objects
+* Dynamic _emitMtlx_ Sdf file format argument
+* Explicit documentation of GUC_BUILD_USDGLTF to README (thanks, [@expenses](https://github.com/expenses)!)
+* Help (-h / --help) command-line option
+* Support for [KHR_materials_unlit](https://github.com/KhronosGroup/glTF/blob/082d5a98f479c37dff18767982d1431fc6c014fd/extensions/2.0/Khronos/KHR_materials_unlit/README.md) extension
+* Third-party licenses to LICENSE file
+
+Changed
+* Default input values are not authored anymore in MaterialX networks
+* Default material binding is now used when MaterialX is disabled (thanks, [@lanxinger](https://github.com/lanxinger)!)
+* Fallback tangents are now only generated if MaterialX is enabled
+* Improved prim naming heuristics
+* MaterialX 1.38.6 is now required
+* Prebuilt binaries do not require a specific Python version anymore
+* Primvar naming does not emit suffix for index 0 anymore
+* Removed dependency on OpenImageIO (stb_image is used as a fallback)
+* Removed explicit color space transformations
+* Removed glTF PBR implementation options
+* Renamed Sdf plugin id from 'glTF' to 'gltf' to conform with other projects
+* Reorder command line arguments to conform with UNIX conventions
+
+Fixed
+* False-positive MSVC warning caused by Boost macros
+* Incorrect UsdPreviewSurface Sdf value types
+* Incorrect warning about greyscale texture alpha channel
+* Material name not being preserved if it starts with an underscore
+* Missing '.glb' extension in Sdf plugin definition
+* Missing UsdLux extents
+* Typo in Sdf plugin that could prevent file reading
+* UsdLuxShapingAPI not being applied
+
 ## Version 0.3 - 2023-07-26
 
 Added

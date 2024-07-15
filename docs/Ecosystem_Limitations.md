@@ -42,6 +42,9 @@ This issue affects a number of render delegates, including Pixar's [HdStorm](htt
 
 ## MaterialX in HdStorm
 
+#### Texture-coordinate related regression in USD v24.03+
+Issue [#3048](https://github.com/PixarAnimationStudios/OpenUSD/issues/3048) currently affects [multiple cases](https://github.com/pablode/guc-tests/commit/695f6dcc58c5b08b1d7b689dc1dc0c2d4305f154?diff=split&w=0) of the guc test suite.
+
 #### One and two channel sRGB texture formats are unsupported
 Converted assets may use such textures, but HdStorm is not able to render them. ([Source code](https://github.com/PixarAnimationStudios/USD/blob/3abc46452b1271df7650e9948fef9f0ce602e3b2/pxr/imaging/hdSt/textureUtils.cpp#L341-L345))
 

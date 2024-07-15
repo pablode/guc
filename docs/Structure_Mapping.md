@@ -234,11 +234,8 @@ of MaterialX's `<normalmap>` node (see [Ecosystem Limitations](Ecosystem_Limitat
 
 There are a number of improvements that can be made to the mapping process.
 
-For instance, the MaterialX graph complexity can be reduced with the introduction
-of helper nodes, and color space related workarounds may be removed with proper support for attribute
-copying in HdMtlx (see [Ecosystem Limitations](Ecosystem_Limitations.md)).
-
-Resulting USD assets may make use of payloads, and in general, incremental changes
+For instance, the MaterialX graph complexity can be reduced with the introduction of helper nodes.
+Resulting USD assets could make use of payloads, and in general, incremental changes
 motivated by the [USD Asset WG Structure Guidelines](https://github.com/pablode/usd-wg-assets/blob/main/docs/asset-structure-guidelines.md) are to be expected.
 
 Lastly, user feedback is welcome in ensuring that assets conform to best practices.

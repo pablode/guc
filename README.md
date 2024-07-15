@@ -11,7 +11,6 @@ Unlike...
  - [Apple's USDZ Tools](https://developer.apple.com/augmented-reality/tools/), it is open-source and freely available
 
 guc furthermore supports near-lossless material translation via the [MaterialX](https://github.com/AcademySoftwareFoundation/MaterialX) standard.
-Shading networks can be encoded as UsdShade and flattened for backwards compatibility.
 
 All glTF features except animation and skinning are implemented and get continuously tested in guc's [test suite](https://github.com/pablode/guc-tests).
 
@@ -26,7 +25,7 @@ All glTF features except animation and skinning are implemented and get continuo
 
 ### Build
 
-You need USD v23.11+ (e.g. <a href="https://github.com/PixarAnimationStudios/OpenUSD/releases/tag/v24.03">v24.03</a>) with MaterialX support enabled.
+You need USD v23.11+ (e.g. <a href="https://github.com/PixarAnimationStudios/OpenUSD/releases/tag/v24.05">v24.05</a>) with MaterialX support enabled.
 
 Do a recursive clone of the repository and set up a build folder:
 ```
@@ -45,8 +44,6 @@ cmake --build . -j8 --config Release
 ```
 
 > Note: set `BUILD_SHARED_LIBS` for shared builds, and `CMAKE_MSVC_RUNTIME_LIBRARY` to USD's MSVC ABI.
-
-> Note: if module or shared libary loading fails, try building USD with the `--opencolorio` flag.
 
 ### Usage
 
@@ -67,8 +64,6 @@ Options:
 Both glTF and GLB file types are valid input. USDA, USDC and USDZ formats can be written.
 
 An example asset conversion is described in the [Structure Mapping](docs/Structure_Mapping.md) document.
-
-> Note: imaging of USD+MaterialX assets may be incorrect due to a number of current [Ecosystem Limitations](docs/Ecosystem_Limitations.md).
 
 ### Extension support
 
@@ -97,13 +92,14 @@ The _usdGlTF_ library implements USD's Sdf file format interface. Enable the `GU
 cmake --install . --component usdGlTF --config Release --prefix <USD_INSTALL_DIR>/plugin/usd
 ```
 
-> Note: the plugin only emits MaterialX materials if the `USDGLTF_ENABLE_MTLX` environment variable is set.
+glTF files can now be referenced as layers and opened with USD tooling.
+The _emitMtlx_ dynamic Sdf file format argument controls MaterialX material emission.
 
 ### License
 
 ```
 
-   Copyright 2022 Pablo Delgado Krämer
+   Copyright 2024 Pablo Delgado Krämer
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.

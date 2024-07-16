@@ -38,6 +38,7 @@
 #include <pxr/usd/usdMtlx/utils.h>
 #include <pxr/usd/usd/modelAPI.h>
 #include <pxr/usd/kind/registry.h>
+#include <pxr/usd/usdSkel/bindingAPI.h>
 
 #include <MaterialXFormat/XmlIo.h>
 #include <MaterialXFormat/Util.h>
@@ -535,7 +536,7 @@ namespace guc
       std::string meshName = nodeData->mesh->name ? std::string(nodeData->mesh->name) : "mesh";
       auto meshPath = makeUniqueStageSubpath(m_stage, path, meshName);
 
-      createOrOverMesh(nodeData->mesh, meshPath);
+      createOrOverMesh(nodeData->mesh, nodeData->skin, meshPath);
     }
 
     if (nodeData->camera)
@@ -689,7 +690,7 @@ namespace guc
     m_uniquePaths[(void*) lightData] = path;
   }
 
-  void Converter::createOrOverMesh(const cgltf_mesh* meshData, SdfPath path)
+  void Converter::createOrOverMesh(const cgltf_mesh* meshData, const cgltf_skin* skinData, SdfPath path)
   {
     auto xform = UsdGeomXform::Define(m_stage, path);
 
@@ -757,6 +758,44 @@ namespace guc
         submesh.SetDisplayName(meshData->name);
       }
     }
+
+    if (skinData)
+    {
+      fprintf(stderr, "skin %s found for mesh %s\n", skinData->name, path.GetText());
+
+      // TODO: Xform isn't boundable -> doesn't work. What to do? can we replace sub-meshes with GeomSubsets?
+      UsdPrim prim = xform.GetPrim();
+
+      auto skelApi = UsdSkelBindingAPI::Apply(prim);
+
+      // TODO: create and link skeleton (TODO: lazy/global or not?)
+      // m_uniquePaths[skinData->skeleton] = skelPath;
+
+      bool isConstant = true;
+
+      // joint indices
+      {
+        VtArray<int> jointIndices(skinData->joints_count);
+        for (size_t i = 0; i < jointIndices.size(); i++)
+        {
+          jointIndices[i] = (int) cgltf_node_index(m_data, skinData->joints[i]);
+
+          isConstant &= (i == 0) || (jointIndices[i - 1] == jointIndices[i]);
+        }
+
+        UsdGeomPrimvar primvar = skelApi.CreateJointIndicesPrimvar(isConstant, jointIndices.size()); // TODO: create Attr with VtValue default?
+        primvar.Set(jointIndices);
+      }
+
+      // weights
+      {
+        VtArray<float> jointWeights(meshData->weights_count);
+        memcpy(jointWeights.data(), meshData->weights, jointWeights.size()); // TODO: better way?
+
+        UsdGeomPrimvar primvar = skelApi.CreateJointWeightsPrimvar(isConstant, jointWeights.size());
+        primvar.Set(jointWeights);
+      }
+    }
   }
 
   void Converter::createMaterialBinding(UsdPrim& prim, const std::string& materialName)
@@ -782,6 +821,7 @@ namespace guc
     }
   }
 
+// TODO: path -> const path&
   bool Converter::createPrimitive(const cgltf_primitive* primitiveData, SdfPath path, UsdPrim& prim)
   {
     const cgltf_material* material = primitiveData->material;

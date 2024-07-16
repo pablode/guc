@@ -38,6 +38,7 @@ set(LIBGUC_DEFINES
   GUC_VERSION_STRING="${CMAKE_PROJECT_VERSION}"
 )
 
+# TODO: allow monolithic USD
 set(LIBGUC_SHARED_LIBRARIES
   # Header-only library without link dependencies --
   # we can get away with not installing the target.
@@ -49,6 +50,7 @@ set(LIBGUC_SHARED_LIBRARIES
   usdShade
   usdUtils
   usdMtlx
+  usdSkel
   MaterialXCore
   MaterialXFormat
 )

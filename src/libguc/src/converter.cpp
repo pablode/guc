@@ -40,6 +40,7 @@
 #include <pxr/usd/kind/registry.h>
 #include <pxr/usd/usdSkel/bindingAPI.h>
 #include <pxr/usd/usdSkel/root.h>
+#include <pxr/usd/usdSkel/skeleton.h>
 
 #include <MaterialXFormat/XmlIo.h>
 #include <MaterialXFormat/Util.h>
@@ -700,37 +701,46 @@ namespace guc
   {
     if (skinData)
     {
-      fprintf(stderr, "skin %s found for mesh %s\n", skinData->name, path.GetText());
+      fprintf(stderr, "skin %s found for mesh %s\n", skinData->name, path.GetText()); // TODO
 
       auto root = UsdSkelRoot::Define(m_stage, path);
 
       UsdPrim prim = root.GetPrim();
+
       auto skelApi = UsdSkelBindingAPI::Apply(prim);
 
-      // TODO: create and link skeleton (TODO: lazy/global or not?)
-      // m_uniquePaths[skinData->skeleton] = skelPath;
+      // Skin
+      {
+        std::string skinName = skinData->name ? std::string(skinData->name) : "skin";
+        auto skinPath = makeUniqueStageSubpath(m_stage, getEntryPath(EntryPathType::Skins), skinName);
+        createOrOverSkin(skinData, skinPath);
 
-      bool isConstant = true;
+        auto skelRel = skelApi.CreateSkeletonRel();
+        skelRel.AddTarget(skinPath);
+      }
 
-      // joint indices
+      bool areJointsConstant = true;
+
+      // Joint indices
       {
         VtArray<int> jointIndices(skinData->joints_count);
         for (size_t i = 0; i < jointIndices.size(); i++)
         {
           jointIndices[i] = (int) cgltf_node_index(m_data, skinData->joints[i]);
 
-          isConstant &= (i == 0) || (jointIndices[i - 1] == jointIndices[i]);
+          areJointsConstant &= (i == 0) || (jointIndices[i - 1] == jointIndices[i]);
         }
 
-        UsdGeomPrimvar primvar = skelApi.CreateJointIndicesPrimvar(isConstant, jointIndices.size());
+        UsdGeomPrimvar primvar = skelApi.CreateJointIndicesPrimvar(areJointsConstant, jointIndices.size());
         primvar.Set(jointIndices);
       }
 
-      // joint weights
+      // Joint weights
+      if (meshData->weights_count > 0)
       {
         VtArray<float> jointWeights(meshData->weights, &meshData->weights[meshData->weights_count]);
 
-        UsdGeomPrimvar primvar = skelApi.CreateJointWeightsPrimvar(isConstant, jointWeights.size());
+        UsdGeomPrimvar primvar = skelApi.CreateJointWeightsPrimvar(areJointsConstant, jointWeights.size());
         primvar.Set(jointWeights);
       }
     }
@@ -803,6 +813,23 @@ namespace guc
         submesh.SetDisplayName(meshData->name);
       }
     }
+  }
+
+  void Converter::createOrOverSkin(const cgltf_skin* skinData, SdfPath path)
+  {
+    UsdPrim prim;
+    if (overridePrimInPathMap((void*) skinData, path, prim))
+    {
+      return;
+    }
+
+    UsdSkelSkeleton skel = UsdSkelSkeleton::Define(m_stage, path);
+
+    // TODO: translate data
+    //skel.CreateJointsAttr(VtValue(..)); // (start with this)
+    // ..then CreateBindTransformsAttr and CreateRestTransformsAttr?
+
+    // TODO: respect 'skeleton' root node (hierarchy?)
   }
 
   void Converter::createMaterialBinding(UsdPrim& prim, const std::string& materialName)

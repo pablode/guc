@@ -39,6 +39,7 @@
 #include <pxr/usd/usd/modelAPI.h>
 #include <pxr/usd/kind/registry.h>
 #include <pxr/usd/usdSkel/bindingAPI.h>
+#include <pxr/usd/usdSkel/root.h>
 
 #include <MaterialXFormat/XmlIo.h>
 #include <MaterialXFormat/Util.h>
@@ -692,7 +693,48 @@ namespace guc
 
   void Converter::createOrOverMesh(const cgltf_mesh* meshData, const cgltf_skin* skinData, SdfPath path)
   {
-    auto xform = UsdGeomXform::Define(m_stage, path);
+    if (skinData)
+    {
+      fprintf(stderr, "skin %s found for mesh %s\n", skinData->name, path.GetText());
+
+      auto root = UsdSkelRoot::Define(m_stage, path);
+
+      UsdPrim prim = root.GetPrim();
+
+      auto skelApi = UsdSkelBindingAPI::Apply(prim);
+
+      // TODO: create and link skeleton (TODO: lazy/global or not?)
+      // m_uniquePaths[skinData->skeleton] = skelPath;
+
+      bool isConstant = true;
+
+      // joint indices
+      {
+        VtArray<int> jointIndices(skinData->joints_count);
+        for (size_t i = 0; i < jointIndices.size(); i++)
+        {
+          jointIndices[i] = (int) cgltf_node_index(m_data, skinData->joints[i]);
+
+          isConstant &= (i == 0) || (jointIndices[i - 1] == jointIndices[i]);
+        }
+
+        UsdGeomPrimvar primvar = skelApi.CreateJointIndicesPrimvar(isConstant, jointIndices.size()); // TODO: create Attr with VtValue default?
+        primvar.Set(jointIndices);
+      }
+
+      // weights
+      {
+        VtArray<float> jointWeights(meshData->weights_count);
+        memcpy(jointWeights.data(), meshData->weights, jointWeights.size()); // TODO: better way?
+
+        UsdGeomPrimvar primvar = skelApi.CreateJointWeightsPrimvar(isConstant, jointWeights.size());
+        primvar.Set(jointWeights);
+      }
+    }
+    else
+    {
+      UsdGeomXform::Define(m_stage, path);
+    }
 
     for (size_t i = 0; i < meshData->primitives_count; i++)
     {
@@ -756,44 +798,6 @@ namespace guc
       if (meshData->name)
       {
         submesh.SetDisplayName(meshData->name);
-      }
-    }
-
-    if (skinData)
-    {
-      fprintf(stderr, "skin %s found for mesh %s\n", skinData->name, path.GetText());
-
-      // TODO: Xform isn't boundable -> doesn't work. What to do? can we replace sub-meshes with GeomSubsets?
-      UsdPrim prim = xform.GetPrim();
-
-      auto skelApi = UsdSkelBindingAPI::Apply(prim);
-
-      // TODO: create and link skeleton (TODO: lazy/global or not?)
-      // m_uniquePaths[skinData->skeleton] = skelPath;
-
-      bool isConstant = true;
-
-      // joint indices
-      {
-        VtArray<int> jointIndices(skinData->joints_count);
-        for (size_t i = 0; i < jointIndices.size(); i++)
-        {
-          jointIndices[i] = (int) cgltf_node_index(m_data, skinData->joints[i]);
-
-          isConstant &= (i == 0) || (jointIndices[i - 1] == jointIndices[i]);
-        }
-
-        UsdGeomPrimvar primvar = skelApi.CreateJointIndicesPrimvar(isConstant, jointIndices.size()); // TODO: create Attr with VtValue default?
-        primvar.Set(jointIndices);
-      }
-
-      // weights
-      {
-        VtArray<float> jointWeights(meshData->weights_count);
-        memcpy(jointWeights.data(), meshData->weights, jointWeights.size()); // TODO: better way?
-
-        UsdGeomPrimvar primvar = skelApi.CreateJointWeightsPrimvar(isConstant, jointWeights.size());
-        primvar.Set(jointWeights);
       }
     }
   }

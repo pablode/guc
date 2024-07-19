@@ -718,14 +718,13 @@ namespace guc
           isConstant &= (i == 0) || (jointIndices[i - 1] == jointIndices[i]);
         }
 
-        UsdGeomPrimvar primvar = skelApi.CreateJointIndicesPrimvar(isConstant, jointIndices.size()); // TODO: create Attr with VtValue default?
+        UsdGeomPrimvar primvar = skelApi.CreateJointIndicesPrimvar(isConstant, jointIndices.size());
         primvar.Set(jointIndices);
       }
 
-      // weights
+      // joint weights
       {
-        VtArray<float> jointWeights(meshData->weights_count);
-        memcpy(jointWeights.data(), meshData->weights, jointWeights.size()); // TODO: better way?
+        VtArray<float> jointWeights(meshData->weights, &meshData->weights[meshData->weights_count]);
 
         UsdGeomPrimvar primvar = skelApi.CreateJointWeightsPrimvar(isConstant, jointWeights.size());
         primvar.Set(jointWeights);

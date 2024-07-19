@@ -35,6 +35,7 @@ namespace guc
     Meshes,
     Cameras,
     Lights,
+    Skins,
     ENUM_SIZE
   };
   const SdfPath& getEntryPath(EntryPathType type);

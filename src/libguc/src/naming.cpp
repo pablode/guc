@@ -21,13 +21,14 @@
 #include <MaterialXFormat/Util.h>
 
 #include <filesystem>
+#include <array>
 
 namespace fs = std::filesystem;
 namespace mx = MaterialX;
 
 namespace guc
 {
-  static const SdfPath s_entryPaths[] = {
+  static const std::array<SdfPath, size_t(EntryPathType::ENUM_SIZE)> s_entryPaths = {
     SdfPath{ "/Asset" },
     SdfPath{ "/Asset/Scenes" },
     SdfPath{ "/Asset/Nodes" },
@@ -36,9 +37,9 @@ namespace guc
     SdfPath{ "/Asset/Materials/MaterialX" },
     SdfPath{ "/Asset/Meshes" },
     SdfPath{ "/Asset/Cameras" },
-    SdfPath{ "/Asset/Lights" }
+    SdfPath{ "/Asset/Lights" },
+    SdfPath{ "/Asset/Skins" }
   };
-  static_assert(sizeof(s_entryPaths) / sizeof(s_entryPaths[0]) == size_t(EntryPathType::ENUM_SIZE));
 
   const SdfPath& getEntryPath(EntryPathType type)
   {
@@ -97,6 +98,7 @@ namespace guc
     return name + std::to_string(index);
   }
 
+  // TODO: use Mtlx helper function?
   const static std::unordered_set<std::string> MTLX_TYPE_NAME_SET = {
     /* Basic data types */
     "integer", "boolean", "float", "color3", "color4", "vector2", "vector3",

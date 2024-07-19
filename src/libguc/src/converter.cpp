@@ -292,6 +292,11 @@ namespace guc
     }
 
     // Step 4: create scene graph (nodes, meshes, lights, cameras, ...)
+    if (m_data->skins_count > 0)
+    {
+      UsdGeomScope::Define(m_stage, getEntryPath(EntryPathType::Skins));
+    }
+
     auto createNodes = [this](const cgltf_node* nodeData, SdfPath path)
     {
       std::string baseName(nodeData->name ? nodeData->name : "node");
@@ -700,7 +705,6 @@ namespace guc
       auto root = UsdSkelRoot::Define(m_stage, path);
 
       UsdPrim prim = root.GetPrim();
-
       auto skelApi = UsdSkelBindingAPI::Apply(prim);
 
       // TODO: create and link skeleton (TODO: lazy/global or not?)

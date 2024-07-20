@@ -77,17 +77,8 @@ namespace detail
 {
   using namespace guc;
 
-  // TODO: to support meshoptimizer, it would be best to reimplement
-  // - cgltf_accessor_read_uint
-  // - cgltf_accessor_read_float
-  // - cgltf_accessor_unpack_floats
-  // to respect cgltf_buffer_view.meshopt_compression.
-  //
-  // We can just copy them to cgltf_util.h/cpp under their respective
-  // license and a different name (e.g. cgltf_accessor_unpack_floats2).
-
   // TODO: can we use cgltf_accessor_read_index helper function?
-  // TODO: also, cgltf_accessor_unpack_indices.
+  // TODO: and cgltf_accessor_unpack_indices?
 
   template<typename T>
   bool readVtArrayFromNonSparseAccessor(const cgltf_accessor* accessor, VtArray<T>& array)
@@ -103,7 +94,7 @@ namespace detail
       if constexpr (std::is_same<T, int>())
       {
         unsigned int tmpUint = 0;
-        if (!cgltf_accessor_read_uint(accessor, i, &tmpUint, elementSize))
+        if (!cgltf_accessor_read_uint2(accessor, i, &tmpUint, elementSize))
         {
           TF_RUNTIME_ERROR("unable to read accessor data");
           return false;
@@ -114,7 +105,7 @@ namespace detail
                          std::is_same<T, GfVec3f>() ||
                          std::is_same<T, GfVec4f>())
       {
-        if (!cgltf_accessor_read_float(accessor, i, item.data(), elementSize))
+        if (!cgltf_accessor_read_float2(accessor, i, item.data(), elementSize))
         {
           TF_RUNTIME_ERROR("unable to read accessor data");
           return false;
@@ -136,11 +127,11 @@ namespace detail
     {
       array.resize(accessor->count);
 
-      cgltf_size numFloats = cgltf_accessor_unpack_floats(accessor, nullptr, 0);
+      cgltf_size numFloats = cgltf_accessor_unpack_floats2(accessor, nullptr, 0);
 
       std::vector<float> floats;
       floats.resize(numFloats);
-      if (cgltf_accessor_unpack_floats(accessor, floats.data(), numFloats) < numFloats)
+      if (cgltf_accessor_unpack_floats2(accessor, floats.data(), numFloats) < numFloats)
       {
         TF_RUNTIME_ERROR("unable to unpack sparse accessor");
         return false;

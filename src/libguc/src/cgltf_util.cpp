@@ -238,4 +238,125 @@ namespace guc
            !GfIsClose(transform.scale[0], 1.0f, 1e-5f) ||
            !GfIsClose(transform.scale[1], 1.0f, 1e-5f);
   }
+
+// following methods are copied from cgltf and modified for meshoptimizer support
+// they are therefore licensed under cgltf's MIT license and Copyright (c) 2018-2021 Johannes Kuhlmann.
+// TODO: respect cgltf_buffer_view.meshopt_compression
+// TODO: reformat, change C -> C++ syntax
+cgltf_bool cgltf_accessor_read_uint2(const cgltf_accessor* accessor, cgltf_size index, cgltf_uint* out, cgltf_size element_size)
+{
+	if (accessor->is_sparse)
+	{
+		return 0;
+	}
+	if (accessor->buffer_view == NULL)
+	{
+		memset(out, 0, element_size * sizeof( cgltf_uint ));
+		return 1;
+	}
+	const uint8_t* element = cgltf_buffer_view_data(accessor->buffer_view);
+	if (element == NULL)
+	{
+		return 0;
+	}
+	element += accessor->offset + accessor->stride * index;
+	return cgltf_element_read_uint(element, accessor->type, accessor->component_type, out, element_size);
+}
+
+cgltf_bool cgltf_accessor_read_float2(const cgltf_accessor* accessor, cgltf_size index, cgltf_float* out, cgltf_size element_size)
+{
+	if (accessor->is_sparse)
+	{
+		return 0;
+	}
+	if (accessor->buffer_view == NULL)
+	{
+		memset(out, 0, element_size * sizeof(cgltf_float));
+		return 1;
+	}
+	const uint8_t* element = cgltf_buffer_view_data(accessor->buffer_view);
+	if (element == NULL)
+	{
+		return 0;
+	}
+	element += accessor->offset + accessor->stride * index;
+	return cgltf_element_read_float(element, accessor->type, accessor->component_type, accessor->normalized, out, element_size);
+}
+
+cgltf_size cgltf_accessor_unpack_floats2(const cgltf_accessor* accessor, cgltf_float* out, cgltf_size float_count)
+{
+	cgltf_size floats_per_element = cgltf_num_components(accessor->type);
+	cgltf_size available_floats = accessor->count * floats_per_element;
+	if (out == NULL)
+	{
+		return available_floats;
+	}
+
+	float_count = available_floats < float_count ? available_floats : float_count;
+	cgltf_size element_count = float_count / floats_per_element;
+
+	// First pass: convert each element in the base accessor.
+	if (accessor->buffer_view == NULL)
+	{
+		memset(out, 0, element_count * floats_per_element * sizeof(cgltf_float));
+	}
+	else
+	{
+		const uint8_t* element = cgltf_buffer_view_data(accessor->buffer_view);
+		if (element == NULL)
+		{
+			return 0;
+		}
+		element += accessor->offset;
+
+		if (accessor->component_type == cgltf_component_type_r_32f && accessor->stride == floats_per_element * sizeof(cgltf_float))
+		{
+			memcpy(out, element, element_count * floats_per_element * sizeof(cgltf_float));
+		}
+		else
+		{
+			cgltf_float* dest = out;
+
+			for (cgltf_size index = 0; index < element_count; index++, dest += floats_per_element, element += accessor->stride)
+			{
+				if (!cgltf_element_read_float(element, accessor->type, accessor->component_type, accessor->normalized, dest, floats_per_element))
+				{
+					return 0;
+				}
+			}
+		}
+	}
+
+	// Second pass: write out each element in the sparse accessor.
+	if (accessor->is_sparse)
+	{
+		const cgltf_accessor_sparse* sparse = &accessor->sparse;
+
+		const uint8_t* index_data = cgltf_buffer_view_data(sparse->indices_buffer_view);
+		const uint8_t* reader_head = cgltf_buffer_view_data(sparse->values_buffer_view);
+
+		if (index_data == NULL || reader_head == NULL)
+		{
+			return 0;
+		}
+
+		index_data += sparse->indices_byte_offset;
+		reader_head += sparse->values_byte_offset;
+
+		cgltf_size index_stride = cgltf_component_size(sparse->indices_component_type);
+		for (cgltf_size reader_index = 0; reader_index < sparse->count; reader_index++, index_data += index_stride, reader_head += accessor->stride)
+		{
+			size_t writer_index = cgltf_component_read_index(index_data, sparse->indices_component_type);
+			float* writer_head = out + writer_index * floats_per_element;
+
+			if (!cgltf_element_read_float(reader_head, accessor->type, accessor->component_type, accessor->normalized, writer_head, floats_per_element))
+			{
+				return 0;
+			}
+		}
+	}
+
+	return element_count * floats_per_element;
+}
+
 }

@@ -18,3 +18,6 @@ target_include_directories(stb_image INTERFACE stb_image)
 
 # cargs
 add_subdirectory(cargs)
+
+# meshopt
+add_subdirectory(meshoptimizer)

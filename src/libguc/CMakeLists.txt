@@ -51,6 +51,7 @@ set(LIBGUC_SHARED_LIBRARIES
   usdMtlx
   MaterialXCore
   MaterialXFormat
+  meshoptimizer
 )
 
 if(OpenImageIO_FOUND)

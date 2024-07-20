@@ -18,6 +18,10 @@
 
 #include <cgltf.h>
 
+#include <stdint.h>
+#include <vector>
+#include <unordered_map>
+
 namespace guc
 {
   bool load_gltf(const char* gltfPath, cgltf_data** data);
@@ -31,11 +35,13 @@ namespace guc
 
   bool cgltf_transform_required(const cgltf_texture_transform& transform);
 
-  cgltf_bool cgltf_accessor_read_uint2(const cgltf_accessor* accessor, cgltf_size index, cgltf_uint* out, cgltf_size element_size);
+using MeshoptData = std::unordered_map<void*, std::vector<uint8_t>>;
 
-cgltf_bool cgltf_accessor_read_float2(const cgltf_accessor* accessor, cgltf_size index, cgltf_float* out, cgltf_size element_size);
+  cgltf_bool cgltf_accessor_read_uint2(const cgltf_accessor* accessor, cgltf_size index, cgltf_uint* out, cgltf_size element_size, MeshoptData& meshoptData);
 
-cgltf_size cgltf_accessor_unpack_floats2(const cgltf_accessor* accessor, cgltf_float* out, cgltf_size float_count);
+cgltf_bool cgltf_accessor_read_float2(const cgltf_accessor* accessor, cgltf_size index, cgltf_float* out, cgltf_size element_size, MeshoptData& meshoptData);
+
+cgltf_size cgltf_accessor_unpack_floats2(const cgltf_accessor* accessor, cgltf_float* out, cgltf_size float_count, MeshoptData& meshoptData);
 
 
 }

@@ -81,7 +81,7 @@ namespace detail
   // TODO: and cgltf_accessor_unpack_indices?
 
   template<typename T>
-  bool readVtArrayFromNonSparseAccessor(const cgltf_accessor* accessor, VtArray<T>& array)
+  bool readVtArrayFromNonSparseAccessor(const cgltf_accessor* accessor, VtArray<T>& array, Converter::MeshoptData& meshoptData)
   {
     cgltf_size elementSize = cgltf_calc_size(accessor->type, accessor->component_type);
 
@@ -94,7 +94,7 @@ namespace detail
       if constexpr (std::is_same<T, int>())
       {
         unsigned int tmpUint = 0;
-        if (!cgltf_accessor_read_uint2(accessor, i, &tmpUint, elementSize))
+        if (!cgltf_accessor_read_uint2(accessor, i, &tmpUint, elementSize, meshoptData))
         {
           TF_RUNTIME_ERROR("unable to read accessor data");
           return false;
@@ -105,7 +105,7 @@ namespace detail
                          std::is_same<T, GfVec3f>() ||
                          std::is_same<T, GfVec4f>())
       {
-        if (!cgltf_accessor_read_float2(accessor, i, item.data(), elementSize))
+        if (!cgltf_accessor_read_float2(accessor, i, item.data(), elementSize, meshoptData))
         {
           TF_RUNTIME_ERROR("unable to read accessor data");
           return false;
@@ -121,17 +121,17 @@ namespace detail
   }
 
   template<typename T>
-  bool readVtArrayFromAccessor(const cgltf_accessor* accessor, VtArray<T>& array)
+  bool readVtArrayFromAccessor(const cgltf_accessor* accessor, VtArray<T>& array, Converter::MeshoptData& meshoptData)
   {
     if (accessor->is_sparse)
     {
       array.resize(accessor->count);
 
-      cgltf_size numFloats = cgltf_accessor_unpack_floats2(accessor, nullptr, 0);
+      cgltf_size numFloats = cgltf_accessor_unpack_floats2(accessor, nullptr, 0, meshoptData);
 
       std::vector<float> floats;
       floats.resize(numFloats);
-      if (cgltf_accessor_unpack_floats2(accessor, floats.data(), numFloats) < numFloats)
+      if (cgltf_accessor_unpack_floats2(accessor, floats.data(), numFloats, meshoptData) < numFloats)
       {
         TF_RUNTIME_ERROR("unable to unpack sparse accessor");
         return false;
@@ -164,7 +164,7 @@ namespace detail
     }
     else if (accessor->buffer_view)
     {
-      if (!readVtArrayFromNonSparseAccessor(accessor, array))
+      if (!readVtArrayFromNonSparseAccessor(accessor, array, meshoptData))
       {
         return false;
       }
@@ -801,7 +801,7 @@ namespace guc
       const cgltf_accessor* accessor = primitiveData->indices;
       if (accessor)
       {
-        if (!detail::readVtArrayFromAccessor(accessor, indices))
+        if (!detail::readVtArrayFromAccessor(accessor, indices, m_meshoptData))
         {
           TF_RUNTIME_ERROR("unable to read primitive indices");
           return false;
@@ -815,7 +815,7 @@ namespace guc
     {
       const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "POSITION");
 
-      if (!detail::readVtArrayFromAccessor(accessor, points) || accessor->count == 0)
+      if (!detail::readVtArrayFromAccessor(accessor, points, m_meshoptData) || accessor->count == 0)
       {
         TF_RUNTIME_ERROR("invalid POSITION accessor");
         return false;
@@ -873,7 +873,7 @@ namespace guc
 
       if (accessor->type == cgltf_type_vec3)
       {
-        if (!detail::readVtArrayFromAccessor(accessor, colors))
+        if (!detail::readVtArrayFromAccessor(accessor, colors, m_meshoptData))
         {
           TF_RUNTIME_ERROR("can't read %s attribute; ignoring", name.c_str());
           continue;
@@ -882,7 +882,7 @@ namespace guc
       else if (accessor->type == cgltf_type_vec4)
       {
         VtVec4fArray rgbaColors;
-        if (!detail::readVtArrayFromAccessor(accessor, rgbaColors))
+        if (!detail::readVtArrayFromAccessor(accessor, rgbaColors, m_meshoptData))
         {
           TF_RUNTIME_ERROR("can't read %s attribute; ignoring", name.c_str());
           continue;
@@ -969,7 +969,7 @@ namespace guc
       }
 
       VtVec2fArray texCoords;
-      if (!detail::readVtArrayFromAccessor(accessor, texCoords))
+      if (!detail::readVtArrayFromAccessor(accessor, texCoords, m_meshoptData))
       {
         continue;
       }
@@ -1026,7 +1026,7 @@ namespace guc
     {
       const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "NORMAL");
 
-      if (!accessor || !detail::readVtArrayFromAccessor(accessor, normals))
+      if (!accessor || !detail::readVtArrayFromAccessor(accessor, normals, m_meshoptData))
       {
         if (hasTriangleTopology) // generate fallback normals (spec sec. 3.7.2.1)
         {
@@ -1050,7 +1050,7 @@ namespace guc
       if (!generatedNormals && accessor) // according to glTF spec 3.7.2.1, tangents must be ignored if normals are missing
       {
         VtVec4fArray tangentsWithW;
-        if (detail::readVtArrayFromAccessor(accessor, tangentsWithW))
+        if (detail::readVtArrayFromAccessor(accessor, tangentsWithW, m_meshoptData))
         {
           tangents.resize(tangentsWithW.size());
           bitangentSigns.resize(tangentsWithW.size());

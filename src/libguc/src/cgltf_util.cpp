@@ -25,6 +25,8 @@
 #define CGLTF_IMPLEMENTATION
 #include <cgltf.h>
 
+#include <meshoptimizer.h>
+
 #include <assert.h>
 #include <string.h>
 #include <unordered_map>
@@ -49,7 +51,9 @@ namespace detail
            strcmp(name, "KHR_materials_unlit") == 0 ||
            strcmp(name, "KHR_materials_variants") == 0 ||
            strcmp(name, "KHR_materials_volume") == 0 ||
-           strcmp(name, "KHR_texture_transform") == 0;
+           strcmp(name, "KHR_mesh_quantization") == 0 ||
+           strcmp(name, "KHR_texture_transform") == 0 ||
+           strcmp(name, "EXT_meshopt_compression") == 0;
   }
 
   struct BufferHolder
@@ -241,9 +245,74 @@ namespace guc
 
 // following methods are copied from cgltf and modified for meshoptimizer support
 // they are therefore licensed under cgltf's MIT license and Copyright (c) 2018-2021 Johannes Kuhlmann.
-// TODO: respect cgltf_buffer_view.meshopt_compression
 // TODO: reformat, change C -> C++ syntax
-cgltf_bool cgltf_accessor_read_uint2(const cgltf_accessor* accessor, cgltf_size index, cgltf_uint* out, cgltf_size element_size)
+// TODO: indices are 0. could it be that we need to run _decodeVertexBuffer, _decodeIndexBuffer & _decodeIndexSequence after filter decoding?
+const uint8_t* cgltf_buffer_view_data2(const cgltf_buffer_view* view, MeshoptData& meshoptData)
+{
+	const cgltf_meshopt_compression* meshopt_compression = &view->meshopt_compression;
+
+        if (view->has_meshopt_compression && meshoptData.count((void*) meshopt_compression) == 0)
+        {
+		const cgltf_buffer* buffer = meshopt_compression->buffer;
+
+		// TODO: can the data be provided by an URI? might need to refactor out image buffer reading
+		const uint8_t* inData = &((const uint8_t*) buffer->data)[meshopt_compression->offset];
+
+		size_t count = meshopt_compression->count;
+		size_t stride = meshopt_compression->stride;
+		std::vector<uint8_t> outData;
+		outData.resize(count * stride);
+		memcpy(&outData[0], inData, meshopt_compression->size);
+
+		switch (meshopt_compression->filter)
+		{
+		case cgltf_meshopt_compression_filter_none: {
+			// data is used as-is
+			// TODO: avoid duplicate for this case (store ptr)
+//fprintf(stderr,"none ");
+			break;
+		}
+		case cgltf_meshopt_compression_filter_octahedral: {
+			meshopt_decodeFilterOct(outData.data(), count, stride);
+fprintf(stderr,"octahedral ");
+			break;
+		}
+		case cgltf_meshopt_compression_filter_quaternion: {
+			meshopt_decodeFilterQuat(outData.data(), count, stride);
+fprintf(stderr,"quaternion ");
+			break;
+		}
+		case cgltf_meshopt_compression_filter_exponential: {
+			meshopt_decodeFilterExp(outData.data(), count, stride);
+fprintf(stderr,"exponential ");
+			break;
+		}
+		default:
+fprintf(stderr,"DEFAULT ");
+			return NULL;
+		}
+
+		meshoptData[(void*) meshopt_compression] = outData;
+        }
+
+	if (view->has_meshopt_compression)
+	{
+assert(meshoptData.count((void*) meshopt_compression) > 0);
+		return &((const uint8_t*) meshoptData[(void*) meshopt_compression].data())[view->offset];
+	}
+
+	if (view->data)
+		return (const uint8_t*)view->data;
+
+	if (!view->buffer->data)
+		return NULL;
+
+	const uint8_t* result = (const uint8_t*)view->buffer->data;
+	result += view->offset;
+	return result;
+}
+
+cgltf_bool cgltf_accessor_read_uint2(const cgltf_accessor* accessor, cgltf_size index, cgltf_uint* out, cgltf_size element_size, MeshoptData& meshoptData)
 {
 	if (accessor->is_sparse)
 	{
@@ -254,7 +323,7 @@ cgltf_bool cgltf_accessor_read_uint2(const cgltf_accessor* accessor, cgltf_size 
 		memset(out, 0, element_size * sizeof( cgltf_uint ));
 		return 1;
 	}
-	const uint8_t* element = cgltf_buffer_view_data(accessor->buffer_view);
+	const uint8_t* element = cgltf_buffer_view_data2(accessor->buffer_view, meshoptData);
 	if (element == NULL)
 	{
 		return 0;
@@ -263,7 +332,7 @@ cgltf_bool cgltf_accessor_read_uint2(const cgltf_accessor* accessor, cgltf_size 
 	return cgltf_element_read_uint(element, accessor->type, accessor->component_type, out, element_size);
 }
 
-cgltf_bool cgltf_accessor_read_float2(const cgltf_accessor* accessor, cgltf_size index, cgltf_float* out, cgltf_size element_size)
+cgltf_bool cgltf_accessor_read_float2(const cgltf_accessor* accessor, cgltf_size index, cgltf_float* out, cgltf_size element_size, MeshoptData& meshoptData)
 {
 	if (accessor->is_sparse)
 	{
@@ -274,7 +343,7 @@ cgltf_bool cgltf_accessor_read_float2(const cgltf_accessor* accessor, cgltf_size
 		memset(out, 0, element_size * sizeof(cgltf_float));
 		return 1;
 	}
-	const uint8_t* element = cgltf_buffer_view_data(accessor->buffer_view);
+	const uint8_t* element = cgltf_buffer_view_data2(accessor->buffer_view, meshoptData);
 	if (element == NULL)
 	{
 		return 0;
@@ -283,7 +352,7 @@ cgltf_bool cgltf_accessor_read_float2(const cgltf_accessor* accessor, cgltf_size
 	return cgltf_element_read_float(element, accessor->type, accessor->component_type, accessor->normalized, out, element_size);
 }
 
-cgltf_size cgltf_accessor_unpack_floats2(const cgltf_accessor* accessor, cgltf_float* out, cgltf_size float_count)
+cgltf_size cgltf_accessor_unpack_floats2(const cgltf_accessor* accessor, cgltf_float* out, cgltf_size float_count, MeshoptData& meshoptData)
 {
 	cgltf_size floats_per_element = cgltf_num_components(accessor->type);
 	cgltf_size available_floats = accessor->count * floats_per_element;
@@ -302,7 +371,7 @@ cgltf_size cgltf_accessor_unpack_floats2(const cgltf_accessor* accessor, cgltf_f
 	}
 	else
 	{
-		const uint8_t* element = cgltf_buffer_view_data(accessor->buffer_view);
+		const uint8_t* element = cgltf_buffer_view_data2(accessor->buffer_view, meshoptData);
 		if (element == NULL)
 		{
 			return 0;
@@ -332,8 +401,8 @@ cgltf_size cgltf_accessor_unpack_floats2(const cgltf_accessor* accessor, cgltf_f
 	{
 		const cgltf_accessor_sparse* sparse = &accessor->sparse;
 
-		const uint8_t* index_data = cgltf_buffer_view_data(sparse->indices_buffer_view);
-		const uint8_t* reader_head = cgltf_buffer_view_data(sparse->values_buffer_view);
+		const uint8_t* index_data = cgltf_buffer_view_data2(sparse->indices_buffer_view, meshoptData);
+		const uint8_t* reader_head = cgltf_buffer_view_data2(sparse->values_buffer_view, meshoptData);
 
 		if (index_data == NULL || reader_head == NULL)
 		{

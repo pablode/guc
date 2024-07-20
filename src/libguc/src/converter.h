@@ -37,6 +37,8 @@ namespace guc
   class Converter
   {
   public:
+    using MeshoptData = std::unordered_map<void*, std::vector<uint8_t>>;
+
     struct Params
     {
       fs::path srcDir;
@@ -88,5 +90,6 @@ namespace guc
     UsdPreviewSurfaceMaterialConverter m_usdPreviewSurfaceConverter;
     std::unordered_map<void*, SdfPath> m_uniquePaths;
     std::vector<std::string> m_materialNames;
+    MeshoptData m_meshoptData;
   };
 }

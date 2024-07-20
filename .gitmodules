@@ -7,3 +7,6 @@
 [submodule "extern/cargs"]
 	path = extern/cargs
 	url = https://github.com/likle/cargs.git
+[submodule "extern/meshoptimizer"]
+	path = extern/meshoptimizer
+	url = https://github.com/zeux/meshoptimizer.git

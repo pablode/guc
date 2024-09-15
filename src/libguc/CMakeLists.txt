@@ -38,19 +38,20 @@ set(LIBGUC_DEFINES
   GUC_VERSION_STRING="${CMAKE_PROJECT_VERSION}"
 )
 
+if(TARGET usd_ms)
+  set(LIBGUC_USD_LIBS usd_ms)
+else()
+  set(LIBGUC_USD_LIBS usd usdGeom usdLux usdShade usdUtils usdMtlx)
+endif()
+
 set(LIBGUC_SHARED_LIBRARIES
   # Header-only library without link dependencies --
   # we can get away with not installing the target.
   $<BUILD_INTERFACE:cgltf>
   MikkTSpace
-  usd
-  usdGeom
-  usdLux
-  usdShade
-  usdUtils
-  usdMtlx
   MaterialXCore
   MaterialXFormat
+  ${LIBGUC_USD_LIBS}
 )
 
 if(OpenImageIO_FOUND)
@@ -136,10 +137,20 @@ if(GUC_BUILD_USDGLTF)
 
   target_link_libraries(
     usdGlTF
-    PUBLIC
-      sdf
     PRIVATE
       ${LIBGUC_SHARED_LIBRARIES}
+  )
+
+  if(TARGET usd_ms)
+    set(LIBGUC_SDF_LIB usd_ms)
+  else()
+    set(LIBGUC_SDF_LIB sdf)
+  endif()
+
+  target_link_libraries(
+    usdGlTF
+    PUBLIC
+      ${LIBGUC_SDF_LIB}
   )
 
   target_include_directories(usdGlTF PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")

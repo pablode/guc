@@ -145,7 +145,6 @@ bool UsdGlTFFileFormat::Read(SdfLayer* layer,
   params.genRelativePaths = false;
   params.emitMtlx = data->emitMtlx;
   params.mtlxAsUsdShade = true;
-  params.hdStormCompat = false;
   params.defaultMaterialVariant = 0;
 
   SdfLayerRefPtr tmpLayer = SdfLayer::CreateAnonymous(".usdc");

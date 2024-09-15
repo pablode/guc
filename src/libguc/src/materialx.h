@@ -30,8 +30,7 @@ namespace guc
   {
   public:
     MaterialXMaterialConverter(mx::DocumentPtr doc,
-                               const ImageMetadataMap& imageMetadataMap,
-                               bool hdstormCompat);
+                               const ImageMetadataMap& imageMetadataMap);
 
     void convert(const cgltf_material* material, const std::string& materialName);
 
@@ -40,8 +39,6 @@ namespace guc
     const ImageMetadataMap& m_imageMetadataMap;
     std::string m_defaultColorSetName;
     std::string m_defaultOpacitySetName;
-
-    bool m_hdstormCompat;
 
   private:
     void createUnlitSurfaceNodes(const cgltf_material* material,

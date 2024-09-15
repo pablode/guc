@@ -37,9 +37,6 @@ struct guc_options
   // versions.
   bool mtlx_as_usdshade;
 
-  // Workaround to make hdStorm recognize alpha materials as translucent.
-  bool hdstorm_compat;
-
   // If the asset supports the KHR_materials_variants extension, select the material
   // variant at the given index by default.
   int default_material_variant;

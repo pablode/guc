@@ -267,13 +267,11 @@ namespace detail
 namespace guc
 {
   MaterialXMaterialConverter::MaterialXMaterialConverter(mx::DocumentPtr doc,
-                                                         const ImageMetadataMap& imageMetadataMap,
-                                                         bool hdstorm_compat)
+                                                         const ImageMetadataMap& imageMetadataMap)
     : m_doc(doc)
     , m_imageMetadataMap(imageMetadataMap)
     , m_defaultColorSetName(makeColorSetName(0))
     , m_defaultOpacitySetName(makeOpacitySetName(0))
-    , m_hdstormCompat(hdstorm_compat)
   {
   }
 
@@ -489,20 +487,6 @@ namespace guc
 
       auto sheenRoughnessFactorDefault = 0.0f; // according to spec
       addFloatTextureInput(nodeGraph, shaderNode, "sheen_roughness", sheen->sheen_roughness_texture, 3, sheen->sheen_roughness_factor, sheenRoughnessFactorDefault);
-    }
-
-    // Unfortunately, hdStorm blending is messed up because the material is not flagged as 'translucent':
-    // https://github.com/PixarAnimationStudios/USD/blob/db8e3266dcaa24aa26b7201bc20ff4d8e81448d6/pxr/imaging/hdSt/materialXFilter.cpp#L441-L507
-    // For alpha materials, set a non-zero transmission input to make the renderer believe that we are a translucent Standard Surface.
-    if (material->alpha_mode != cgltf_alpha_mode_opaque && m_hdstormCompat)
-    {
-      mx::InputPtr transmissionInput = material->has_transmission ? shaderNode->getInput("transmission") : shaderNode->addInput("transmission", MTLX_TYPE_FLOAT);
-
-      if (!transmissionInput->hasValue() || (transmissionInput->getValue()->isA<float>() && transmissionInput->getValue()->asA<float>() == 0.0f))
-      {
-        float valueCloseToZero = 0.00001f;
-        transmissionInput->setValue(valueCloseToZero);
-      }
     }
   }
 
@@ -934,18 +918,7 @@ namespace guc
 
     if (texValueType != MTLX_TYPE_FLOAT)
     {
-      bool remapChannelToAlpha = false;
-
-      // USD probably handles greyscale+alpha textures like it does for the UsdPreviewSurface spec:
-      // "If a two-channel texture is fed into a UsdUVTexture, the r, g, and b components of the rgb output will
-      // repeat the first channel's value, while the single a output will be set to the second channel's value."
-      if (m_hdstormCompat)
-      {
-        int channelCount = getTextureChannelCount(textureView);
-        remapChannelToAlpha = (channelCount == 2 && channelIndex == 1);
-      }
-
-      valueNode = detail::makeExtractChannelNode(nodeGraph, valueNode, remapChannelToAlpha ? 3 : channelIndex);
+      valueNode = detail::makeExtractChannelNode(nodeGraph, valueNode, channelIndex);
     }
 
     return valueNode;
@@ -1218,15 +1191,13 @@ namespace guc
 
     int channelCount = metadata.channelCount;
 
-    if (channelCount == 3 || (m_hdstormCompat && channelCount == 1))
+    if (channelCount == 4)
     {
-      // USD promotes single-channel textures to RGB
-      return color ? MTLX_TYPE_COLOR3 : MTLX_TYPE_VECTOR3;
-    }
-    else if (channelCount == 4 || (m_hdstormCompat && channelCount == 2))
-    {
-      // And for greyscale-alpha textures, to RGBA (with vec2[1] being alpha)
       return color ? MTLX_TYPE_COLOR4 : MTLX_TYPE_VECTOR4;
+    }
+    else if (channelCount == 3)
+    {
+      return color ? MTLX_TYPE_COLOR3 : MTLX_TYPE_VECTOR3;
     }
     else if (channelCount == 2)
     {

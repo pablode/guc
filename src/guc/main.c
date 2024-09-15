@@ -41,13 +41,6 @@ static struct cag_option cmd_options[] = {
     .description = "Convert and inline MaterialX materials into the USD layer using UsdMtlx"
   },
   {
-    .identifier = 'c',
-    .access_letters = "c",
-    .access_name = "hdstorm-compat",
-    .value_name = NULL,
-    .description = "Apply compatibility tweaks for the USD Storm Hydra render delegate"
-  },
-  {
     .identifier = 'v',
     .access_letters = "v",
     .access_name = "default-material-variant",
@@ -75,7 +68,6 @@ int main(int argc, char* argv[])
   struct guc_options options = {
     .emit_mtlx = false,
     .mtlx_as_usdshade = false,
-    .hdstorm_compat = false,
     .default_material_variant = 0
   };
 
@@ -90,9 +82,6 @@ int main(int argc, char* argv[])
       break;
     case 'u':
       options.mtlx_as_usdshade = true;
-      break;
-    case 'c':
-      options.hdstorm_compat = true;
       break;
     case 'v': {
       const char* value = cag_option_get_value(&context);

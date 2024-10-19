@@ -202,19 +202,22 @@ namespace detail
                            int& channelCount)
   {
 #ifdef GUC_USE_OIIO
-    using namespace OIIO;
+    OIIO::Filesystem::IOMemReader memReader((void*) buffer.get(), bufferSize);
 
-    Filesystem::IOMemReader memReader((void*) buffer.get(), bufferSize);
-
-    auto image = ImageInput::open(path, nullptr, &memReader);
+    auto image = OIIO::ImageInput::open(path, nullptr, &memReader);
     if (image)
     {
       assert(image->supports("ioproxy"));
 
-      const ImageSpec& spec = image->spec();
+      const OIIO::ImageSpec& spec = image->spec();
       channelCount = spec.nchannels;
       image->close();
       return true;
+    }
+    else
+    {
+      std::string errStr = OIIO::geterror();
+      TF_RUNTIME_ERROR("OpenImageIO %s", errStr.c_str());
     }
 #else
     int width, height;

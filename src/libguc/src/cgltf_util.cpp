@@ -49,6 +49,7 @@ namespace detail
            strcmp(name, "KHR_materials_unlit") == 0 ||
            strcmp(name, "KHR_materials_variants") == 0 ||
            strcmp(name, "KHR_materials_volume") == 0 ||
+           strcmp(name, "KHR_mesh_quantization") == 0 ||
            strcmp(name, "KHR_texture_transform") == 0;
   }
 

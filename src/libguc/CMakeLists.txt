@@ -51,6 +51,7 @@ set(LIBGUC_SHARED_LIBRARIES
   MikkTSpace
   MaterialXCore
   MaterialXFormat
+  meshoptimizer
   ${LIBGUC_USD_LIBS}
 )
 

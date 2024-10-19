@@ -25,6 +25,8 @@
 #define CGLTF_IMPLEMENTATION
 #include <cgltf.h>
 
+#include <meshoptimizer.h>
+
 #include <assert.h>
 #include <string.h>
 #include <unordered_map>
@@ -35,6 +37,8 @@ using namespace PXR_NS;
 
 namespace detail
 {
+  constexpr static const char* GLTF_EXT_MESHOPT_COMPRESSION_EXTENSION_NAME = "EXT_meshopt_compression";
+
   bool extensionSupported(const char* name)
   {
     return strcmp(name, "KHR_materials_pbrSpecularGlossiness") == 0 ||
@@ -50,7 +54,8 @@ namespace detail
            strcmp(name, "KHR_materials_variants") == 0 ||
            strcmp(name, "KHR_materials_volume") == 0 ||
            strcmp(name, "KHR_mesh_quantization") == 0 ||
-           strcmp(name, "KHR_texture_transform") == 0;
+           strcmp(name, "KHR_texture_transform") == 0 ||
+           strcmp(name, GLTF_EXT_MESHOPT_COMPRESSION_EXTENSION_NAME) == 0;
   }
 
   struct BufferHolder
@@ -112,6 +117,86 @@ namespace detail
     auto bufferHolder = (BufferHolder*) file_options->user_data;
     bufferHolder->map.erase(bufferPtr);
   }
+
+  // Based on https://github.com/jkuhlmann/cgltf/pull/129
+  cgltf_result decompressMeshopt(cgltf_data* data)
+  {
+    for (size_t i = 0; i < data->buffer_views_count; ++i)
+    {
+      cgltf_buffer_view& bufferView = data->buffer_views[i];
+
+      if (!bufferView.has_meshopt_compression)
+      {
+        continue;
+      }
+
+      const cgltf_meshopt_compression& mc = bufferView.meshopt_compression;
+
+      const unsigned char* source = (const unsigned char*) mc.buffer->data;
+      if (!source)
+      {
+        return cgltf_result_invalid_gltf;
+      }
+
+      source += mc.offset;
+
+      void* result = malloc(mc.count * mc.stride);
+      if (!result)
+      {
+        return cgltf_result_out_of_memory;
+      }
+
+      int errorCode = -1;
+
+      switch (mc.mode)
+      {
+      default:
+      case cgltf_meshopt_compression_mode_invalid:
+        break;
+
+      case cgltf_meshopt_compression_mode_attributes:
+        errorCode = meshopt_decodeVertexBuffer(result, mc.count, mc.stride, source, mc.size);
+        break;
+
+      case cgltf_meshopt_compression_mode_triangles:
+        errorCode = meshopt_decodeIndexBuffer(result, mc.count, mc.stride, source, mc.size);
+        break;
+
+      case cgltf_meshopt_compression_mode_indices:
+        errorCode = meshopt_decodeIndexSequence(result, mc.count, mc.stride, source, mc.size);
+        break;
+      }
+
+      if (errorCode != 0)
+      {
+        free(result);
+        return cgltf_result_io_error;
+      }
+
+      switch (mc.filter)
+      {
+      default:
+      case cgltf_meshopt_compression_filter_none:
+        break;
+
+      case cgltf_meshopt_compression_filter_octahedral:
+        meshopt_decodeFilterOct(result, mc.count, mc.stride);
+        break;
+
+      case cgltf_meshopt_compression_filter_quaternion:
+        meshopt_decodeFilterQuat(result, mc.count, mc.stride);
+        break;
+
+      case cgltf_meshopt_compression_filter_exponential:
+        meshopt_decodeFilterExp(result, mc.count, mc.stride);
+        break;
+      }
+
+      bufferView.data = result;
+    }
+
+    return cgltf_result_success;
+  }
 }
 
 namespace guc
@@ -129,6 +214,7 @@ namespace guc
     options.file = fileOptions;
 
     cgltf_result result = cgltf_parse_file(&options, gltfPath, data);
+
     if (result != cgltf_result_success)
     {
       TF_RUNTIME_ERROR("unable to parse glTF file: %s", cgltf_error_string(result));
@@ -137,6 +223,7 @@ namespace guc
     }
 
     result = cgltf_load_buffers(&options, *data, gltfPath);
+
     if (result != cgltf_result_success)
     {
       TF_RUNTIME_ERROR("unable to load glTF buffers: %s", cgltf_error_string(result));
@@ -145,6 +232,7 @@ namespace guc
     }
 
     result = cgltf_validate(*data);
+
     if (result != cgltf_result_success)
     {
       TF_RUNTIME_ERROR("unable to validate glTF: %s", cgltf_error_string(result));
@@ -152,10 +240,17 @@ namespace guc
       return false;
     }
 
+    bool meshoptCompressionRequired = false;
+
     for (size_t i = 0; i < (*data)->extensions_required_count; i++)
     {
       const char* ext = (*data)->extensions_required[i];
       TF_DEBUG(GUC).Msg("extension required: %s\n", ext);
+
+      if (strcmp(ext, detail::GLTF_EXT_MESHOPT_COMPRESSION_EXTENSION_NAME) == 0)
+      {
+        meshoptCompressionRequired = true;
+      }
 
       if (detail::extensionSupported(ext))
       {
@@ -165,6 +260,22 @@ namespace guc
       TF_RUNTIME_ERROR("extension %s not supported", ext);
       free_gltf(*data);
       return false;
+    }
+
+    result = detail::decompressMeshopt(*data);
+
+    if (result != cgltf_result_success)
+    {
+      const char* errStr = "unable to decode meshoptimizer data: %s";
+
+      if (meshoptCompressionRequired)
+      {
+        TF_RUNTIME_ERROR(errStr, guc::cgltf_error_string(result));
+        free_gltf(*data);
+        return false;
+      }
+
+      TF_WARN(errStr, guc::cgltf_error_string(result));
     }
 
     for (size_t i = 0; i < (*data)->extensions_used_count; i++)

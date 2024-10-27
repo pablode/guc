@@ -1,7 +1,7 @@
 ## guc
 
-![USD v24.05](https://github.com/pablode/guc/actions/workflows/run-tests-usd2405.yml/badge.svg?branch=main)
-![USD v24.03](https://github.com/pablode/guc/actions/workflows/run-tests-usd2403.yml/badge.svg?branch=main)
+![USD v24.11](https://github.com/pablode/guc/actions/workflows/run-tests-usd2411.yml/badge.svg?branch=main)
+![USD v24.08](https://github.com/pablode/guc/actions/workflows/run-tests-usd2408.yml/badge.svg?branch=main)
 
 guc is a glTF to [Universal Scene Description](https://github.com/PixarAnimationStudios/USD) (USD) converter.
 
@@ -25,7 +25,7 @@ All glTF features except animation and skinning are implemented and get continuo
 
 ### Build
 
-You need USD v23.11+ (e.g. <a href="https://github.com/PixarAnimationStudios/OpenUSD/releases/tag/v24.05">v24.05</a>) with MaterialX support enabled.
+You need USD v23.11+ (e.g. <a href="https://github.com/PixarAnimationStudios/OpenUSD/releases/tag/v24.11">v24.11</a>) with MaterialX support enabled.
 
 Do a recursive clone of the repository and set up a build folder:
 ```
@@ -55,7 +55,6 @@ Usage: guc [options] [--] <gltf_path> <usd_path>
 Options:
   -m, --emit-mtlx                            Emit MaterialX materials in addition to UsdPreviewSurfaces
   -u, --mtlx-as-usdshade                     Convert and inline MaterialX materials into the USD layer using UsdMtlx
-  -c, --hdstorm-compat                       Apply compatibility tweaks for the USD Storm Hydra render delegate
   -v, --default-material-variant=<index>     Index of the material variant that is selected by default
   -l, --licenses                             Print the license of guc and third-party libraries
   -h, --help                                 Show the command help
@@ -69,6 +68,7 @@ An example asset conversion is described in the [Structure Mapping](docs/Structu
 
 Name                                | Status&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 ------------------------------------|----------
+EXT_meshopt_compression             | ✅ Complete
 KHR_lights_punctual                 | ✅ Partial <sup>1</sup>
 KHR_materials_clearcoat             | ✅ Complete
 KHR_materials_emissive_strength     | ✅ Complete
@@ -80,6 +80,7 @@ KHR_materials_transmission          | ✅ Complete
 KHR_materials_unlit                 | ✅ Complete
 KHR_materials_variants              | ✅ Complete
 KHR_materials_volume                | ✅ Partial <sup>2</sup>
+KHR_mesh_quantization               | ✅ Complete
 KHR_texture_transform               | ✅ Complete
 
 <sup>\[1\]</sup> Spotlight cone falloff is ignored.  

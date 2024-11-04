@@ -207,7 +207,7 @@ namespace detail
     auto image = OIIO::ImageInput::open(path, nullptr, &memReader);
     if (image)
     {
-      assert(image->supports("ioproxy"));
+      TF_VERIFY(image->supports("ioproxy"));
 
       const OIIO::ImageSpec& spec = image->spec();
       channelCount = spec.nchannels;

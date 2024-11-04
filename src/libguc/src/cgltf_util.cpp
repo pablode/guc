@@ -303,8 +303,8 @@ namespace guc
 
   const char* cgltf_error_string(cgltf_result result)
   {
-    assert(result != cgltf_result_success);
-    assert(result != cgltf_result_invalid_options);
+    TF_VERIFY(result != cgltf_result_success);
+    TF_VERIFY(result != cgltf_result_invalid_options);
     switch (result)
     {
     case cgltf_result_legacy_gltf:

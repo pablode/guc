@@ -25,7 +25,6 @@
 #include <MaterialXFormat/Util.h>
 
 #include <filesystem>
-#include <cassert>
 
 #include "naming.h"
 #include "debugCodes.h"

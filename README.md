@@ -69,6 +69,7 @@ An example asset conversion is described in the [Structure Mapping](docs/Structu
 Name                                | Status&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 ------------------------------------|----------
 EXT_meshopt_compression             | ✅ Complete
+KHR_draco_mesh_compression          | ✅ Complete
 KHR_lights_punctual                 | ✅ Partial <sup>1</sup>
 KHR_materials_clearcoat             | ✅ Complete
 KHR_materials_emissive_strength     | ✅ Complete

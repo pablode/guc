@@ -27,7 +27,11 @@
 
 #include <meshoptimizer.h>
 
-#include <assert.h>
+#ifdef GUC_USE_DRACO
+#include <draco/compression/decode.h>
+#include <draco/core/decoder_buffer.h>
+#endif
+
 #include <string.h>
 #include <unordered_map>
 
@@ -38,15 +42,22 @@ using namespace PXR_NS;
 namespace detail
 {
   constexpr static const char* GLTF_EXT_MESHOPT_COMPRESSION_EXTENSION_NAME = "EXT_meshopt_compression";
+#ifdef GUC_USE_DRACO
+  constexpr static const char* GLTF_KHR_DRACO_MESH_COMPRESSION_EXTENSION_NAME = "KHR_draco_mesh_compression";
+#endif
 
   bool extensionSupported(const char* name)
   {
-    return strcmp(name, "KHR_materials_pbrSpecularGlossiness") == 0 ||
+    return strcmp(name, GLTF_EXT_MESHOPT_COMPRESSION_EXTENSION_NAME) == 0 ||
+#ifdef GUC_USE_DRACO
+           strcmp(name, GLTF_KHR_DRACO_MESH_COMPRESSION_EXTENSION_NAME) == 0 ||
+#endif
            strcmp(name, "KHR_lights_punctual") == 0 ||
-           strcmp(name, "KHR_materials_emissive_strength") == 0 ||
            strcmp(name, "KHR_materials_clearcoat") == 0 ||
+           strcmp(name, "KHR_materials_emissive_strength") == 0 ||
            strcmp(name, "KHR_materials_ior") == 0 ||
            strcmp(name, "KHR_materials_iridescence") == 0 ||
+           strcmp(name, "KHR_materials_pbrSpecularGlossiness") == 0 ||
            strcmp(name, "KHR_materials_sheen") == 0 ||
            strcmp(name, "KHR_materials_specular") == 0 ||
            strcmp(name, "KHR_materials_transmission") == 0 ||
@@ -54,8 +65,7 @@ namespace detail
            strcmp(name, "KHR_materials_variants") == 0 ||
            strcmp(name, "KHR_materials_volume") == 0 ||
            strcmp(name, "KHR_mesh_quantization") == 0 ||
-           strcmp(name, "KHR_texture_transform") == 0 ||
-           strcmp(name, GLTF_EXT_MESHOPT_COMPRESSION_EXTENSION_NAME) == 0;
+           strcmp(name, "KHR_texture_transform") == 0;
   }
 
   struct BufferHolder
@@ -117,6 +127,213 @@ namespace detail
     auto bufferHolder = (BufferHolder*) file_options->user_data;
     bufferHolder->map.erase(bufferPtr);
   }
+
+#ifdef GUC_USE_DRACO
+  template<typename T>
+  bool convertDracoVertexAttributes(const draco::PointAttribute* attribute,
+                                    size_t vertexCount,
+                                    uint8_t* result)
+  {
+    uint32_t elemSize = sizeof(T) * attribute->num_components();
+
+    const static uint32_t MAX_COMPONENT_COUNT = 4;
+
+    T elems[MAX_COMPONENT_COUNT];
+    for (size_t i = 0; i < vertexCount; i++)
+    {
+      draco::PointIndex pointIndex(i);
+      draco::AttributeValueIndex valueIndex = attribute->mapped_index(pointIndex);
+
+      if (!attribute->ConvertValue<T>(valueIndex, attribute->num_components(), elems))
+      {
+        return false;
+      }
+
+      uint32_t elemOffset = i * elemSize;
+      memcpy(&result[elemOffset], &elems[0], elemSize);
+    }
+    return true;
+  }
+
+  bool convertDracoVertexAttributes(cgltf_component_type componentType,
+                                    const draco::PointAttribute* attribute,
+                                    size_t vertexCount,
+                                    uint8_t* result)
+  {
+    bool success = false;
+    switch (componentType)
+    {
+    case cgltf_component_type_r_8:
+      success = convertDracoVertexAttributes<int8_t>(attribute, vertexCount, result);
+    case cgltf_component_type_r_8u:
+      success = convertDracoVertexAttributes<uint8_t>(attribute, vertexCount, result);
+    case cgltf_component_type_r_16:
+      success = convertDracoVertexAttributes<int16_t>(attribute, vertexCount, result);
+    case cgltf_component_type_r_16u:
+      success = convertDracoVertexAttributes<uint16_t>(attribute, vertexCount, result);
+    case cgltf_component_type_r_32u:
+      success = convertDracoVertexAttributes<uint32_t>(attribute, vertexCount, result);
+    case cgltf_component_type_r_32f:
+      success = convertDracoVertexAttributes<float>(attribute, vertexCount, result);
+      break;
+    default:
+      break;
+    }
+    return success;
+  }
+
+  bool decompressDraco(cgltf_data* data)
+  {
+    using EncodedAttributes = std::map<int /*dracoUid*/, cgltf_accessor* /*source accessor*/>;
+
+    std::map<const cgltf_draco_mesh_compression*, EncodedAttributes> attributeBuffersToDecompress;
+
+    //
+    // Phase 1: Collect draco buffers and attributes to decode. Multiple prims can reference the same buffer
+    //          with a disjunct or overlapping set of attributes, which is why we use the map/set construct.
+    //          We also overwrite the primitive indices data source which we fill in the second phase.
+    //
+    for (size_t i = 0; i < data->meshes_count; ++i)
+    {
+      const cgltf_mesh& mesh = data->meshes[i];
+
+      for (size_t j = 0; j < mesh.primitives_count; j++)
+      {
+        const cgltf_primitive& primitive = mesh.primitives[j];
+        if (!primitive.has_draco_mesh_compression)
+        {
+          continue;
+        }
+
+        const cgltf_draco_mesh_compression* draco = &primitive.draco_mesh_compression;
+        if (attributeBuffersToDecompress.count(draco) == 0)
+        {
+          attributeBuffersToDecompress[draco] = {};
+        }
+
+        EncodedAttributes& mapEnty = attributeBuffersToDecompress[draco];
+
+        // Spec: "the attributes defined in the extension must be a subset of the attributes of the primitive."
+        for (size_t i = 0; i < draco->attributes_count; i++)
+        {
+          const cgltf_attribute* dracoAttr = &draco->attributes[i];
+
+          cgltf_attribute* srcAttr = nullptr;
+          for (size_t j = 0; j < primitive.attributes_count; j++)
+          {
+            cgltf_attribute* attr = &primitive.attributes[i];
+
+            if (strcmp(attr->name, dracoAttr->name) == 0)
+            {
+              srcAttr = attr;
+              break;
+            }
+          }
+          TF_AXIOM(srcAttr); // ensured by validation
+
+          auto dracoUid = int(cgltf_accessor_index(data, dracoAttr->data));
+          mapEnty[dracoUid] = srcAttr->data;
+        }
+
+        primitive.indices->offset = 0;
+        primitive.indices->stride = sizeof(uint32_t);
+        primitive.indices->buffer_view = draco->buffer_view;
+      }
+    }
+
+    //
+    // Phase 2: In this second phase, we decode attributes from the draco buffers. We can't allocate new
+    //          accessors, buffers and buffer views because this invalidates all of cgltf's pointer references.
+    //          Instead, we allocate the .data field of the draco buffer view, which takes precedence over the
+    //          encoded buffer, and use it as the decoded data source.
+    //
+    for (auto it = attributeBuffersToDecompress.begin(); it != attributeBuffersToDecompress.end(); ++it)
+    {
+      // Decompress into draco mesh
+      const cgltf_draco_mesh_compression* draco = it->first;
+      cgltf_buffer_view* bufferView = draco->buffer_view;
+      cgltf_buffer* buffer = bufferView->buffer;
+
+      const char* bufferData = &((const char*) buffer->data)[bufferView->offset];
+
+      draco::DecoderBuffer decoderBuffer;
+      decoderBuffer.Init(bufferData, bufferView->size);
+
+      auto geomType = draco::Decoder::GetEncodedGeometryType(&decoderBuffer);
+      if (!geomType.ok() || geomType.value() != draco::TRIANGULAR_MESH)
+      {
+        TF_RUNTIME_ERROR("unsupported Draco geometry type");
+        return false;
+      }
+
+      draco::Decoder decoder;
+      auto decodeResult = decoder.DecodeMeshFromBuffer(&decoderBuffer);
+      if (!decodeResult.ok())
+      {
+        TF_RUNTIME_ERROR("Draco failed to decode mesh from buffer");
+        return false;
+      }
+
+      const std::unique_ptr<draco::Mesh>& mesh = decodeResult.value();
+
+      // Allocate decoded buffer
+      const EncodedAttributes& attrsToDecode = it->second;
+
+      uint32_t vertexCount = mesh->num_points();
+      uint32_t faceCount = mesh->num_faces();
+      uint32_t indexCount = faceCount * 3;
+
+      uint32_t indicesSize = indexCount * sizeof(uint32_t);
+
+      size_t attributesSize = 0;
+      for (const auto& c : attrsToDecode)
+      {
+        cgltf_accessor* srcAccessor = c.second;
+
+        attributesSize += vertexCount * srcAccessor->stride;
+      }
+
+      bufferView->data = malloc(indicesSize + attributesSize);
+
+      // Write decoded data
+      auto baseIndex = draco::FaceIndex(0);
+      TF_VERIFY(sizeof(mesh->face(baseIndex)[0]) == 4);
+      memcpy(bufferView->data, &mesh->face(baseIndex)[0], indicesSize);
+
+      size_t attributeOffset = indicesSize;
+      for (const auto& c : attrsToDecode)
+      {
+        int dracoUid = c.first;
+
+        const draco::PointAttribute* dracoAttr = mesh->GetAttributeByUniqueId(dracoUid);
+        if (!dracoAttr)
+        {
+          TF_RUNTIME_ERROR("invalid Draco attribute uid");
+          return false;
+        }
+
+        cgltf_accessor* srcAccessor = c.second;
+
+        TF_VERIFY(srcAccessor->count == vertexCount);
+        if (!convertDracoVertexAttributes(srcAccessor->component_type,
+                                          dracoAttr,
+                                          vertexCount,
+                                          &((uint8_t*) bufferView->data)[attributeOffset]))
+        {
+          TF_RUNTIME_ERROR("failed to decode Draco attribute");
+          return false;
+        }
+
+        srcAccessor->buffer_view = draco->buffer_view;
+        srcAccessor->offset = attributeOffset;
+
+        attributeOffset += vertexCount * srcAccessor->stride;
+      }
+    }
+
+    return true;
+  }
+#endif
 
   // Based on https://github.com/jkuhlmann/cgltf/pull/129
   cgltf_result decompressMeshopt(cgltf_data* data)
@@ -241,6 +458,9 @@ namespace guc
     }
 
     bool meshoptCompressionRequired = false;
+#ifdef GUC_USE_DRACO
+    bool dracoMeshCompressionRequired = false;
+#endif
 
     for (size_t i = 0; i < (*data)->extensions_required_count; i++)
     {
@@ -251,6 +471,13 @@ namespace guc
       {
         meshoptCompressionRequired = true;
       }
+
+#ifdef GUC_USE_DRACO
+      if (strcmp(ext, detail::GLTF_KHR_DRACO_MESH_COMPRESSION_EXTENSION_NAME) == 0)
+      {
+        dracoMeshCompressionRequired = true;
+      }
+#endif
 
       if (detail::extensionSupported(ext))
       {
@@ -277,6 +504,22 @@ namespace guc
 
       TF_WARN(errStr, guc::cgltf_error_string(result));
     }
+
+#ifdef GUC_USE_DRACO
+    if (!detail::decompressDraco(*data))
+    {
+      const char* errStr = "unable to decode Draco data";
+
+      if (dracoMeshCompressionRequired)
+      {
+        TF_RUNTIME_ERROR("%s", errStr);
+        free_gltf(*data);
+        return false;
+      }
+
+      TF_WARN("%s", errStr);
+    }
+#endif
 
     for (size_t i = 0; i < (*data)->extensions_used_count; i++)
     {

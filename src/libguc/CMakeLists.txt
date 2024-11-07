@@ -62,6 +62,11 @@ else()
   list(APPEND LIBGUC_SHARED_LIBRARIES $<BUILD_INTERFACE:stb_image>)
 endif()
 
+if(draco_FOUND)
+  list(APPEND LIBGUC_DEFINES "GUC_USE_DRACO")
+  list(APPEND LIBGUC_SHARED_LIBRARIES ${DRACO_LIBRARIES})
+endif()
+
 #
 # libguc
 #
@@ -75,9 +80,14 @@ add_library(
 target_link_libraries(libguc PRIVATE ${LIBGUC_SHARED_LIBRARIES})
 
 target_include_directories(libguc
-  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  PUBLIC $<INSTALL_INTERFACE:include>
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
+
+if(draco_FOUND)
+  target_include_directories(libguc PRIVATE ${DRACO_INCLUDE_DIRS})
+endif()
 
 set_target_properties(
   libguc
@@ -155,6 +165,10 @@ if(GUC_BUILD_USDGLTF)
   )
 
   target_include_directories(usdGlTF PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+  if(draco_FOUND)
+    target_include_directories(usdGlTF PRIVATE ${DRACO_INCLUDE_DIRS})
+  endif()
 
   target_compile_definitions(
     usdGlTF

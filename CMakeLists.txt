@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 # Find USD - only non-monolithic builds have been tested.
 find_package(pxr CONFIG REQUIRED)
 
@@ -14,8 +16,13 @@ find_package(pxr CONFIG REQUIRED)
 find_package(MaterialX 1.38.6 REQUIRED HINTS ${pxr_DIR})
 
 # We need to open PNG and JPEG files in order to read the number of channels
-# for shading node creation. OIIO should be provided by the USD installation.
+# for shading node creation. OIIO can be provided by the USD installation,
+# otherwise we fall back to stb_image.
 find_package(OpenImageIO HINTS ${pxr_DIR})
+
+# Optionally support draco. See Finddraco.cmake for more information.
+set(draco_ROOT ${pxr_DIR})
+find_package(draco)
 
 option(GUC_BUILD_EXECUTABLE "Build the guc executable." ON)
 option(GUC_BUILD_USDGLTF "Build the Sdf file format plugin." OFF)

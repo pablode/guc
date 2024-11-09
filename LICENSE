@@ -573,6 +573,7 @@ POSSIBILITY OF SUCH DAMAGE.
     cgltf
     cargs
     stb_image
+    meshoptimizer
 ============================================================
 
 
@@ -609,6 +610,8 @@ POSSIBILITY OF SUCH DAMAGE.
   Copyright (c) 2024 Leonard Iklé
 * For stb_image, see also this required NOTICE:
   Copyright (c) 2017 Sean Barrett
+* For meshoptimizer, see also this required NOTICE:
+  Copyright (c) 2016-2024 Arseny Kapoulkine
 
 
 ============================================================

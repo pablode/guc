@@ -36,12 +36,6 @@ jobs:
           archive-file-name: guc_USD${{ inputs.usd-version }}_Linux_x64.tar.gz
 
         - os-family: MacOS
-          image: macos-12
-          usd-download-url: "https://github.com/pablode/USD/releases/download/v${{ inputs.usd-version }}-ci-release/USD${{ inputs.usd-version }}_MacOS_x64.tar.gz"
-          usd-install-path: /Users/runner/work/USD/USD/INSTALL
-          archive-file-name: guc_USD${{ inputs.usd-version }}_MacOS_x64.tar.gz
-
-        - os-family: MacOS
           image: macos-14
           usd-download-url: "https://github.com/pablode/USD/releases/download/v${{ inputs.usd-version }}-ci-release/USD${{ inputs.usd-version }}_MacOS_ARM.tar.gz"
           usd-install-path: /Users/runner/work/USD/USD/INSTALL

@@ -1,7 +1,9 @@
 # Ecosystem Limitations
 
-This document describes issues and known limitations that prevent truthful imaging of converted files.
+This document describes past and current OpenUSD/MaterialX/Hydra/Storm issues.
 
+> [!IMPORTANT]  
+> Last updated with USD v25.02 and MaterialX 1.38.10
 
 ## MaterialX
 
@@ -15,7 +17,7 @@ glTF tangents have four components, with the last component denoting the handedn
 For normal mapping, we would ideally want to use MaterialX's `<normalmap>` node, however this node makes a hard assumption on the handedness of the bitangent.
 A _bitangent_ input has been proposed (Issue [#945](https://github.com/AcademySoftwareFoundation/MaterialX/issues/945)), but as a fallback, guc injects a flattened, patched version of this node.
 
-> [!IMPORTANT]  
+> [!NOTE]  
 > Resolved in MaterialX 1.39
 
 
@@ -26,7 +28,7 @@ A _bitangent_ input has been proposed (Issue [#945](https://github.com/AcademySo
 MaterialX shading networks require geometric properties (normals, texture coordinates, tangents). These are stored as USD primvars, and the renderer needs to provide them accordingly.
 
 As an *implicit* mapping relies on non-standardized heuristics that do not cover multiple texture sets, vertex colors or tangents, guc always uses *explicit* reading of these primvars using `<geompropvalue>` nodes.
-However, this functionality is known to not be supported by select render delegates.
+However, this functionality may not be supported by some render delegates.
 
 #### Image color spaces are not copied from Hydra shading networks to MaterialX documents
 
@@ -36,52 +38,63 @@ One outstanding problem with the translation process is that color spaces are no
 
 This issue affects a number of render delegates, including Pixar's [HdStorm](https://github.com/PixarAnimationStudios/USD/blob/0c7b9a95f155c221ff7df9270a39a52e3b23af8b/pxr/imaging/hdSt/materialXFilter.cpp#L877).
 
-> [!IMPORTANT]  
+> [!NOTE]  
 > Resolved in OpenUSD 23.11
 
 
 ## MaterialX in HdStorm
 
+#### Greyscale images are incorrectly handled
+The behaviour does not match MaterialX. It has been logged as [MaterialX #2257](https://github.com/AcademySoftwareFoundation/MaterialX/issues/2257) for clarification.
+
 #### Texture-coordinate related regression in USD v24.03+
 Issue [#3048](https://github.com/PixarAnimationStudios/OpenUSD/issues/3048) currently affects [multiple cases](https://github.com/pablode/guc-tests/commit/695f6dcc58c5b08b1d7b689dc1dc0c2d4305f154?diff=split&w=0) of the guc test suite.
+
+> [!NOTE]  
+> Resolved in OpenUSD 24.11
+
+#### 'edf' shader compilation error on Metal
+Issue [#3049](https://github.com/PixarAnimationStudios/OpenUSD/issues/3049).
+
+> [!NOTE]  
+> Resolved in OpenUSD 24.08
 
 #### One and two channel sRGB texture formats are unsupported
 Converted assets may use such textures, but HdStorm is not able to render them. ([Source code](https://github.com/PixarAnimationStudios/USD/blob/3abc46452b1271df7650e9948fef9f0ce602e3b2/pxr/imaging/hdSt/textureUtils.cpp#L341-L345))
 
-> [!IMPORTANT]  
+> [!NOTE]  
 > Resolved in OpenUSD 24.08
 
 #### Incorrect automatic sRGB image detection and decoding
 In addition to the HdMtlx color space issue above, a heuristic defined by the [UsdPreviewSurface spec](https://graphics.pixar.com/usd/release/spec_usdpreviewsurface.html#texture-reader) is used to determine whether an image is to be interpreted as sRGB or not. This heuristic can not be disabled and incorrectly classifies normal maps and occlusion-roughness-metalness textures commonly used with glTF. (Issue [#1878](https://github.com/PixarAnimationStudios/USD/issues/1878))
 
-> [!IMPORTANT]  
+> [!NOTE]  
 > Resolved in OpenUSD 23.11
 
 #### Hardcoded transparent geometry detection
 HdStorm is a rasterizer and therefore handles translucent geometry differently than solid geometry. In order to detect whether a geometry's material is translucent or not, a heuristic is used. However, it is not yet adjusted to the MaterialX glTF PBR. (Issue [#1882](https://github.com/PixarAnimationStudios/USD/issues/1882))
 
-> [!IMPORTANT]  
+> [!NOTE]  
 > Resolved in OpenUSD 24.08
 
 #### Materials with 1x1 images are not rendered correctly
 Issue [#2140](https://github.com/PixarAnimationStudios/USD/issues/2140).
 
-> [!IMPORTANT]  
+> [!NOTE]  
 > Resolved in MaterialX 1.38.8 / OpenUSD 24.05
 
 #### EDF shader compilation error on Metal
 Issue [#3049](https://github.com/PixarAnimationStudios/OpenUSD/issues/3049).
 
-> [!IMPORTANT]  
+> [!NOTE]  
 > Resolved in OpenUSD 24.08
 
 #### Tangent frame is not aligned to the UV space
 This causes normal maps to render incorrectly, for instance for the Open Chess Set. (Issue [#2255](https://github.com/PixarAnimationStudios/OpenUSD/issues/2255))
 
-> [!IMPORTANT]  
+> [!NOTE]  
 > Resolved in OpenUSD 24.03
 
 ## Apple RealityKit and SceneKit compatibility
 
 Apple's RealityKit (used for AR Quick Look) and SceneKit renderers only [support a subset](https://developer.apple.com/documentation/realitykit/validating-usd-files) of USD's features. guc makes no compatibility efforts, and converted assets may not be displayed correctly.
-

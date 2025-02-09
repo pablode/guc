@@ -8,7 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-# Find USD - only non-monolithic builds have been tested.
+# Find USD.
 find_package(pxr CONFIG REQUIRED)
 
 # Find MaterialX library provided by the USD installation.

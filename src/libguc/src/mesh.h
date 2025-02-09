@@ -37,6 +37,15 @@ namespace guc
                       const VtVec3fArray& positions,
                       const VtVec3fArray& normals,
                       const VtVec2fArray& texcoords,
+// TODO: swap parameters + below
                       VtFloatArray& signs,
+                      VtVec3fArray& tangents);
+
+  // TODO: implement
+  bool createTangents(const VtIntArray& indices,
+                      const VtVec3fArray& positions,
+                      const VtVec3fArray& normals,
+                      const VtVec2fArray& texcoords,
+                      VtVec3fArray& bitangents,
                       VtVec3fArray& tangents);
 }

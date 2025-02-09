@@ -59,6 +59,7 @@ TF_DEFINE_PRIVATE_TOKENS(
   (generator)
   (version)
   (min_version)
+  (bitangents)
   (bitangentSigns)
   (guc)
   (generated)
@@ -1040,7 +1041,11 @@ namespace guc
     }
 
     VtVec3fArray tangents;
+#if MATERIALX_MAJOR_VERSION > 1 || MATERIALX_MAJOR_VERSION == 1 && MATERIALX_MINOR_VERSION > 39
+    VtVec3fArray bitangents;
+#else
     VtFloatArray bitangentSigns;
+#endif
     bool generatedTangents = false;
     {
       const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "TANGENT");
@@ -1050,12 +1055,21 @@ namespace guc
         if (detail::readVtArrayFromAccessor(accessor, tangentsWithW))
         {
           tangents.resize(tangentsWithW.size());
+#if MATERIALX_MAJOR_VERSION > 1 || MATERIALX_MAJOR_VERSION == 1 && MATERIALX_MINOR_VERSION > 39
           bitangentSigns.resize(tangentsWithW.size());
+#else
+          bitangents.resize(tangentsWithW.size());
+#endif
 
           for (size_t i = 0; i < tangentsWithW.size(); i++)
           {
             tangents[i] = GfVec3f(tangentsWithW[i].data());
+#if MATERIALX_MAJOR_VERSION > 1 || MATERIALX_MAJOR_VERSION == 1 && MATERIALX_MINOR_VERSION > 39
+            bitangents[i] = // TODO: .w * normals[i]
+#else
             bitangentSigns[i] = tangentsWithW[i][3];
+#endif
+
           }
         }
       }
@@ -1072,7 +1086,12 @@ namespace guc
             TF_DEBUG(GUC).Msg("generating tangents\n");
 
             const VtVec2fArray& texCoords = texCoordSets[textureView.texcoord];
+#if MATERIALX_MAJOR_VERSION > 1 || MATERIALX_MAJOR_VERSION == 1 && MATERIALX_MINOR_VERSION > 39
             createTangents(indices, points, normals, texCoords, bitangentSigns, tangents);
+#else
+// TODO: need to create overloaded function
+            createTangents(indices, points, normals, texCoords, bitangents, tangents);
+#endif
 
             // The generated tangents are unindexed, which means that we
             // have to deindex all other primvars and reindex the mesh.
@@ -1150,6 +1169,19 @@ namespace guc
         detail::markAttributeAsGenerated(primvar);
       }
     }
+#if MATERIALX_MAJOR_VERSION > 1 || MATERIALX_MAJOR_VERSION == 1 && MATERIALX_MINOR_VERSION > 39
+    if (!bitangents.empty())
+    {
+      auto primvar = primvarsApi.CreatePrimvar(_tokens->bitangents, SdfValueTypeNames->Float3Array, UsdGeomTokens->vertex);
+      primvar.Set(bitangents);
+
+      if (generatedTangents)
+      {
+        detail::markAttributeAsGenerated(primvar);
+      }
+    }
+
+#else
     if (!bitangentSigns.empty())
     {
       auto primvar = primvarsApi.CreatePrimvar(_tokens->bitangentSigns, SdfValueTypeNames->FloatArray, UsdGeomTokens->vertex);
@@ -1160,6 +1192,7 @@ namespace guc
         detail::markAttributeAsGenerated(primvar);
       }
     }
+#endif
 
     for (size_t i = 0; i < texCoordSets.size(); i++)
     {

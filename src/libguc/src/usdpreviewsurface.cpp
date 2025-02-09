@@ -49,6 +49,8 @@ TF_DEFINE_PRIVATE_TOKENS(
   (ior)
   (specularColor)
   (useSpecularWorkflow)
+  (opacityMode)
+  (presence)
   // UsdUVTexture inputs
   (st)
   (file)
@@ -143,6 +145,8 @@ namespace guc
     auto shadeMaterial = UsdShadeMaterial::Define(m_stage, path);
     auto surfaceOutput = shadeMaterial.CreateSurfaceOutput(UsdShadeTokens->universalRenderContext);
 
+    bool usesOpacity = false;
+
     // FIXME: the first node will be called 'node' while MaterialX's first node is 'node1'
     const char* nodeNameNumberDelimiter = ""; // mimic MaterialX nodename generation with no delimiter between "node" and number
     auto shaderPath = makeUniqueStageSubpath(m_stage, path, "node", nodeNameNumberDelimiter);
@@ -169,6 +173,8 @@ namespace guc
         auto opacityThresholdInput = shader.CreateInput(_tokens->opacityThreshold, SdfValueTypeNames->Float);
         opacityThresholdInput.Set(material->alpha_cutoff);
       }
+
+      usesOpacity = true;
     };
 
     auto emissiveColorInput = shader.CreateInput(_tokens->emissiveColor, SdfValueTypeNames->Color3f);
@@ -281,7 +287,23 @@ namespace guc
 
       auto opacityInput = shader.CreateInput(_tokens->opacity, SdfValueTypeNames->Float); // not set because of OPAQUE mode check
       opacityInput.Set(opacity);
+
+      usesOpacity = true;
     }
+
+#if 0
+    // TODO: make this optional configurable via command line
+    // TODO: have mtlx-1.39.3 guc-tests branch
+#if MATERIALX_MAJOR_VERSION > 1 || \
+    MATERIALX_MAJOR_VERSION == 1 && MATERIALX_MINOR_VERSION > 39 || \
+    MATERIALX_MAJOR_VERSION == 1 && MATERIALX_MINOR_VERSION == 39 && MATERIALX_PATCH_VERSION == 2
+    {
+      auto opacityMode = shader.CreateInput(_tokens->opacityMode, SdfValueTypeNames->Token);
+      // v2.6 change. This brings UsdPreviewSurface transparency/specular behaviour in line with glTF PBR.
+      opacityMode.Set(_tokens->presence);
+    }
+#endif
+#endif
   }
 
   void UsdPreviewSurfaceMaterialConverter::setNormalTextureInput(const SdfPath& basePath,

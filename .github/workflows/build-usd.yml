@@ -16,11 +16,9 @@ on:
         required: false
         type: boolean
         default: true
-
-    outputs:
-      archive-name:
-        description: "Name of the archive containing the build artifacts."
-        value: build-${{ inputs.build-config }}-${{ github.sha }}
+      archive-name-suffix:
+        required: false
+        type: string
 
 jobs:
   build:
@@ -33,19 +31,19 @@ jobs:
           image: ubuntu-20.04
           usd-download-url: "https://github.com/pablode/USD/releases/download/v${{ inputs.usd-version }}-ci-release/USD${{ inputs.usd-version }}_Linux_x64.tar.gz"
           usd-install-path: /home/runner/work/USD/USD/INSTALL
-          archive-file-name: guc_USD${{ inputs.usd-version }}_Linux_x64.tar.gz
+          archive-name: guc_USD${{ inputs.usd-version }}_Linux_x64
 
         - os-family: MacOS
           image: macos-14
           usd-download-url: "https://github.com/pablode/USD/releases/download/v${{ inputs.usd-version }}-ci-release/USD${{ inputs.usd-version }}_MacOS_ARM.tar.gz"
           usd-install-path: /Users/runner/work/USD/USD/INSTALL
-          archive-file-name: guc_USD${{ inputs.usd-version }}_MacOS_ARM.tar.gz
+          archive-name: guc_USD${{ inputs.usd-version }}_MacOS_ARM
 
         - os-family: Windows
           image: windows-2019
           usd-download-url: "https://github.com/pablode/USD/releases/download/v${{ inputs.usd-version }}-ci-release/USD${{ inputs.usd-version }}_Windows_x64.tar.gz"
           usd-install-path: C:/INSTALL
-          archive-file-name: guc_USD${{ inputs.usd-version }}_Windows_x64.tar.gz
+          archive-name: guc_USD${{ inputs.usd-version }}_Windows_x64
 
     uses: ./.github/workflows/build.yml
     with:
@@ -54,6 +52,5 @@ jobs:
       usd-download-url: ${{ matrix.usd-download-url }}
       usd-install-path: ${{ matrix.usd-install-path }}
       upload-archive: ${{ inputs.upload-archive }}
-      archive-name: build-${{ inputs.build-config }}-${{ github.sha }}
-      archive-file-name: ${{ matrix.archive-file-name }}
+      archive-name: ${{ matrix.archive-name }}${{ inputs.archive-name-suffix }}
       extra-cmake-flags: ${{ inputs.extra-cmake-flags }}

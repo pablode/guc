@@ -36,6 +36,7 @@ jobs:
       usd-version: ${{ inputs.usd-version }}
       build-config: Debug
       extra-cmake-flags: -DCMAKE_COMPILE_WARNING_AS_ERROR=ON -DCMAKE_DISABLE_FIND_PACKAGE_OpenImageIO=1
+      archive-name-suffix: _debug
 
   build-debug-oiio:
     name: Build guc for USD v${{ inputs.usd-version }} (Debug, OpenImageIO)
@@ -84,12 +85,12 @@ jobs:
 
     - name: Download guc artifacts
       id: download-guc
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
-        name: ${{ needs.build-release.outputs.archive-name }}
+        merge-multiple: true
 
     - name: Install guc
-      run: mkdir -p GUC_INSTALL && tar -xvf ${{ matrix.artifact-name}} -C $PWD/GUC_INSTALL
+      run: mkdir -p GUC_INSTALL && tar -xvf ${{ matrix.artifact-name }} -C $PWD/GUC_INSTALL
 
     - name: Set up environment variables (Linux)
       if: matrix.os-family == 'Linux'
@@ -128,7 +129,7 @@ jobs:
 
     env:
       USD_DOWNLOAD_URL: "https://github.com/pablode/USD/releases/download/v${{ inputs.usd-version }}-ci-release/USD${{ inputs.usd-version }}_Linux_x64_Python3.9.tar.gz"
-      GUC_ARTIFACT_NAME: guc_USD${{ inputs.usd-version }}_Linux_x64.tar.gz
+      GUC_ARTIFACT_NAME: guc_USD${{ inputs.usd-version }}_Linux_x64_debug.tar.gz
       USD_INSTALL_PATH: /home/runner/work/USD/USD/INSTALL
 
     steps:
@@ -140,9 +141,9 @@ jobs:
 
     - name: Download guc artifacts
       id: download-guc
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
-        name: ${{ needs.build-debug.outputs.archive-name }}
+        merge-multiple: true
 
       # Install guc to the USD installation so that we can use the usdGlTF Sdf plugin
     - name: Install guc
@@ -216,7 +217,7 @@ jobs:
 
     - name: Upload archive
       if: success() || failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         path: test-output.tar.gz
         if-no-files-found: error

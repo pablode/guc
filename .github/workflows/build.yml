@@ -22,9 +22,6 @@ on:
       archive-name:
         required: true
         type: string
-      archive-file-name:
-        required: true
-        type: string
       extra-cmake-flags:
         required: false
         type: string
@@ -71,12 +68,12 @@ jobs:
     - name: Create archive
       if: ${{ inputs.upload-archive }}
       working-directory: INSTALL
-      run: tar -zcvf ${{ inputs.archive-file-name }} *
+      run: tar -zcvf ${{ inputs.archive-name }}.tar.gz *
 
     - name: Upload archive
       if: ${{ inputs.upload-archive }}
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.archive-name }}
-        path: INSTALL/${{ inputs.archive-file-name }}
+        path: INSTALL/${{ inputs.archive-name }}.tar.gz
         retention-days: 1

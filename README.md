@@ -1,7 +1,7 @@
 ## guc
 
+![USD v25.02](https://github.com/pablode/guc/actions/workflows/run-tests-usd2502.yml/badge.svg?branch=main)
 ![USD v24.11](https://github.com/pablode/guc/actions/workflows/run-tests-usd2411.yml/badge.svg?branch=main)
-![USD v24.08](https://github.com/pablode/guc/actions/workflows/run-tests-usd2408.yml/badge.svg?branch=main)
 
 guc is a glTF to [Universal Scene Description](https://github.com/PixarAnimationStudios/USD) (USD) converter.
 
@@ -25,7 +25,7 @@ All glTF features except animation and skinning are implemented and get continuo
 
 ### Build
 
-You need USD v23.11+ (e.g. <a href="https://github.com/PixarAnimationStudios/OpenUSD/releases/tag/v24.11">v24.11</a>) with MaterialX support enabled.
+You need USD v24.03+ (e.g. <a href="https://github.com/PixarAnimationStudios/OpenUSD/releases/tag/v25.02">v25.02</a>) with MaterialX support enabled.
 
 Do a recursive clone of the repository and set up a build folder:
 ```

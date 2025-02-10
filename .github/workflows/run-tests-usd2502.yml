@@ -14,4 +14,4 @@ jobs:
     uses: ./.github/workflows/run-tests.yml
     with:
       usd-version: 25.02
-      test-filter: '-Draco|_Below2411'
+      test-filter: '-Draco|_Below2411|_Equal2411'

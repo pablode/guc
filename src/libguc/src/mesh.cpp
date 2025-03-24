@@ -142,13 +142,15 @@ namespace guc
                          VtVec3fArray& normals)
   {
     TF_VERIFY((indices.size() % 3) == 0);
-    normals.resize(positions.size());
 
-    for (size_t i = 0; i < indices.size(); i += 3)
+    size_t triangleCount = indices.size() / 3;
+    normals.resize(triangleCount);
+
+    for (size_t i = 0; i < triangleCount; i++)
     {
-      int i0 = indices[i + 0];
-      int i1 = indices[i + 1];
-      int i2 = indices[i + 2];
+      int i0 = indices[i * 3 + 0];
+      int i1 = indices[i * 3 + 1];
+      int i2 = indices[i * 3 + 2];
 
       const GfVec3f& p0 = positions[i0];
       const GfVec3f& p1 = positions[i1];
@@ -162,9 +164,7 @@ namespace guc
       GfVec3f n = GfCross(e1, e2);
       n.Normalize();
 
-      normals[i0] = n;
-      normals[i1] = n;
-      normals[i2] = n;
+      normals[i] = n;
     }
   }
 
@@ -172,6 +172,7 @@ namespace guc
                       const VtVec3fArray& positions,
                       const VtVec3fArray& normals,
                       const VtVec2fArray& texcoords,
+                      bool uniformNormals,
                       VtFloatArray& unindexedSigns,
                       VtVec3fArray& unindexedTangents)
   {
@@ -186,10 +187,11 @@ namespace guc
       const VtVec3fArray& positions;
       const VtVec3fArray& normals;
       const VtVec2fArray& texcoords;
+      bool uniformNormals;
       VtFloatArray& unindexedSigns;
       VtVec3fArray& unindexedTangents;
     } userData = {
-      indices, positions, normals, texcoords, unindexedSigns, unindexedTangents
+      indices, positions, normals, texcoords, uniformNormals, unindexedSigns, unindexedTangents
     };
 
     auto getNumFacesFunc = [](const SMikkTSpaceContext* pContext) {
@@ -203,8 +205,8 @@ namespace guc
 
     auto getPositionFunc = [](const SMikkTSpaceContext* pContext, float fvPosOut[], const int iFace, const int iVert) {
       UserData* userData = (UserData*) pContext->m_pUserData;
-      int vertexIndex = userData->indices[iFace * 3 + iVert];
-      const GfVec3f& position = userData->positions[vertexIndex];
+      int index = userData->indices[iFace * 3 + iVert];
+      const GfVec3f& position = userData->positions[index];
       fvPosOut[0] = position[0];
       fvPosOut[1] = position[1];
       fvPosOut[2] = position[2];
@@ -212,8 +214,8 @@ namespace guc
 
     auto getNormalFunc = [](const SMikkTSpaceContext* pContext, float fvNormOut[], const int iFace, const int iVert) {
       UserData* userData = (UserData*) pContext->m_pUserData;
-      int vertexIndex = userData->indices[iFace * 3 + iVert];
-      const GfVec3f& normal = userData->normals[vertexIndex];
+      int index = userData->uniformNormals ? iFace : userData->indices[iFace * 3 + iVert];
+      const GfVec3f& normal = userData->normals[index];
       fvNormOut[0] = normal[0];
       fvNormOut[1] = normal[1];
       fvNormOut[2] = normal[2];
@@ -221,8 +223,8 @@ namespace guc
 
     auto getTexCoordFunc = [](const SMikkTSpaceContext* pContext, float fvTexcOut[], const int iFace, const int iVert) {
       UserData* userData = (UserData*) pContext->m_pUserData;
-      int vertexIndex = userData->indices[iFace * 3 + iVert];
-      const GfVec2f& texcoord = userData->texcoords[vertexIndex];
+      int index = userData->indices[iFace * 3 + iVert];
+      const GfVec2f& texcoord = userData->texcoords[index];
       fvTexcOut[0] = texcoord[0];
       fvTexcOut[1] = texcoord[1];
     };

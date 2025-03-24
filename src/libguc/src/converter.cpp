@@ -174,27 +174,6 @@ namespace detail
     return true;
   }
 
-  template<typename T>
-  void deindexVtArray(VtIntArray indices, VtArray<T>& arr)
-  {
-    if (arr.empty())
-    {
-      return;
-    }
-
-    int newVertexCount = indices.size();
-
-    VtArray<T> newArr;
-    newArr.resize(newVertexCount);
-
-    for (int i = 0; i < newVertexCount; i++)
-    {
-      newArr[i] = arr[indices[i]];
-    }
-
-    arr = newArr;
-  }
-
   void markAttributeAsGenerated(UsdAttribute attr)
   {
     VtDictionary customData;
@@ -981,44 +960,11 @@ namespace guc
     }
 
     // Normals and Tangents
-    VtVec3fArray normals;
-
-    const auto deindexPrimvarsExceptTangents = [&]()
-    {
-      detail::deindexVtArray(indices, points);
-      detail::deindexVtArray(indices, normals);
-
-      for (VtVec2fArray& texCoords : texCoordSets)
-      {
-        detail::deindexVtArray(indices, texCoords);
-      }
-      for (VtVec3fArray& colors : colorSets)
-      {
-        detail::deindexVtArray(indices, colors);
-      }
-      for (VtFloatArray& opacities : opacitySets)
-      {
-        detail::deindexVtArray(indices, opacities);
-      }
-      if (!generatedDisplayColors) // constant interpolation
-      {
-        detail::deindexVtArray(indices, displayColors);
-      }
-      if (!generatedDisplayColors) // constant interpolation
-      {
-        detail::deindexVtArray(indices, displayOpacities);
-      }
-
-      for (size_t i = 0; i < indices.size(); i++)
-      {
-        indices[i] = i;
-      }
-    };
-
     bool hasTriangleTopology = primitiveData->type == cgltf_primitive_type_triangles ||
                                primitiveData->type == cgltf_primitive_type_triangle_strip ||
                                primitiveData->type == cgltf_primitive_type_triangle_fan;
 
+    VtVec3fArray normals;
     bool generatedNormals = false;
     {
       const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "NORMAL");
@@ -1028,9 +974,6 @@ namespace guc
         if (hasTriangleTopology) // generate fallback normals (spec sec. 3.7.2.1)
         {
           TF_DEBUG(GUC).Msg("normals do not exist; calculating flat normals\n");
-
-          // For flat normals, vertex normals can not be shared among triangles.
-          deindexPrimvarsExceptTangents();
 
           createFlatNormals(indices, points, normals);
 
@@ -1072,14 +1015,7 @@ namespace guc
             TF_DEBUG(GUC).Msg("generating tangents\n");
 
             const VtVec2fArray& texCoords = texCoordSets[textureView.texcoord];
-            createTangents(indices, points, normals, texCoords, bitangentSigns, tangents);
-
-            // The generated tangents are unindexed, which means that we
-            // have to deindex all other primvars and reindex the mesh.
-            if (!generatedNormals)
-            {
-              deindexPrimvarsExceptTangents();
-            }
+            createTangents(indices, points, normals, texCoords, generatedNormals, bitangentSigns, tangents);
 
             generatedTangents = true;
           }
@@ -1104,24 +1040,16 @@ namespace guc
 
     if (!indices.empty())
     {
-      auto attr = mesh.CreateFaceVertexIndicesAttr(VtValue(indices));
-
-      // If we generated normals or tangents, we have re-indexed the mesh. This means
-      // that we have de-indexed all other primvars; but unlike the indices, their data
-      // still exists and is just encoded in a different way. This is why we only add
-      // the "generated" custom data to the indices.
-      if (generatedNormals || generatedTangents)
-      {
-        detail::markAttributeAsGenerated(attr);
-      }
+      mesh.CreateFaceVertexIndicesAttr(VtValue(indices));
     }
+
     mesh.CreatePointsAttr(VtValue(points));
     mesh.CreateFaceVertexCountsAttr(VtValue(faceVertexCounts));
 
     if (!normals.empty())
     {
       auto attr = mesh.CreateNormalsAttr(VtValue(normals));
-      mesh.SetNormalsInterpolation(UsdGeomTokens->vertex);
+      mesh.SetNormalsInterpolation(generatedNormals ? UsdGeomTokens->uniform : UsdGeomTokens->vertex);
 
       if (generatedNormals)
       {
@@ -1140,9 +1068,10 @@ namespace guc
     }
 
     // There is no formal schema for tangents and tangent signs/bitangents, so we define our own primvars
+    TfToken tangentInterpolation = generatedTangents ? UsdGeomTokens->faceVarying : UsdGeomTokens->vertex;
     if (!tangents.empty())
     {
-      auto primvar = primvarsApi.CreatePrimvar(UsdGeomTokens->tangents, SdfValueTypeNames->Float3Array, UsdGeomTokens->vertex);
+      auto primvar = primvarsApi.CreatePrimvar(UsdGeomTokens->tangents, SdfValueTypeNames->Float3Array, tangentInterpolation);
       primvar.Set(tangents);
 
       if (generatedTangents)
@@ -1152,7 +1081,7 @@ namespace guc
     }
     if (!bitangentSigns.empty())
     {
-      auto primvar = primvarsApi.CreatePrimvar(_tokens->bitangentSigns, SdfValueTypeNames->FloatArray, UsdGeomTokens->vertex);
+      auto primvar = primvarsApi.CreatePrimvar(_tokens->bitangentSigns, SdfValueTypeNames->FloatArray, tangentInterpolation);
       primvar.Set(bitangentSigns);
 
       if (generatedTangents)

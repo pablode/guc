@@ -65,7 +65,7 @@ jobs:
       matrix:
         include:
         - os-family: Linux
-          image: ubuntu-20.04
+          image: ubuntu-22.04
           usd-download-url: "https://github.com/pablode/USD/releases/download/v${{ inputs.usd-version }}-ci-release/USD${{ inputs.usd-version }}_Linux_x64_Python3.9.tar.gz"
           artifact-name: guc_USD${{ inputs.usd-version }}_Linux_x64.tar.gz
           executable-name: guc
@@ -124,7 +124,7 @@ jobs:
 
   conversion-tests:
     name: Conversion Tests (Debug)
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: build-debug
 
     env:
@@ -155,7 +155,7 @@ jobs:
         sudo add-apt-repository ppa:kisak/kisak-mesa
         sudo apt update
         sudo apt upgrade
-        sudo apt-get install mesa-utils xvfb qt5-default
+        sudo apt-get install mesa-utils xvfb qtbase5-dev
 
     - name: Set up environment variables
       run: |

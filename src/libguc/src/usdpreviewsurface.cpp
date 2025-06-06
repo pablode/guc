@@ -49,6 +49,8 @@ TF_DEFINE_PRIVATE_TOKENS(
   (ior)
   (specularColor)
   (useSpecularWorkflow)
+  (opacityMode)
+  (presence)
   // UsdUVTexture inputs
   (st)
   (file)
@@ -169,6 +171,11 @@ namespace guc
         auto opacityThresholdInput = shader.CreateInput(_tokens->opacityThreshold, SdfValueTypeNames->Float);
         opacityThresholdInput.Set(material->alpha_cutoff);
       }
+
+#if PXR_VERSION >= 2502
+      auto opacityModeInput = shader.CreateInput(_tokens->opacityMode, SdfValueTypeNames->Token);
+      opacityModeInput.Set(_tokens->presence); // no specular highlights (match glTF spec)
+#endif
     };
 
     auto emissiveColorInput = shader.CreateInput(_tokens->emissiveColor, SdfValueTypeNames->Color3f);

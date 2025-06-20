@@ -461,7 +461,7 @@ namespace guc
       mx::InputPtr iridescenceIorInput = shaderNode->addInput("iridescence_ior", MTLX_TYPE_FLOAT);
       iridescenceIorInput->setValue(iridescence->iridescence_ior);
 
-      addIridescenceThicknessInput(nodeGraph, shaderNode, iridescence);
+      addIridescenceThicknessTextureInput(nodeGraph, shaderNode, iridescence);
     }
 
     if (material->has_specular)
@@ -477,6 +477,7 @@ namespace guc
 
     if (material->has_sheen)
     {
+// TODO: why ptr? use reference instead
       const cgltf_sheen* sheen = &material->sheen;
 
       auto sheenFactorDefault = mx::Color3(0.0f); // according to spec
@@ -486,24 +487,31 @@ namespace guc
       addFloatTextureInput(nodeGraph, shaderNode, "sheen_roughness", sheen->sheen_roughness_texture, 3, sheen->sheen_roughness_factor, sheenRoughnessFactorDefault);
     }
 
-    mx::NodePtr tangentNode;
-#ifndef NDEBUG
-    if (TfGetEnvSetting(GUC_ENABLE_MTLX_VIEWER_COMPAT))
+    if (material->has_anisotropy)
     {
-      tangentNode = nodeGraph->addNode("tangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
-      auto spaceInput = tangentNode->addInput("space", MTLX_TYPE_STRING);
-      spaceInput->setValue("world");
-    }
-    else
-#endif
-    {
-      tangentNode = makeGeompropValueNode(nodeGraph, "tangents", MTLX_TYPE_VECTOR3);
-      tangentNode = detail::makeVectorToWorldSpaceNode(nodeGraph, tangentNode);
-      tangentNode = detail::makeNormalizeNode(nodeGraph, tangentNode);
-    }
+      const cgltf_anisotropy* anisotropy = &material->anisotropy;
+      addAnisotropyTextureInputs(nodeGraph, shaderNode, anisotropy);
 
-    mx::InputPtr tangentInput = shaderNode->addInput("tangent", MTLX_TYPE_VECTOR3);
-    connectNodeGraphNodeToShaderInput(nodeGraph, tangentInput, tangentNode);
+      // connect tangent only when we actually need it
+      mx::NodePtr tangentNode;
+#ifndef NDEBUG
+      if (TfGetEnvSetting(GUC_ENABLE_MTLX_VIEWER_COMPAT))
+      {
+        tangentNode = nodeGraph->addNode("tangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+        auto spaceInput = tangentNode->addInput("space", MTLX_TYPE_STRING);
+        spaceInput->setValue("world");
+      }
+      else
+#endif
+      {
+        tangentNode = makeGeompropValueNode(nodeGraph, "tangents", MTLX_TYPE_VECTOR3);
+        tangentNode = detail::makeVectorToWorldSpaceNode(nodeGraph, tangentNode);
+        tangentNode = detail::makeNormalizeNode(nodeGraph, tangentNode);
+      }
+
+      mx::InputPtr tangentInput = shaderNode->addInput("tangent", MTLX_TYPE_VECTOR3);
+      connectNodeGraphNodeToShaderInput(nodeGraph, tangentInput, tangentNode);
+    }
   }
 
   void MaterialXMaterialConverter::addDiffuseTextureInput(mx::NodeGraphPtr nodeGraph,
@@ -796,9 +804,9 @@ namespace guc
     connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, addNode);
   }
 
-  void MaterialXMaterialConverter::addIridescenceThicknessInput(mx::NodeGraphPtr nodeGraph,
-                                                                mx::NodePtr shaderNode,
-                                                                const cgltf_iridescence* iridescence)
+  void MaterialXMaterialConverter::addIridescenceThicknessTextureInput(mx::NodeGraphPtr nodeGraph,
+                                                                       mx::NodePtr shaderNode,
+                                                                       const cgltf_iridescence* iridescence)
   {
     std::string filePath;
     bool validTexture = getTextureFilePath(iridescence->iridescence_thickness_texture, filePath);
@@ -837,6 +845,45 @@ namespace guc
     }
 
     connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, mixNode);
+  }
+
+  void MaterialXMaterialConverter::addAnisotropyTextureInputs(mx::NodeGraphPtr nodeGraph,
+                                                              mx::NodePtr shaderNode,
+                                                              const cgltf_anisotropy* anisotropy)
+  {
+    mx::NodePtr strengthRotationInputsNode = shaderNode;
+
+    std::string filePath;
+    bool hasTexture = getTextureFilePath(anisotropy->anisotropy_texture, filePath);
+
+    if (hasTexture)
+    {
+      strengthRotationInputsNode = addAnisotropyTextureNode(nodeGraph, filePath, anisotropy->anisotropy_texture);
+    }
+
+    if (anisotropy->anisotropy_strength != 1.0f) // default value
+    {
+      mx::InputPtr strengthInput = strengthRotationInputsNode->addInput("anisotropy_strength", MTLX_TYPE_FLOAT);
+      strengthInput->setValue(anisotropy->anisotropy_strength);
+    }
+
+    if (anisotropy->anisotropy_rotation != 0.0f) // default value
+    {
+      mx::InputPtr rotationInput = strengthRotationInputsNode->addInput("anisotropy_rotation", MTLX_TYPE_FLOAT);
+      rotationInput->setValue(anisotropy->anisotropy_rotation);
+    }
+
+    // assign texture outputs to glTF PBR inputs
+    if (hasTexture)
+    {
+      mx::InputPtr strengthInput = shaderNode->addInput("anisotropy_strength", MTLX_TYPE_FLOAT);
+      strengthInput->setNodeName(strengthRotationInputsNode->getName());
+      strengthInput->setOutputString("anisotropy_strength_out");
+
+      mx::InputPtr rotationInput = shaderNode->addInput("anisotropy_rotation", MTLX_TYPE_FLOAT);
+      rotationInput->setNodeName(strengthRotationInputsNode->getName());
+      rotationInput->setOutputString("anisotropy_rotation_out");
+    }
   }
 
   void MaterialXMaterialConverter::addSrgbTextureInput(mx::NodeGraphPtr nodeGraph,
@@ -1027,6 +1074,79 @@ namespace guc
       auto defaultValueString = detail::getTextureTypeAdjustedDefaultValueString(defaultValue, textureType);
       defaultInput->setValueString(defaultValueString);
     }
+
+    const cgltf_sampler* sampler = textureView.texture->sampler;
+
+    // spec sec. 5.29.1. texture sampler: "When undefined, a sampler with repeat wrapping and auto filtering SHOULD be used."
+    if (sampler && (sampler->min_filter != 0 || sampler->mag_filter != 0))
+    {
+      std::string filtertype;
+      if (sampler->min_filter == 0 && sampler->mag_filter != 0)
+      {
+        filtertype = detail::getMtlxFilterType(sampler->mag_filter);
+      }
+      else if (sampler->mag_filter == 0 && sampler->min_filter != 0)
+      {
+        filtertype = detail::getMtlxFilterType(sampler->min_filter);
+      }
+      else if (sampler->min_filter != sampler->mag_filter)
+      {
+        TF_DEBUG(GUC).Msg("texture min filter does not match mag filter; ignoring min filter\n");
+        filtertype = detail::getMtlxFilterType(sampler->mag_filter);
+      }
+
+      if (!filtertype.empty())
+      {
+        auto filterInput = node->addInput("filtertype", MTLX_TYPE_STRING);
+        filterInput->setValue(filtertype);
+      }
+    }
+
+    auto uaddressModeInput = node->addInput("uaddressmode", MTLX_TYPE_STRING);
+    uaddressModeInput->setValue(sampler ? detail::getMtlxAddressMode(sampler->wrap_s) : "periodic");
+
+    auto vaddressModeInput = node->addInput("vaddressmode", MTLX_TYPE_STRING);
+    vaddressModeInput->setValue(sampler ? detail::getMtlxAddressMode(sampler->wrap_t) : "periodic");
+
+    return node;
+  }
+
+  mx::NodePtr MaterialXMaterialConverter::addAnisotropyTextureNode(mx::NodeGraphPtr nodeGraph,
+                                                                   const std::string& filePath,
+                                                                   const cgltf_texture_view& textureView)
+  {
+    mx::NodePtr node = nodeGraph->addNode("gltf_anisotropy_image", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+
+    const cgltf_texture_transform& transform = textureView.transform;
+    int stIndex = (textureView.has_transform && transform.has_texcoord) ? transform.texcoord : textureView.texcoord;
+
+    mx::NodePtr texcoordNode;
+#ifndef NDEBUG
+    if (TfGetEnvSetting(GUC_ENABLE_MTLX_VIEWER_COMPAT))
+    {
+      texcoordNode = nodeGraph->addNode("texcoord", mx::EMPTY_STRING, MTLX_TYPE_VECTOR2);
+
+      mx::InputPtr indexInput = texcoordNode->addInput("index");
+      indexInput->setValue(stIndex);
+    }
+    else
+#endif
+    {
+      texcoordNode = makeGeompropValueNode(nodeGraph, makeStSetName(stIndex), MTLX_TYPE_VECTOR2);
+    }
+
+    // TODO: replace with native node inputs
+    if (textureView.has_transform && cgltf_transform_required(transform))
+    {
+      texcoordNode = addTextureTransformNode(nodeGraph, texcoordNode, transform);
+    }
+
+    mx::InputPtr uvInput = node->addInput("texcoord", MTLX_TYPE_VECTOR2);
+    uvInput->setNodeName(texcoordNode->getName());
+
+    mx::InputPtr fileInput = node->addInput("file", MTLX_TYPE_FILENAME);
+    fileInput->setValue(filePath, MTLX_TYPE_FILENAME);
+    fileInput->setAttribute("colorspace", MTLX_COLORSPACE_LINEAR);
 
     const cgltf_sampler* sampler = textureView.texture->sampler;
 

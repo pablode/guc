@@ -81,9 +81,13 @@ namespace guc
                                   mx::NodePtr shaderNode,
                                   const cgltf_texture_view& textureView);
 
-    void addIridescenceThicknessInput(mx::NodeGraphPtr nodeGraph,
-                                      mx::NodePtr shaderNode,
-                                      const cgltf_iridescence* iridescence);
+    void addIridescenceThicknessTextureInput(mx::NodeGraphPtr nodeGraph,
+                                             mx::NodePtr shaderNode,
+                                             const cgltf_iridescence* iridescence);
+
+    void addAnisotropyTextureInputs(mx::NodeGraphPtr nodeGraph,
+                                    mx::NodePtr shaderNode,
+                                    const cgltf_anisotropy* anisotropy);
 
   private:
     void addSrgbTextureInput(mx::NodeGraphPtr nodeGraph,
@@ -147,6 +151,10 @@ namespace guc
                                bool isSrgb,
                                const cgltf_texture_view& textureView,
                                mx::ValuePtr defaultValue);
+
+    mx::NodePtr addAnisotropyTextureNode(mx::NodeGraphPtr nodeGraph,
+                               const std::string& filePath,
+                               const cgltf_texture_view& textureView);
 
     mx::NodePtr makeGeompropValueNode(mx::NodeGraphPtr nodeGraph,
                                       const std::string& geompropName,

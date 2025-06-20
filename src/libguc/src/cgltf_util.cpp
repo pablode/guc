@@ -53,6 +53,7 @@ namespace detail
            strcmp(name, GLTF_KHR_DRACO_MESH_COMPRESSION_EXTENSION_NAME) == 0 ||
 #endif
            strcmp(name, "KHR_lights_punctual") == 0 ||
+           strcmp(name, "KHR_materials_anisotropy") == 0 ||
            strcmp(name, "KHR_materials_clearcoat") == 0 ||
            strcmp(name, "KHR_materials_emissive_strength") == 0 ||
            strcmp(name, "KHR_materials_ior") == 0 ||

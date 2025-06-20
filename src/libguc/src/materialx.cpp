@@ -643,7 +643,32 @@ namespace guc
       bitangentNode = detail::makeNormalizeNode(nodeGraph, bitangentNode);
     }
 
-    // Here, we basically implement the normalmap node with variable handedness by using the bitangent
+#if MATERIALX_MAJOR_VERSION > 1 || (MATERIALX_MAJOR_VERSION == 1 && MATERIALX_MINOR_VERSION > 38)
+    // MaterialX 1.39 introduces a 'bitangent' input to the <normalmap> node
+    auto normalmapNode = nodeGraph->addNode("normalmap", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+    {
+      auto inInput = normalmapNode->addInput("in", MTLX_TYPE_VECTOR3);
+      inInput->setNodeName(textureNode->getName());
+
+      if (textureView.scale != 1.0f)
+      {
+        auto scaleInput = normalmapNode->addInput("scale", MTLX_TYPE_FLOAT);
+        scaleInput->setValue(textureView.scale);
+      }
+
+      auto normalInput = normalmapNode->addInput("normal", MTLX_TYPE_VECTOR3);
+      normalInput->setNodeName(normalNode->getName());
+
+      auto tangentInput = normalmapNode->addInput("tangent", MTLX_TYPE_VECTOR3);
+      tangentInput->setNodeName(tangentNode->getName());
+
+      auto bitangentInput = normalmapNode->addInput("bitangent", MTLX_TYPE_VECTOR3);
+      bitangentInput->setNodeName(bitangentNode->getName());
+    }
+
+    connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, normalmapNode);
+#else
+    // For older versions, we basically implement the normalmap node with variable handedness by using the bitangent
     // https://github.com/AcademySoftwareFoundation/MaterialX/blob/main/libraries/stdlib/genglsl/mx_normalmap.glsl
 
     // we need to remap the texture [0, 1] values to [-1, 1] values
@@ -726,6 +751,7 @@ namespace guc
     mx::NodePtr normalizeNode2 = detail::makeNormalizeNode(nodeGraph, addNode2);
 
     connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, normalizeNode2);
+#endif
   }
 
   void MaterialXMaterialConverter::addOcclusionTextureInput(mx::NodeGraphPtr nodeGraph,

@@ -48,6 +48,8 @@ const char* MTLX_TYPE_MATERIAL = "material";
 const char* MTLX_TYPE_SURFACESHADER = "surfaceshader";
 
 #ifndef NDEBUG
+TF_DEFINE_ENV_SETTING(GUC_ENABLE_MTLX_GLTF_PBR_TANGENT, false,
+                      "Set the 'tangent' input of the MaterialX glTF PBR (required for anisotropy).")
 TF_DEFINE_ENV_SETTING(GUC_ENABLE_MTLX_VIEWER_COMPAT, false,
                       "Emit geometric nodes and constant vertex colors for compatibility with MaterialXView.")
 #endif
@@ -486,24 +488,29 @@ namespace guc
       addFloatTextureInput(nodeGraph, shaderNode, "sheen_roughness", sheen->sheen_roughness_texture, 3, sheen->sheen_roughness_factor, sheenRoughnessFactorDefault);
     }
 
-    mx::NodePtr tangentNode;
 #ifndef NDEBUG
-    if (TfGetEnvSetting(GUC_ENABLE_MTLX_VIEWER_COMPAT))
+    if (TfGetEnvSetting(GUC_ENABLE_MTLX_GLTF_PBR_TANGENT))
     {
-      tangentNode = nodeGraph->addNode("tangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
-      auto spaceInput = tangentNode->addInput("space", MTLX_TYPE_STRING);
-      spaceInput->setValue("world");
-    }
-    else
-#endif
-    {
-      tangentNode = makeGeompropValueNode(nodeGraph, "tangents", MTLX_TYPE_VECTOR3);
-      tangentNode = detail::makeVectorToWorldSpaceNode(nodeGraph, tangentNode);
-      tangentNode = detail::makeNormalizeNode(nodeGraph, tangentNode);
-    }
+      mx::NodePtr tangentNode;
 
-    mx::InputPtr tangentInput = shaderNode->addInput("tangent", MTLX_TYPE_VECTOR3);
-    connectNodeGraphNodeToShaderInput(nodeGraph, tangentInput, tangentNode);
+      if (TfGetEnvSetting(GUC_ENABLE_MTLX_VIEWER_COMPAT))
+      {
+        tangentNode = nodeGraph->addNode("tangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+
+        auto spaceInput = tangentNode->addInput("space", MTLX_TYPE_STRING);
+        spaceInput->setValue("world");
+      }
+      else
+      {
+        tangentNode = makeGeompropValueNode(nodeGraph, "tangents", MTLX_TYPE_VECTOR3);
+        tangentNode = detail::makeVectorToWorldSpaceNode(nodeGraph, tangentNode);
+        tangentNode = detail::makeNormalizeNode(nodeGraph, tangentNode);
+      }
+
+      mx::InputPtr tangentInput = shaderNode->addInput("tangent", MTLX_TYPE_VECTOR3);
+      connectNodeGraphNodeToShaderInput(nodeGraph, tangentInput, tangentNode);
+    }
+#endif
   }
 
   void MaterialXMaterialConverter::addDiffuseTextureInput(mx::NodeGraphPtr nodeGraph,

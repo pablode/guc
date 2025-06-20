@@ -38,6 +38,6 @@ namespace guc
                       const VtVec3fArray& normals,
                       const VtVec2fArray& texcoords,
                       bool uniformNormals,
-                      VtFloatArray& signs,
-                      VtVec3fArray& tangents);
+                      VtVec3fArray& tangents,
+                      VtVec3fArray& bitangents);
 }

@@ -602,11 +602,49 @@ namespace guc
 
     mx::InputPtr shaderInput = shaderNode->addInput(inputName, MTLX_TYPE_VECTOR3);
 
-    // here, we basically implement the normalmap node, but with variable handedness by using the bitangent
-    // https://github.com/AcademySoftwareFoundation/MaterialX/blob/main/libraries/stdlib/genglsl/mx_normalmap.glsl
-
     mx::ValuePtr defaultValue = mx::Value::createValue(mx::Vector3(0.5f, 0.5f, 1.0f));
     mx::NodePtr textureNode = addFloat3TextureNodes(nodeGraph, textureView, filePath, false, defaultValue);
+
+    auto normalNode = nodeGraph->addNode("normal", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+    {
+      auto spaceInput = normalNode->addInput("space", MTLX_TYPE_STRING);
+      spaceInput->setValue("world");
+    }
+
+    mx::NodePtr tangentNode;
+#ifndef NDEBUG
+    if (TfGetEnvSetting(GUC_ENABLE_MTLX_VIEWER_COMPAT))
+    {
+      tangentNode = nodeGraph->addNode("tangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+      auto spaceInput = tangentNode->addInput("space", MTLX_TYPE_STRING);
+      spaceInput->setValue("world");
+    }
+    else
+#endif
+    {
+      tangentNode = makeGeompropValueNode(nodeGraph, "tangents", MTLX_TYPE_VECTOR3);
+      tangentNode = detail::makeVectorToWorldSpaceNode(nodeGraph, tangentNode);
+      tangentNode = detail::makeNormalizeNode(nodeGraph, tangentNode);
+    }
+
+    mx::NodePtr bitangentNode;
+#ifndef NDEBUG
+    if (TfGetEnvSetting(GUC_ENABLE_MTLX_VIEWER_COMPAT))
+    {
+      bitangentNode = nodeGraph->addNode("bitangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
+      auto spaceInput = bitangentNode->addInput("space", MTLX_TYPE_STRING);
+      spaceInput->setValue("world");
+    }
+    else
+#endif
+    {
+      bitangentNode = makeGeompropValueNode(nodeGraph, "bitangents", MTLX_TYPE_VECTOR3);
+      bitangentNode = detail::makeVectorToWorldSpaceNode(nodeGraph, bitangentNode);
+      bitangentNode = detail::makeNormalizeNode(nodeGraph, bitangentNode);
+    }
+
+    // Here, we basically implement the normalmap node with variable handedness by using the bitangent
+    // https://github.com/AcademySoftwareFoundation/MaterialX/blob/main/libraries/stdlib/genglsl/mx_normalmap.glsl
 
     // we need to remap the texture [0, 1] values to [-1, 1] values
     mx::NodePtr multiplyNode1 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
@@ -638,64 +676,6 @@ namespace guc
     mx::NodePtr outx = detail::makeExtractChannelNode(nodeGraph, normalizeNode1, 0);
     mx::NodePtr outy = detail::makeExtractChannelNode(nodeGraph, normalizeNode1, 1);
     mx::NodePtr outz = detail::makeExtractChannelNode(nodeGraph, normalizeNode1, 2);
-
-    auto normalNode = nodeGraph->addNode("normal", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
-    {
-      auto spaceInput = normalNode->addInput("space", MTLX_TYPE_STRING);
-      spaceInput->setValue("world");
-    }
-
-    mx::NodePtr tangentNode;
-#ifndef NDEBUG
-    if (TfGetEnvSetting(GUC_ENABLE_MTLX_VIEWER_COMPAT))
-    {
-      tangentNode = nodeGraph->addNode("tangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
-
-      auto spaceInput = tangentNode->addInput("space", MTLX_TYPE_STRING);
-      spaceInput->setValue("world");
-    }
-    else
-#endif
-    {
-      tangentNode = makeGeompropValueNode(nodeGraph, "tangents", MTLX_TYPE_VECTOR3);
-
-      tangentNode = detail::makeVectorToWorldSpaceNode(nodeGraph, tangentNode);
-
-      tangentNode = detail::makeNormalizeNode(nodeGraph, tangentNode);
-    }
-
-    mx::NodePtr bitangentNode;
-#ifndef NDEBUG
-    if (TfGetEnvSetting(GUC_ENABLE_MTLX_VIEWER_COMPAT))
-    {
-      bitangentNode = nodeGraph->addNode("bitangent", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
-
-      auto spaceInput = bitangentNode->addInput("space", MTLX_TYPE_STRING);
-      spaceInput->setValue("world");
-    }
-    else
-#endif
-    {
-      auto crossproductNode = nodeGraph->addNode("crossproduct", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
-      {
-       auto input1 = crossproductNode->addInput("in1", MTLX_TYPE_VECTOR3);
-       input1->setNodeName(normalNode->getName());
-
-       auto input2 = crossproductNode->addInput("in2", MTLX_TYPE_VECTOR3);
-       input2->setNodeName(tangentNode->getName());
-      }
-
-      auto bitangentSignNode = makeGeompropValueNode(nodeGraph, "bitangentSigns", MTLX_TYPE_FLOAT);
-
-      bitangentNode = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
-      {
-        auto input1 = bitangentNode->addInput("in1", MTLX_TYPE_VECTOR3);
-        input1->setNodeName(crossproductNode->getName());
-
-        auto input2 = bitangentNode->addInput("in2", MTLX_TYPE_FLOAT);
-        input2->setNodeName(bitangentSignNode->getName());
-      }
-    }
 
     // the next nodes implement multiplication with the TBN matrix
     mx::NodePtr multiplyNode3 = nodeGraph->addNode("multiply", mx::EMPTY_STRING, MTLX_TYPE_VECTOR3);
@@ -746,7 +726,6 @@ namespace guc
     mx::NodePtr normalizeNode2 = detail::makeNormalizeNode(nodeGraph, addNode2);
 
     connectNodeGraphNodeToShaderInput(nodeGraph, shaderInput, normalizeNode2);
-
   }
 
   void MaterialXMaterialConverter::addOcclusionTextureInput(mx::NodeGraphPtr nodeGraph,

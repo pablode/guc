@@ -59,7 +59,7 @@ TF_DEFINE_PRIVATE_TOKENS(
   (generator)
   (version)
   (min_version)
-  (bitangentSigns)
+  (bitangents)
   (guc)
   (generated)
 );
@@ -983,7 +983,7 @@ namespace guc
     }
 
     VtVec3fArray tangents;
-    VtFloatArray bitangentSigns;
+    VtVec3fArray bitangents;
     bool generatedTangents = false;
     {
       const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "TANGENT");
@@ -993,12 +993,12 @@ namespace guc
         if (detail::readVtArrayFromAccessor(accessor, tangentsWithW))
         {
           tangents.resize(tangentsWithW.size());
-          bitangentSigns.resize(tangentsWithW.size());
+          bitangents.resize(tangentsWithW.size());
 
           for (size_t i = 0; i < tangentsWithW.size(); i++)
           {
             tangents[i] = GfVec3f(tangentsWithW[i].data());
-            bitangentSigns[i] = tangentsWithW[i][3];
+            bitangents[i] = GfCross(normals[i], tangents[i]) * tangentsWithW[i][3];
           }
         }
       }
@@ -1015,7 +1015,8 @@ namespace guc
             TF_DEBUG(GUC).Msg("generating tangents\n");
 
             const VtVec2fArray& texCoords = texCoordSets[textureView.texcoord];
-            createTangents(indices, points, normals, texCoords, generatedNormals, bitangentSigns, tangents);
+
+            createTangents(indices, points, normals, texCoords, generatedNormals, tangents, bitangents);
 
             generatedTangents = true;
           }
@@ -1079,10 +1080,11 @@ namespace guc
         detail::markAttributeAsGenerated(primvar);
       }
     }
-    if (!bitangentSigns.empty())
+
+    if (!bitangents.empty())
     {
-      auto primvar = primvarsApi.CreatePrimvar(_tokens->bitangentSigns, SdfValueTypeNames->FloatArray, tangentInterpolation);
-      primvar.Set(bitangentSigns);
+      auto primvar = primvarsApi.CreatePrimvar(_tokens->bitangents, SdfValueTypeNames->Float3Array, tangentInterpolation);
+      primvar.Set(bitangents);
 
       if (generatedTangents)
       {

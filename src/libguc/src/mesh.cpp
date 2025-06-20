@@ -173,14 +173,14 @@ namespace guc
                       const VtVec3fArray& normals,
                       const VtVec2fArray& texcoords,
                       bool uniformNormals,
-                      VtFloatArray& unindexedSigns,
-                      VtVec3fArray& unindexedTangents)
+                      VtVec3fArray& tangents,
+                      VtVec3fArray& bitangents)
   {
     TF_VERIFY(!texcoords.empty());
 
     int vertexCount = indices.size();
-    unindexedTangents.resize(vertexCount);
-    unindexedSigns.resize(vertexCount);
+    tangents.resize(vertexCount);
+    bitangents.resize(vertexCount);
 
     struct UserData {
       const VtIntArray& indices;
@@ -188,10 +188,10 @@ namespace guc
       const VtVec3fArray& normals;
       const VtVec2fArray& texcoords;
       bool uniformNormals;
-      VtFloatArray& unindexedSigns;
-      VtVec3fArray& unindexedTangents;
+      VtVec3fArray& tangents;
+      VtVec3fArray& bitangents;
     } userData = {
-      indices, positions, normals, texcoords, uniformNormals, unindexedSigns, unindexedTangents
+      indices, positions, normals, texcoords, uniformNormals, tangents, bitangents
     };
 
     auto getNumFacesFunc = [](const SMikkTSpaceContext* pContext) {
@@ -231,9 +231,16 @@ namespace guc
 
     auto setTSpaceBasicFunc = [](const SMikkTSpaceContext* pContext, const float fvTangent[], const float fSign, const int iFace, const int iVert) {
       UserData* userData = (UserData*) pContext->m_pUserData;
-      int newVertexIndex = iFace * 3 + iVert;
-      userData->unindexedTangents[newVertexIndex] = GfVec3f(fvTangent[0], fvTangent[1], fvTangent[2]);
-      userData->unindexedSigns[newVertexIndex] = fSign;
+
+      int normalIndex = userData->uniformNormals ? iFace : userData->indices[iFace * 3 + iVert];
+      const GfVec3f& normal = userData->normals[normalIndex];
+
+      GfVec3f tangent(fvTangent[0], fvTangent[1], fvTangent[2]);
+      GfVec3f bitangent = GfCross(normal, tangent) * fSign;
+
+      int newTangentIndex = iFace * 3 + iVert;
+      userData->tangents[newTangentIndex] = tangent;
+      userData->bitangents[newTangentIndex] = bitangent;
     };
 
     SMikkTSpaceInterface interface;

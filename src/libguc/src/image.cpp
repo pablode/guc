@@ -23,8 +23,15 @@
 #include <pxr/usd/ar/resolvedPath.h>
 
 #ifdef GUC_USE_OIIO
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4996) // Disable deprecation warnings for MSVC
+#endif
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/filesystem.h>
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 #else
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>

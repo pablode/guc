@@ -40,7 +40,7 @@ jobs:
           archive-name: guc_USD${{ inputs.usd-version }}_MacOS_ARM
 
         - os-family: Windows
-          image: windows-2019
+          image: windows-2022
           usd-download-url: "https://github.com/pablode/USD/releases/download/v${{ inputs.usd-version }}-ci-release/USD${{ inputs.usd-version }}_Windows_x64.tar.gz"
           usd-install-path: C:/INSTALL
           archive-name: guc_USD${{ inputs.usd-version }}_Windows_x64

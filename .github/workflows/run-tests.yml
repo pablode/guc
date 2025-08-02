@@ -71,7 +71,7 @@ jobs:
           executable-name: guc
 
         - os-family: Windows
-          image: windows-2019
+          image: windows-2022
           usd-download-url: "https://github.com/pablode/USD/releases/download/v${{ inputs.usd-version }}-ci-release/USD${{ inputs.usd-version }}_Windows_x64_Python3.9.tar.gz"
           artifact-name: guc_USD${{ inputs.usd-version }}_Windows_x64.tar.gz
           executable-name: guc.exe

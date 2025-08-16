@@ -194,6 +194,15 @@ namespace guc
   {
   }
 
+  void Converter::setStageDefaults(UsdStageRefPtr stage, const UsdPrim& defaultPrim) const
+  {
+    stage->SetDefaultPrim(defaultPrim);
+    stage->SetMetadata(SdfFieldKeys->Documentation, TfStringPrintf("Converted from glTF with guc %s", GUC_VERSION_STRING));
+
+    UsdGeomSetStageUpAxis(stage, UsdGeomTokens->y);
+    UsdGeomSetStageMetersPerUnit(stage, 1.0);
+  }
+
   void Converter::convert(FileExports& fileExports)
   {
     // Step 1: set up stage & root prim
@@ -201,11 +210,7 @@ namespace guc
     UsdModelAPI(rootXForm).SetKind(KindTokens->component);
 
     auto defaultPrim = rootXForm.GetPrim();
-    m_stage->SetDefaultPrim(defaultPrim);
-    m_stage->SetMetadata(SdfFieldKeys->Documentation, TfStringPrintf("Converted from glTF with guc %s", GUC_VERSION_STRING));
-
-    UsdGeomSetStageUpAxis(m_stage, UsdGeomTokens->y);
-    UsdGeomSetStageMetersPerUnit(m_stage, 1.0);
+    setStageDefaults(m_stage, defaultPrim);
 
     // FIXME: use SetAssetInfoByKey for some of these values
     const cgltf_asset& asset = m_data->asset;

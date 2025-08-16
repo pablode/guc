@@ -72,6 +72,7 @@ namespace guc
     bool createPrimitive(const cgltf_primitive* primitiveData, SdfPath path, UsdPrim& prim);
 
   private:
+    void setStageDefaults(UsdStageRefPtr stage, const UsdPrim& defaultPrim) const;
     bool overridePrimInPathMap(void* dataPtr, const SdfPath& path, UsdPrim& prim);
     bool isValidTexture(const cgltf_texture_view& textureView);
 

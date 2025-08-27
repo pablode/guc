@@ -40,6 +40,10 @@ struct guc_options
   // If the asset supports the KHR_materials_variants extension, select the material
   // variant at the given index by default.
   int default_material_variant;
+
+  // By default, guc will write geometry and materials to separate layers, referenced by
+  // a payload file. Setting this option to true merges all prims into a single layer.
+  bool single_file;
 };
 
 bool guc_convert(const char* gltf_path,

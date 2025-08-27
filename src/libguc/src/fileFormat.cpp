@@ -146,11 +146,17 @@ bool UsdGlTFFileFormat::Read(SdfLayer* layer,
   params.emitMtlx = data->emitMtlx;
   params.mtlxAsUsdShade = true;
   params.defaultMaterialVariant = 0;
+  params.singleFile = true;
 
   SdfLayerRefPtr tmpLayer = SdfLayer::CreateAnonymous(".usdc");
   UsdStageRefPtr stage = UsdStage::Open(tmpLayer);
 
-  Converter converter(gltf_data, stage, params);
+  // We can only return a single layer to SDF.
+  UsdStageRefPtr rootStage = stage;
+  UsdStageRefPtr geoStage = stage;
+  UsdStageRefPtr lookStage = stage;
+  UsdStageRefPtr payloadStage = stage;
+  Converter converter(gltf_data, rootStage, geoStage, lookStage, payloadStage, params);
 
   Converter::FileExports fileExports; // only used for USDZ
   converter.convert(fileExports);

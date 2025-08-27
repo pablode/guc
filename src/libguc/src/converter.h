@@ -47,10 +47,17 @@ namespace guc
       bool emitMtlx;
       bool mtlxAsUsdShade;
       int defaultMaterialVariant;
+      // TODO: might make sense to replace this with stage ptr comparison
+      bool singleFile;
     };
 
   public:
-    Converter(const cgltf_data* data, UsdStageRefPtr stage, const Params& params);
+    Converter(const cgltf_data* data,
+              UsdStageRefPtr rootStage,
+              UsdStageRefPtr geomStage,
+              UsdStageRefPtr lookStage,
+              UsdStageRefPtr payloadStage,
+              const Params& params);
 
   public:
     struct FileExport
@@ -78,7 +85,10 @@ namespace guc
 
   private:
     const cgltf_data* m_data;
-    UsdStageRefPtr m_stage;
+    UsdStageRefPtr m_rootStage;
+    UsdStageRefPtr m_geomStage;
+    UsdStageRefPtr m_lookStage;
+    UsdStageRefPtr m_payloadStage;
     const Params& m_params;
 
   private:

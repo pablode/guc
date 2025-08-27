@@ -40,13 +40,51 @@ bool convertToUsd(fs::path src_dir,
                   const guc_options* options,
                   Converter::FileExports& fileExports)
 {
-  UsdStageRefPtr stage = UsdStage::CreateNew(usd_path.string());
-  if (!stage)
+  // Create stages.
+  std::string rootStagePath = usd_path.string();
+
+  UsdStageRefPtr rootStage = UsdStage::CreateNew(rootStagePath);
+  if (!rootStage)
   {
-    TF_RUNTIME_ERROR("unable to open stage at %s", usd_path.string().c_str());
+    TF_RUNTIME_ERROR("unable to open stage at %s", rootStagePath.c_str());
     return false;
   }
 
+  UsdStageRefPtr geomStage = rootStage;
+  UsdStageRefPtr lookStage = rootStage;
+  UsdStageRefPtr payloadStage = rootStage;
+
+  if (!options->single_file)
+  {
+    std::string stageStem = usd_path.stem().string();
+
+    std::string geomStagePath = stageStem + "_geom.usdc";
+    std::string lookStagePath = stageStem + "_look.usda";
+    std::string payloadStagePath = stageStem + "_payload.usda";
+
+    geomStage = UsdStage::CreateNew(geomStagePath);
+    if (!geomStage)
+    {
+      TF_RUNTIME_ERROR("unable to open stage at %s", geomStagePath.c_str());
+      return false;
+    }
+
+    lookStage = UsdStage::CreateNew(lookStagePath);
+    if (!lookStage)
+    {
+      TF_RUNTIME_ERROR("unable to open stage at %s", lookStagePath.c_str());
+      return false;
+    }
+
+    payloadStage = UsdStage::CreateNew(payloadStagePath);
+    if (!payloadStage)
+    {
+      TF_RUNTIME_ERROR("unable to open stage at %s", payloadStagePath.c_str());
+      return false;
+    }
+  }
+
+  // Perform conversion.
   Converter::Params params = {};
   params.srcDir = src_dir;
   params.dstDir = usd_path.parent_path();
@@ -56,13 +94,40 @@ bool convertToUsd(fs::path src_dir,
   params.emitMtlx = options->emit_mtlx;
   params.mtlxAsUsdShade = options->mtlx_as_usdshade;
   params.defaultMaterialVariant = options->default_material_variant;
+  params.singleFile = options->singleFile;
 
-  Converter converter(gltf_data, stage, params);
+  Converter converter(gltf_data, rootStage, geomStage, lookStage, payloadStage, params);
 
   converter.convert(fileExports);
 
-  TF_DEBUG(GUC).Msg("saving stage to %s\n", usd_path.string().c_str());
-  stage->Save();
+  // Populate payload stage.
+  if (!options->single_file)
+  {
+    auto defaultPrim = rootStage.GetPrim();
+
+    payloadStage->SetDefaultPrim(defaultPrim);
+    UsdGeomSetStageUpAxis(payloadStage, UsdGeomTokens->y);
+    UsdGeomSetStageMetersPerUnit(payloadStage, 1.0);
+
+    payloadStage->setSubLayerPaths({
+      lookStage->GetRealPath(),
+      geomStage->GetRealPath()
+    });
+  }
+
+  // Write stages to disk.
+  if (!options->single_file)
+  {
+    TF_DEBUG(GUC).Msg("saving stage %s\n", lookStage->GetRealPath().c_str());
+    lookStage->Save();
+    TF_DEBUG(GUC).Msg("saving stage %s\n", geomStage->GetRealPath().c_str());
+    geomStage->Save();
+    TF_DEBUG(GUC).Msg("saving stage %s\n", payloadStage->GetRealPath().c_str());
+    payloadStage->Save();
+  }
+
+  TF_DEBUG(GUC).Msg("saving stage %s\n", rootStage->GetRealPath().c_str());
+  rootStage->Save();
 
   return true;
 }

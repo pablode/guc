@@ -184,13 +184,21 @@ namespace detail
 
 namespace guc
 {
-  Converter::Converter(const cgltf_data* data, UsdStageRefPtr stage, const Params& params)
+  Converter::Converter(const cgltf_data* data,
+                       UsdStageRefPtr rootStage,
+                       UsdStageRefPtr geomStage,
+                       UsdStageRefPtr lookStage,
+                       UsdStageRefPtr payloadStage,
+                       const Params& params)
     : m_data(data)
-    , m_stage(stage)
+    , m_rootStage(rootStage)
+    , m_geomStage(geomStage)
+    , m_lookStage(lookStage)
+    , m_payloadStage(payloadStage)
     , m_params(params)
     , m_mtlxDoc(mx::createDocument())
     , m_mtlxConverter(m_mtlxDoc, m_imgMetadata)
-    , m_usdPreviewSurfaceConverter(m_stage, m_imgMetadata)
+    , m_usdPreviewSurfaceConverter(m_lookStage, m_imgMetadata)
   {
   }
 
@@ -205,12 +213,20 @@ namespace guc
 
   void Converter::convert(FileExports& fileExports)
   {
-    // Step 1: set up stage & root prim
+    // Step 1: set up stages
     auto rootXForm = UsdGeomXform::Define(m_stage, getEntryPath(EntryPathType::Root));
     UsdModelAPI(rootXForm).SetKind(KindTokens->component);
 
+// TODO: we need to create this prim separately!
     auto defaultPrim = rootXForm.GetPrim();
-    setStageDefaults(m_stage, defaultPrim);
+    setStageDefaults(m_rootStage, defaultPrim);
+
+    if (!m_params.singleFile)
+    {
+      setStageDefaults(m_geomStage, defaultPrim);
+      setStageDefaults(m_lookStage, defaultPrim);
+      setStageDefaults(m_payloadStage, defaultPrim);
+    }
 
     // FIXME: use SetAssetInfoByKey for some of these values
     const cgltf_asset& asset = m_data->asset;
@@ -268,7 +284,7 @@ namespace guc
 
     if (hasMaterials || createDefaultMaterial)
     {
-      UsdGeomScope::Define(m_stage, getEntryPath(EntryPathType::Materials));
+      UsdGeomScope::Define(m_geomStage, getEntryPath(EntryPathType::Materials));
 
       createMaterials(fileExports, createDefaultMaterial);
     }
@@ -277,6 +293,14 @@ namespace guc
     auto createNodes = [this](const cgltf_node* nodeData, SdfPath path)
     {
       std::string baseName(nodeData->name ? nodeData->name : "node");
+
+// TODO: seems like we need to create the hierarchy two times... 1) extent, 2) geo
+      UsdStageRefPtr stage = m_rootStage;
+      if (nodeData->mesh)
+      {
+        stage = m_geomStage;
+      }
+
       SdfPath nodePath = makeUniqueStageSubpath(m_stage, path, baseName);
 
       createNodesRecursively(nodeData, nodePath);
@@ -318,6 +342,9 @@ namespace guc
         prim.SetDisplayName(sceneData->name);
       }
     }
+
+    // Step 5: TODO
+    //mesh.CreateExtentAttr(VtValue(extent));
 
     // Assign default material variant
     if (m_data->variants_count > 0)

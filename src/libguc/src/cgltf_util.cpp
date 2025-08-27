@@ -52,6 +52,7 @@ namespace detail
 #ifdef GUC_USE_DRACO
            strcmp(name, GLTF_KHR_DRACO_MESH_COMPRESSION_EXTENSION_NAME) == 0 ||
 #endif
+           strcmp(name, guc::GLTF_KHR_GAUSSIAN_SPLATTING_EXTENSION_NAME) == 0 ||
            strcmp(name, "KHR_lights_punctual") == 0 ||
            strcmp(name, "KHR_materials_clearcoat") == 0 ||
            strcmp(name, "KHR_materials_emissive_strength") == 0 ||
@@ -497,12 +498,12 @@ namespace guc
 
       if (meshoptCompressionRequired)
       {
-        TF_RUNTIME_ERROR(errStr, guc::cgltf_error_string(result));
+        TF_RUNTIME_ERROR(errStr, cgltf_error_string(result));
         free_gltf(*data);
         return false;
       }
 
-      TF_WARN(errStr, guc::cgltf_error_string(result));
+      TF_WARN(errStr, cgltf_error_string(result));
     }
 
 #ifdef GUC_USE_DRACO

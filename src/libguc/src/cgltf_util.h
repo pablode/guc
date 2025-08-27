@@ -20,6 +20,8 @@
 
 namespace guc
 {
+  constexpr static const char* GLTF_KHR_GAUSSIAN_SPLATTING_EXTENSION_NAME = "KHR_gaussian_splatting";
+
   bool load_gltf(const char* gltfPath, cgltf_data** data);
 
   void free_gltf(cgltf_data* data);

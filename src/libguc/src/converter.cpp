@@ -763,6 +763,172 @@ namespace guc
 
   bool Converter::createPrimitive(const cgltf_primitive* primitiveData, SdfPath path, UsdPrim& prim)
   {
+    bool isGsplat = false;
+
+    for (size_t i = 0; i < primitiveData->extensions_count; i++)
+    {
+      const cgltf_extension& extension = primitiveData->extensions[i];
+      isGsplat |= !strcmp(extension.name, GLTF_KHR_GAUSSIAN_SPLATTING_EXTENSION_NAME);
+    }
+
+    if (isGsplat)
+    {
+      return createGsplatPrimitive(primitiveData, path, prim);
+    }
+    else
+    {
+      return createMeshPrimitive(primitiveData, path, prim);
+    }
+  }
+
+  // TODO: factor out code we use for both paths
+  bool Converter::createGsplatPrimitive(const cgltf_primitive* primitiveData, SdfPath path, UsdPrim& prim)
+  {
+    // TODO: proper material handling
+    const cgltf_material* material = primitiveData->material;
+
+    // Indices
+    VtIntArray indices;
+    {
+      const cgltf_accessor* accessor = primitiveData->indices;
+      if (accessor)
+      {
+        if (!detail::readVtArrayFromAccessor(accessor, indices))
+        {
+          TF_RUNTIME_ERROR("unable to read primitive indices");
+          return false;
+        }
+      }
+    }
+
+    // Points
+    VtVec3fArray points;
+    {
+      const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "POSITION");
+
+      if (!detail::readVtArrayFromAccessor(accessor, points) || accessor->count == 0)
+      {
+        TF_RUNTIME_ERROR("invalid POSITION accessor");
+        return false;
+      }
+
+      if (indices.empty())
+      {
+        indices.reserve(accessor->count);
+        for (size_t i = 0; i < accessor->count; i++)
+        {
+          indices.push_back(i);
+        }
+      }
+    }
+
+    // Colors
+    VtVec3fArray colors;
+    VtFloatArray opacities;
+    {
+      const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "COLOR0");
+
+      if (accessor->type != cgltf_type_vec4)
+      {
+        // TODO: spec reads 'should' so missing alpha is valid
+        TF_RUNTIME_ERROR("gsplat primitive has invalid COLOR0 accessor");
+        return false;
+      }
+
+      VtVec4fArray rgbaColors;
+      if (!detail::readVtArrayFromAccessor(accessor, rgbaColors))
+      {
+        TF_RUNTIME_ERROR("can't read gsplat COLOR0 attribute");
+        return false;
+      }
+
+      size_t rgbaColorCount = rgbaColors.size();
+
+      colors.resize(rgbaColorCount);
+      for (size_t k = 0; k < rgbaColorCount; k++)
+      {
+        colors[k] = GfVec3f(rgbaColors[k].data());
+      }
+
+      // Optimization: if material is opaque, we don't read the opacities anyway
+      if (material->alpha_mode != cgltf_alpha_mode_opaque)
+      {
+        opacities.resize(rgbaColorCount);
+        for (size_t k = 0; k < rgbaColorCount; k++)
+        {
+          opacities[k] = rgbaColors[k][3];
+        }
+      }
+    }
+
+    // Gsplat rotation, scale
+    VtVec4fArray rotations;
+    VtVec3fArray scales;
+    {
+      const cgltf_accessor* rotationAccessor = cgltf_find_accessor(primitiveData, "KHR_gaussian_splatting:ROTATION");
+
+      if (!detail::readVtArrayFromAccessor(rotationAccessor, rotations))
+      {
+        TF_RUNTIME_ERROR("can't read gsplat ROTATION accessor");
+        return false;
+      }
+
+      const cgltf_accessor* scaleAccessor = cgltf_find_accessor(primitiveData, "KHR_gaussian_splatting:SCALE");
+
+      if (!detail::readVtArrayFromAccessor(scaleAccessor, scales))
+      {
+        TF_RUNTIME_ERROR("can't read gsplat SCALE accessor");
+        return false;
+      }
+    }
+
+    // Spherical harmonics (up to 12 accessors)
+    std::vector<std::vector<VtVec3fArray>> shCoeffs; // degree<coeff>
+
+    const static std::array<uint32_t, 3> COEFF_BOUNDS = {2, 4, 6};
+
+    for (uint32_t degree = 1; degree <= 3; degree++)
+    {
+      for (uint32_t coeff = 0; coeff <= COEFF_BOUNDS[degree]; coeff++)
+      {
+        std::string name = "KHR_gaussian_splatting:SH_DEGREE_" + std::to_string(degree) +
+                           + "_COEFF_" + std::to_string(coeff);
+
+        const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, name.c_str());
+        if (!accessor)
+        {
+          break; // sh degrees > 0 are optional
+        }
+
+        VtVec3fArray coeffs;
+        if (!detail::readVtArrayFromAccessor(accessor, coeffs))
+        {
+          TF_RUNTIME_ERROR("can't read gsplat SH coeffs");
+          return false;
+        }
+
+        if (coeff == 0)
+        {
+          shCoeffs.push_back({});
+        }
+
+        shCoeffs[degree].push_back(coeffs);
+      }
+    }
+
+
+    // TODO: now, we need to create a splat mesh (ellipsoid, triangle, quad)
+    // TODO: inside an instancer
+
+
+
+    // TODO: we should also provide displayColors
+
+    // TODO: return something
+  }
+
+  bool Converter::createMeshPrimitive(const cgltf_primitive* primitiveData, SdfPath path, UsdPrim& prim)
+  {
     const cgltf_material* material = primitiveData->material;
 
     // "If material is undefined, then a default material MUST be used." (glTF spec. 3.7.2.1)
@@ -799,6 +965,7 @@ namespace guc
 
       if (indices.empty())
       {
+        indices.reserve(accessor->count);
         for (size_t i = 0; i < accessor->count; i++)
         {
           indices.push_back(i);

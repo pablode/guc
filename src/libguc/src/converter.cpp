@@ -23,8 +23,10 @@
 #include <pxr/usd/usdGeom/camera.h>
 #include <pxr/usd/usdGeom/mesh.h>
 #include <pxr/usd/usdGeom/metrics.h>
+#include <pxr/usd/usdGeom/pointInstancer.h>
 #include <pxr/usd/usdGeom/primvarsAPI.h>
 #include <pxr/usd/usdGeom/scope.h>
+#include <pxr/usd/usdGeom/sphere.h>
 #include <pxr/usd/usdGeom/xform.h>
 #include <pxr/base/gf/camera.h>
 #include <pxr/usd/usdLux/shapingAPI.h>
@@ -787,6 +789,7 @@ namespace guc
     // TODO: proper material handling
     const cgltf_material* material = primitiveData->material;
 
+// TODO: how to actually handle indices in a point cloud?
     // Indices
     VtIntArray indices;
     {
@@ -801,14 +804,14 @@ namespace guc
       }
     }
 
-    // Points
+    // Points (& fallback indices)
     VtVec3fArray points;
     {
       const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "POSITION");
 
       if (!detail::readVtArrayFromAccessor(accessor, points) || accessor->count == 0)
       {
-        TF_RUNTIME_ERROR("invalid POSITION accessor");
+        TF_RUNTIME_ERROR("invalid %s accessor", accessor->name);
         return false;
       }
 
@@ -826,19 +829,19 @@ namespace guc
     VtVec3fArray colors;
     VtFloatArray opacities;
     {
-      const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "COLOR0");
+      const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "COLOR_0");
 
-      if (accessor->type != cgltf_type_vec4)
-      {
-        // TODO: spec reads 'should' so missing alpha is valid
-        TF_RUNTIME_ERROR("gsplat primitive has invalid COLOR0 accessor");
-        return false;
-      }
+// TODO: the spec does not make it clear if we can expect a vec3 or vec4
+// TODO: for now this is debug code.
+#if 1
+      assert(accessor->type == cgltf_type_vec4);
+
+      colors.resize(accessor->count, GfVec3f(1.0f, 0.0f, 0.0f));
 
       VtVec4fArray rgbaColors;
       if (!detail::readVtArrayFromAccessor(accessor, rgbaColors))
       {
-        TF_RUNTIME_ERROR("can't read gsplat COLOR0 attribute");
+        TF_RUNTIME_ERROR("can't read %s attribute; ignoring", accessor->name);
         return false;
       }
 
@@ -850,34 +853,67 @@ namespace guc
         colors[k] = GfVec3f(rgbaColors[k].data());
       }
 
-      // Optimization: if material is opaque, we don't read the opacities anyway
-      if (material->alpha_mode != cgltf_alpha_mode_opaque)
+      opacities.resize(rgbaColorCount);
+      for (size_t k = 0; k < rgbaColorCount; k++)
       {
-        opacities.resize(rgbaColorCount);
-        for (size_t k = 0; k < rgbaColorCount; k++)
-        {
-          opacities[k] = rgbaColors[k][3];
-        }
+        opacities[k] = rgbaColors[k][3];
       }
+#else
+      // TODO: I think we need to add our own validation function proxy
+      assert(accessor->type == cgltf_type_vec3); // TODO: only for debugging, should be part of cgltf validation
+
+      if (!detail::readVtArrayFromAccessor(accessor, colors))
+      {
+        TF_RUNTIME_ERROR("can't read gsplat %s attribute", accessor->name);
+        return false;
+      }
+#endif
     }
 
-    // Gsplat rotation, scale
-    VtVec4fArray rotations;
-    VtVec3fArray scales;
+    // Opacities
+#if 0
+    VtFloatArray opacities;
     {
-      const cgltf_accessor* rotationAccessor = cgltf_find_accessor(primitiveData, "KHR_gaussian_splatting:ROTATION");
+      const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "KHR_gaussian_splatting:OPACITY");
 
-      if (!detail::readVtArrayFromAccessor(rotationAccessor, rotations))
+      if (!accessor || !detail::readVtArrayFromAccessor(accessor, opacities))
       {
-        TF_RUNTIME_ERROR("can't read gsplat ROTATION accessor");
+        TF_RUNTIME_ERROR("can't read gsplat %s attribute", accessor->name);
+        return false;
+      }
+    }
+#endif
+
+    // Rotations
+    // TODO: try out if we just can keep the type vec4f
+    VtQuatfArray rotations;
+    {
+      const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "KHR_gaussian_splatting:ROTATION");
+
+      VtVec4fArray vec4Rots;
+      if (!detail::readVtArrayFromAccessor(accessor, vec4Rots))
+      {
+        TF_RUNTIME_ERROR("can't read gsplat %s attribute", accessor->name);
         return false;
       }
 
-      const cgltf_accessor* scaleAccessor = cgltf_find_accessor(primitiveData, "KHR_gaussian_splatting:SCALE");
+      size_t rotCount = vec4Rots.size();
 
-      if (!detail::readVtArrayFromAccessor(scaleAccessor, scales))
+      rotations.resize(rotCount);
+      for (size_t i = 0; i < rotCount; i++)
       {
-        TF_RUNTIME_ERROR("can't read gsplat SCALE accessor");
+        rotations[i] = GfQuatf(vec4Rots[i][3], vec4Rots[i][0], vec4Rots[i][1], vec4Rots[i][2]);
+      }
+    }
+
+    // Scales
+    VtVec3fArray scales;
+    {
+      const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "KHR_gaussian_splatting:SCALE");
+
+      if (!detail::readVtArrayFromAccessor(accessor, scales))
+      {
+        TF_RUNTIME_ERROR("can't read gsplat %s attribute", accessor->name);
         return false;
       }
     }
@@ -916,15 +952,65 @@ namespace guc
       }
     }
 
+    // Create point instancer
+    auto pointInstancer = UsdGeomPointInstancer::Define(m_stage, path);
 
-    // TODO: now, we need to create a splat mesh (ellipsoid, triangle, quad)
-    // TODO: inside an instancer
+    VtIntArray proto0Indices(indices.size(), 0);
+    pointInstancer.CreateProtoIndicesAttr(VtValue(proto0Indices));
+    pointInstancer.CreatePositionsAttr(VtValue(points));
+    pointInstancer.CreateOrientationsfAttr(VtValue(rotations));
+    pointInstancer.CreateScalesAttr(VtValue(scales));
 
+    auto primvarsApi = UsdGeomPrimvarsAPI(pointInstancer);
+    if (!colors.empty())
+    {
+      primvarsApi.CreatePrimvar(TfToken("displayColor"), SdfValueTypeNames->Vector3fArray, UsdGeomTokens->varying).Set(colors);
+      primvarsApi.CreatePrimvar(TfToken("color"), SdfValueTypeNames->Vector3fArray, UsdGeomTokens->varying).Set(colors);
+    }
+    if (!opacities.empty())
+    {
+      primvarsApi.CreatePrimvar(TfToken("displayOpacity"), SdfValueTypeNames->FloatArray, UsdGeomTokens->varying).Set(opacities);
+      primvarsApi.CreatePrimvar(TfToken("opacity"), SdfValueTypeNames->FloatArray, UsdGeomTokens->varying).Set(opacities);
+    }
+    size_t shCount = 0;
+    for (auto& deg : shCoeffs)
+    for (auto& values : deg)
+    {
+      auto name = TfToken("sh_coeff" + std::to_string(shCount++));
+      primvarsApi.CreatePrimvar(name, SdfValueTypeNames->FloatArray, UsdGeomTokens->varying).Set(values);
+    }
 
+    // Create prototype mesh
+    auto protoPath = makeUniqueStageSubpath(m_stage, path, "ProtoGeom");
+#if 1
+    UsdGeomSphere protoGeom = UsdGeomSphere::Define(m_stage, protoPath);
+#else
+    UsdGeomMesh protoGeom = UsdGeomMesh::Define(m_stage, protoPath);
 
-    // TODO: we should also provide displayColors
+    VtVec3fArray trianglePoints = {
+        GfVec3f(0.0f, 0.0f, 0.0f),
+        GfVec3f(0.01f, 0.0f, 0.0f),
+        GfVec3f(0.005f, 0.00866f, 0.0f)
+    };
+    protoGeom.CreatePointsAttr(VtValue(trianglePoints));
 
-    // TODO: return something
+    VtIntArray faceVertexCounts = { 3 };
+    protoGeom.CreateFaceVertexCountsAttr(VtValue(faceVertexCounts));
+
+    VtIntArray faceVertexIndices = { 0, 1, 2 };
+    protoGeom.CreateFaceVertexIndicesAttr(VtValue(faceVertexIndices));
+
+    protoGeom.CreateSubdivisionSchemeAttr(VtValue(UsdGeomTokens->none));
+#endif
+
+    auto instancerProtoRel = pointInstancer.CreatePrototypesRel();
+    SdfPathVector protoPaths = { protoPath };
+    instancerProtoRel.SetTargets(protoPaths);
+
+    // TODO: assign GS material based on degree count
+
+    prim = pointInstancer.GetPrim();
+    return true;
   }
 
   bool Converter::createMeshPrimitive(const cgltf_primitive* primitiveData, SdfPath path, UsdPrim& prim)

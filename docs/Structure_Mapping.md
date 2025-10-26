@@ -205,7 +205,7 @@ the following node graph is generated:
       F["<font color=#f99>&lt;!-- opt. colorspace transformation --&gt;</font>"];
       G["<font color=blue>&lt;multiply&gt;</font>"];
 
-      H["<font color=blue>&lt;gltf_pbr&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br/> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color=red> &lt;!-- base_color input --&gt; <br/>  <font color=blue> &lt;/gltf_pbr&gt;</font> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"];
+      H["<font color=blue>&lt;gltf_pbr&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br/> &nbsp;&nbsp;&nbsp;&nbsp;<font color=red> &lt;!-- base_color input --&gt; <br/>  <font color=blue> &lt;/gltf_pbr&gt;</font> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"];
 
       A-->C
       B-->C

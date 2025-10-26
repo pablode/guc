@@ -1,0 +1,613 @@
+<?xml version="1.0"?>
+<materialx version="1.39">
+  <nodedef name="ND_GS_ShCoeff2" node="GS_ShCoeff2">
+    <output name="out" type="float" default="0.0" />
+    <input name="idx" type="integer" value="0" />
+  </nodedef>
+  <nodegraph name="NG_GS_ShCoeff2" nodedef="ND_GS_ShCoeff2">
+    <switch name="node1" type="float">
+      <input name="which" type="integer" interfacename="idx" />
+      <input name="in1" type="float" value="1.09255" />
+      <input name="in2" type="float" value="-1.09255" />
+      <input name="in3" type="float" value="0.315392" />
+      <input name="in4" type="float" value="-1.09255" />
+      <input name="in5" type="float" value="0.546274" />
+    </switch>
+    <output name="out" type="float" nodename="node1" />
+  </nodegraph>
+  <nodedef name="ND_GS_ShCoeff3" node="GS_ShCoeff3">
+    <output name="out" type="float" default="0.0" />
+    <input name="idx" type="integer" value="0" />
+  </nodedef>
+  <nodegraph name="NG_GS_ShCoeff3" nodedef="ND_GS_ShCoeff3">
+    <switch name="node1" type="float">
+      <input name="which" type="integer" interfacename="idx" />
+      <input name="in1" type="float" value="-0.590044" />
+      <input name="in2" type="float" value="2.89061" />
+      <input name="in3" type="float" value="-0.457046" />
+      <input name="in4" type="float" value="0.373176" />
+      <input name="in5" type="float" value="-0.457046" />
+      <input name="in6" type="float" value="1.44531" />
+      <input name="in7" type="float" value="-0.590044" />
+    </switch>
+    <output name="out" type="float" nodename="node1" />
+  </nodegraph>
+  <nodedef name="ND_GS_SphericalHarmonics" node="GS_SphericalHarmonics">
+    <output name="out" type="float" default="0.0" />
+    <input name="shDegree" type="integer" value="0" />
+    <input name="dir" type="vector3" value="0, 0, 0" />
+  </nodedef>
+  <nodegraph name="NG_GS_SphericalHarmonics" nodedef="ND_GS_SphericalHarmonics">
+    <extract name="node2" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="node4" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <multiply name="xx" type="float">
+      <input name="in1" type="float" nodename="node2" />
+      <input name="in2" type="float" nodename="node4" />
+    </multiply>
+    <extract name="node6" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <extract name="node8" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <multiply name="yy" type="float">
+      <input name="in1" type="float" nodename="node6" />
+      <input name="in2" type="float" nodename="node8" />
+    </multiply>
+    <extract name="node10" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <extract name="node12" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <multiply name="zz" type="float">
+      <input name="in1" type="float" nodename="node10" />
+      <input name="in2" type="float" nodename="node12" />
+    </multiply>
+    <extract name="node14" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="node16" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <multiply name="xy" type="float">
+      <input name="in1" type="float" nodename="node14" />
+      <input name="in2" type="float" nodename="node16" />
+    </multiply>
+    <extract name="node18" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <extract name="node20" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <multiply name="yz" type="float">
+      <input name="in1" type="float" nodename="node18" />
+      <input name="in2" type="float" nodename="node20" />
+    </multiply>
+    <extract name="node22" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <extract name="node24" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <multiply name="xz" type="float">
+      <input name="in1" type="float" nodename="node22" />
+      <input name="in2" type="float" nodename="node24" />
+    </multiply>
+    <geompropvalue name="node28" type="float">
+      <input name="geomprop" type="string" value="sh_coeff0" />
+    </geompropvalue>
+    <multiply name="result" type="float">
+      <input name="in1" type="float" value="0.282095" />
+      <input name="in2" type="float" nodename="node28" />
+    </multiply>
+    <ifgreatereq name="node30" type="boolean">
+      <input name="value1" type="integer" interfacename="shDegree" />
+      <input name="value2" type="integer" value="1" />
+    </ifgreatereq>
+    <extract name="node34" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <multiply name="node35" type="float">
+      <input name="in1" type="float" value="-0.488603" />
+      <input name="in2" type="float" nodename="node34" />
+    </multiply>
+    <geompropvalue name="node38" type="float">
+      <input name="geomprop" type="string" value="sh_coeff1" />
+    </geompropvalue>
+    <multiply name="node37" type="float">
+      <input name="in1" type="float" nodename="node35" />
+      <input name="in2" type="float" nodename="node38" />
+    </multiply>
+    <add name="node39" type="float">
+      <input name="in1" type="float" nodename="result" />
+      <input name="in2" type="float" nodename="node37" />
+    </add>
+    <extract name="node42" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <multiply name="node43" type="float">
+      <input name="in1" type="float" value="0.488603" />
+      <input name="in2" type="float" nodename="node42" />
+    </multiply>
+    <geompropvalue name="node46" type="float">
+      <input name="geomprop" type="string" value="sh_coeff2" />
+    </geompropvalue>
+    <multiply name="node45" type="float">
+      <input name="in1" type="float" nodename="node43" />
+      <input name="in2" type="float" nodename="node46" />
+    </multiply>
+    <add name="node47" type="float">
+      <input name="in1" type="float" nodename="node39" />
+      <input name="in2" type="float" nodename="node45" />
+    </add>
+    <extract name="node50" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <multiply name="node51" type="float">
+      <input name="in1" type="float" value="0.488603" />
+      <input name="in2" type="float" nodename="node50" />
+    </multiply>
+    <geompropvalue name="node54" type="float">
+      <input name="geomprop" type="string" value="sh_coeff3" />
+    </geompropvalue>
+    <multiply name="node53" type="float">
+      <input name="in1" type="float" nodename="node51" />
+      <input name="in2" type="float" nodename="node54" />
+    </multiply>
+    <subtract name="node55" type="float">
+      <input name="in1" type="float" nodename="node47" />
+      <input name="in2" type="float" nodename="node53" />
+    </subtract>
+    <ifequal name="result2" type="float">
+      <input name="value1" type="boolean" nodename="node30" />
+      <input name="value2" type="boolean" value="true" />
+      <input name="in1" type="float" nodename="node55" />
+      <input name="in2" type="float" nodename="result" />
+    </ifequal>
+    <ifgreatereq name="node59" type="boolean">
+      <input name="value1" type="integer" interfacename="shDegree" />
+      <input name="value2" type="integer" value="2" />
+    </ifgreatereq>
+    <GS_ShCoeff2 name="node62" type="float">
+      <input name="idx" type="integer" value="0" />
+    </GS_ShCoeff2>
+    <multiply name="node64" type="float">
+      <input name="in1" type="float" nodename="node62" />
+      <input name="in2" type="float" nodename="xy" />
+    </multiply>
+    <geompropvalue name="node67" type="float">
+      <input name="geomprop" type="string" value="sh_coeff4" />
+    </geompropvalue>
+    <multiply name="node66" type="float">
+      <input name="in1" type="float" nodename="node64" />
+      <input name="in2" type="float" nodename="node67" />
+    </multiply>
+    <add name="node68" type="float">
+      <input name="in1" type="float" nodename="result2" />
+      <input name="in2" type="float" nodename="node66" />
+    </add>
+    <GS_ShCoeff2 name="node70" type="float">
+      <input name="idx" type="integer" value="1" />
+    </GS_ShCoeff2>
+    <multiply name="node72" type="float">
+      <input name="in1" type="float" nodename="node70" />
+      <input name="in2" type="float" nodename="yz" />
+    </multiply>
+    <geompropvalue name="node75" type="float">
+      <input name="geomprop" type="string" value="sh_coeff5" />
+    </geompropvalue>
+    <multiply name="node74" type="float">
+      <input name="in1" type="float" nodename="node72" />
+      <input name="in2" type="float" nodename="node75" />
+    </multiply>
+    <add name="node76" type="float">
+      <input name="in1" type="float" nodename="node68" />
+      <input name="in2" type="float" nodename="node74" />
+    </add>
+    <GS_ShCoeff2 name="node78" type="float">
+      <input name="idx" type="integer" value="2" />
+    </GS_ShCoeff2>
+    <multiply name="node81" type="float">
+      <input name="in1" type="float" value="2" />
+      <input name="in2" type="float" nodename="zz" />
+    </multiply>
+    <subtract name="node83" type="float">
+      <input name="in1" type="float" nodename="node81" />
+      <input name="in2" type="float" nodename="xx" />
+    </subtract>
+    <subtract name="node85" type="float">
+      <input name="in1" type="float" nodename="node83" />
+      <input name="in2" type="float" nodename="yy" />
+    </subtract>
+    <multiply name="node86" type="float">
+      <input name="in1" type="float" nodename="node78" />
+      <input name="in2" type="float" nodename="node85" />
+    </multiply>
+    <geompropvalue name="node89" type="float">
+      <input name="geomprop" type="string" value="sh_coeff6" />
+    </geompropvalue>
+    <multiply name="node88" type="float">
+      <input name="in1" type="float" nodename="node86" />
+      <input name="in2" type="float" nodename="node89" />
+    </multiply>
+    <add name="node90" type="float">
+      <input name="in1" type="float" nodename="node76" />
+      <input name="in2" type="float" nodename="node88" />
+    </add>
+    <GS_ShCoeff2 name="node92" type="float">
+      <input name="idx" type="integer" value="3" />
+    </GS_ShCoeff2>
+    <multiply name="node94" type="float">
+      <input name="in1" type="float" nodename="node92" />
+      <input name="in2" type="float" nodename="xz" />
+    </multiply>
+    <geompropvalue name="node97" type="float">
+      <input name="geomprop" type="string" value="sh_coeff7" />
+    </geompropvalue>
+    <multiply name="node96" type="float">
+      <input name="in1" type="float" nodename="node94" />
+      <input name="in2" type="float" nodename="node97" />
+    </multiply>
+    <add name="node98" type="float">
+      <input name="in1" type="float" nodename="node90" />
+      <input name="in2" type="float" nodename="node96" />
+    </add>
+    <GS_ShCoeff2 name="node100" type="float">
+      <input name="idx" type="integer" value="4" />
+    </GS_ShCoeff2>
+    <subtract name="node103" type="float">
+      <input name="in1" type="float" nodename="xx" />
+      <input name="in2" type="float" nodename="yy" />
+    </subtract>
+    <multiply name="node104" type="float">
+      <input name="in1" type="float" nodename="node100" />
+      <input name="in2" type="float" nodename="node103" />
+    </multiply>
+    <geompropvalue name="node107" type="float">
+      <input name="geomprop" type="string" value="sh_coeff8" />
+    </geompropvalue>
+    <multiply name="node106" type="float">
+      <input name="in1" type="float" nodename="node104" />
+      <input name="in2" type="float" nodename="node107" />
+    </multiply>
+    <add name="node108" type="float">
+      <input name="in1" type="float" nodename="node98" />
+      <input name="in2" type="float" nodename="node106" />
+    </add>
+    <ifequal name="result3" type="float">
+      <input name="value1" type="boolean" nodename="node59" />
+      <input name="value2" type="boolean" value="true" />
+      <input name="in1" type="float" nodename="node108" />
+      <input name="in2" type="float" nodename="result2" />
+    </ifequal>
+    <ifgreatereq name="node112" type="boolean">
+      <input name="value1" type="integer" interfacename="shDegree" />
+      <input name="value2" type="integer" value="3" />
+    </ifgreatereq>
+    <GS_ShCoeff3 name="node115" type="float">
+      <input name="idx" type="integer" value="0" />
+    </GS_ShCoeff3>
+    <extract name="node117" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <multiply name="node118" type="float">
+      <input name="in1" type="float" nodename="node115" />
+      <input name="in2" type="float" nodename="node117" />
+    </multiply>
+    <multiply name="node121" type="float">
+      <input name="in1" type="float" value="3" />
+      <input name="in2" type="float" nodename="xx" />
+    </multiply>
+    <subtract name="node123" type="float">
+      <input name="in1" type="float" nodename="node121" />
+      <input name="in2" type="float" nodename="yy" />
+    </subtract>
+    <multiply name="node124" type="float">
+      <input name="in1" type="float" nodename="node118" />
+      <input name="in2" type="float" nodename="node123" />
+    </multiply>
+    <geompropvalue name="node127" type="float">
+      <input name="geomprop" type="string" value="sh_coeff9" />
+    </geompropvalue>
+    <multiply name="node126" type="float">
+      <input name="in1" type="float" nodename="node124" />
+      <input name="in2" type="float" nodename="node127" />
+    </multiply>
+    <add name="node128" type="float">
+      <input name="in1" type="float" nodename="result3" />
+      <input name="in2" type="float" nodename="node126" />
+    </add>
+    <GS_ShCoeff3 name="node130" type="float">
+      <input name="idx" type="integer" value="1" />
+    </GS_ShCoeff3>
+    <extract name="node132" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <multiply name="node133" type="float">
+      <input name="in1" type="float" nodename="node130" />
+      <input name="in2" type="float" nodename="node132" />
+    </multiply>
+    <multiply name="node135" type="float">
+      <input name="in1" type="float" nodename="node133" />
+      <input name="in2" type="float" nodename="xy" />
+    </multiply>
+    <geompropvalue name="node138" type="float">
+      <input name="geomprop" type="string" value="sh_coeff10" />
+    </geompropvalue>
+    <multiply name="node137" type="float">
+      <input name="in1" type="float" nodename="node135" />
+      <input name="in2" type="float" nodename="node138" />
+    </multiply>
+    <add name="node139" type="float">
+      <input name="in1" type="float" nodename="node128" />
+      <input name="in2" type="float" nodename="node137" />
+    </add>
+    <GS_ShCoeff3 name="node141" type="float">
+      <input name="idx" type="integer" value="2" />
+    </GS_ShCoeff3>
+    <extract name="node143" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="1" />
+    </extract>
+    <multiply name="node144" type="float">
+      <input name="in1" type="float" nodename="node141" />
+      <input name="in2" type="float" nodename="node143" />
+    </multiply>
+    <multiply name="node147" type="float">
+      <input name="in1" type="float" value="4" />
+      <input name="in2" type="float" nodename="zz" />
+    </multiply>
+    <subtract name="node149" type="float">
+      <input name="in1" type="float" nodename="node147" />
+      <input name="in2" type="float" nodename="xx" />
+    </subtract>
+    <subtract name="node151" type="float">
+      <input name="in1" type="float" nodename="node149" />
+      <input name="in2" type="float" nodename="yy" />
+    </subtract>
+    <multiply name="node152" type="float">
+      <input name="in1" type="float" nodename="node144" />
+      <input name="in2" type="float" nodename="node151" />
+    </multiply>
+    <geompropvalue name="node155" type="float">
+      <input name="geomprop" type="string" value="sh_coeff11" />
+    </geompropvalue>
+    <multiply name="node154" type="float">
+      <input name="in1" type="float" nodename="node152" />
+      <input name="in2" type="float" nodename="node155" />
+    </multiply>
+    <add name="node156" type="float">
+      <input name="in1" type="float" nodename="node139" />
+      <input name="in2" type="float" nodename="node154" />
+    </add>
+    <GS_ShCoeff3 name="node158" type="float">
+      <input name="idx" type="integer" value="3" />
+    </GS_ShCoeff3>
+    <extract name="node160" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <multiply name="node161" type="float">
+      <input name="in1" type="float" nodename="node158" />
+      <input name="in2" type="float" nodename="node160" />
+    </multiply>
+    <multiply name="node164" type="float">
+      <input name="in1" type="float" value="2" />
+      <input name="in2" type="float" nodename="zz" />
+    </multiply>
+    <multiply name="node167" type="float">
+      <input name="in1" type="float" value="3" />
+      <input name="in2" type="float" nodename="xx" />
+    </multiply>
+    <subtract name="node168" type="float">
+      <input name="in1" type="float" nodename="node164" />
+      <input name="in2" type="float" nodename="node167" />
+    </subtract>
+    <multiply name="node171" type="float">
+      <input name="in1" type="float" value="3" />
+      <input name="in2" type="float" nodename="yy" />
+    </multiply>
+    <subtract name="node172" type="float">
+      <input name="in1" type="float" nodename="node168" />
+      <input name="in2" type="float" nodename="node171" />
+    </subtract>
+    <multiply name="node173" type="float">
+      <input name="in1" type="float" nodename="node161" />
+      <input name="in2" type="float" nodename="node172" />
+    </multiply>
+    <geompropvalue name="node176" type="float">
+      <input name="geomprop" type="string" value="sh_coeff12" />
+    </geompropvalue>
+    <multiply name="node175" type="float">
+      <input name="in1" type="float" nodename="node173" />
+      <input name="in2" type="float" nodename="node176" />
+    </multiply>
+    <add name="node177" type="float">
+      <input name="in1" type="float" nodename="node156" />
+      <input name="in2" type="float" nodename="node175" />
+    </add>
+    <GS_ShCoeff3 name="node179" type="float">
+      <input name="idx" type="integer" value="4" />
+    </GS_ShCoeff3>
+    <extract name="node181" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <multiply name="node182" type="float">
+      <input name="in1" type="float" nodename="node179" />
+      <input name="in2" type="float" nodename="node181" />
+    </multiply>
+    <multiply name="node185" type="float">
+      <input name="in1" type="float" value="4" />
+      <input name="in2" type="float" nodename="zz" />
+    </multiply>
+    <subtract name="node187" type="float">
+      <input name="in1" type="float" nodename="node185" />
+      <input name="in2" type="float" nodename="xx" />
+    </subtract>
+    <subtract name="node189" type="float">
+      <input name="in1" type="float" nodename="node187" />
+      <input name="in2" type="float" nodename="yy" />
+    </subtract>
+    <multiply name="node190" type="float">
+      <input name="in1" type="float" nodename="node182" />
+      <input name="in2" type="float" nodename="node189" />
+    </multiply>
+    <geompropvalue name="node193" type="float">
+      <input name="geomprop" type="string" value="sh_coeff13" />
+    </geompropvalue>
+    <multiply name="node192" type="float">
+      <input name="in1" type="float" nodename="node190" />
+      <input name="in2" type="float" nodename="node193" />
+    </multiply>
+    <add name="node194" type="float">
+      <input name="in1" type="float" nodename="node177" />
+      <input name="in2" type="float" nodename="node192" />
+    </add>
+    <GS_ShCoeff3 name="node196" type="float">
+      <input name="idx" type="integer" value="5" />
+    </GS_ShCoeff3>
+    <extract name="node198" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="2" />
+    </extract>
+    <multiply name="node199" type="float">
+      <input name="in1" type="float" nodename="node196" />
+      <input name="in2" type="float" nodename="node198" />
+    </multiply>
+    <subtract name="node202" type="float">
+      <input name="in1" type="float" nodename="xx" />
+      <input name="in2" type="float" nodename="yy" />
+    </subtract>
+    <multiply name="node203" type="float">
+      <input name="in1" type="float" nodename="node199" />
+      <input name="in2" type="float" nodename="node202" />
+    </multiply>
+    <geompropvalue name="node206" type="float">
+      <input name="geomprop" type="string" value="sh_coeff14" />
+    </geompropvalue>
+    <multiply name="node205" type="float">
+      <input name="in1" type="float" nodename="node203" />
+      <input name="in2" type="float" nodename="node206" />
+    </multiply>
+    <add name="node207" type="float">
+      <input name="in1" type="float" nodename="node194" />
+      <input name="in2" type="float" nodename="node205" />
+    </add>
+    <GS_ShCoeff3 name="node209" type="float">
+      <input name="idx" type="integer" value="6" />
+    </GS_ShCoeff3>
+    <extract name="node211" type="float">
+      <input name="in" type="vector3" interfacename="dir" />
+      <input name="index" type="integer" value="0" />
+    </extract>
+    <multiply name="node212" type="float">
+      <input name="in1" type="float" nodename="node209" />
+      <input name="in2" type="float" nodename="node211" />
+    </multiply>
+    <multiply name="node216" type="float">
+      <input name="in1" type="float" value="3" />
+      <input name="in2" type="float" nodename="yy" />
+    </multiply>
+    <subtract name="node217" type="float">
+      <input name="in1" type="float" nodename="xx" />
+      <input name="in2" type="float" nodename="node216" />
+    </subtract>
+    <multiply name="node218" type="float">
+      <input name="in1" type="float" nodename="node212" />
+      <input name="in2" type="float" nodename="node217" />
+    </multiply>
+    <geompropvalue name="node221" type="float">
+      <input name="geomprop" type="string" value="sh_coeff15" />
+    </geompropvalue>
+    <multiply name="node220" type="float">
+      <input name="in1" type="float" nodename="node218" />
+      <input name="in2" type="float" nodename="node221" />
+    </multiply>
+    <add name="node222" type="float">
+      <input name="in1" type="float" nodename="node207" />
+      <input name="in2" type="float" nodename="node220" />
+    </add>
+    <ifequal name="result4" type="float">
+      <input name="value1" type="boolean" nodename="node112" />
+      <input name="value2" type="boolean" value="true" />
+      <input name="in1" type="float" nodename="node222" />
+      <input name="in2" type="float" nodename="result3" />
+    </ifequal>
+    <output name="out" type="float" nodename="result4" />
+  </nodegraph>
+  <nodedef name="ND_GS_Opacity" node="GS_Opacity">
+    <output name="out" type="float" default="0.0" />
+  </nodedef>
+  <nodegraph name="NG_GS_Opacity" nodedef="ND_GS_Opacity">
+    <position name="pos" type="vector3" />
+    <magnitude name="mag" type="float">
+      <input name="in" type="vector3" nodename="pos" />
+    </magnitude>
+    <power name="rxx" type="float">
+      <input name="in1" type="float" nodename="mag" />
+      <input name="in2" type="float" value="2" />
+    </power>
+    <multiply name="rxxm" type="float">
+      <input name="in1" type="float" nodename="rxx" />
+      <input name="in2" type="float" value="-2.5" />
+    </multiply>
+    <exp name="rexp" type="float">
+      <input name="in" type="float" nodename="rxxm" />
+    </exp>
+    <geompropvalue name="baseOpacity" type="float">
+      <input name="geomprop" type="string" value="opacity" />
+    </geompropvalue>
+    <multiply name="node10" type="float">
+      <input name="in1" type="float" nodename="rexp" />
+      <input name="in2" type="float" nodename="baseOpacity" />
+    </multiply>
+    <output name="out" type="float" nodename="node10" />
+  </nodegraph>
+  <nodedef name="ND_GS_Color" node="GS_Color">
+    <output name="out" type="color3" default="0, 0, 0" />
+    <input name="shDegree" type="integer" value="0" />
+  </nodedef>
+  <nodegraph name="NG_GS_Color" nodedef="ND_GS_Color">
+    <geompropvalue name="baseColor" type="color3">
+      <input name="geomprop" type="string" value="color" />
+    </geompropvalue>
+    <viewdirection name="dir" type="vector3">
+      <input name="space" type="string" value="object" />
+    </viewdirection>
+    <GS_SphericalHarmonics name="sh" type="float">
+      <input name="shDegree" type="integer" interfacename="shDegree" />
+      <input name="dir" type="vector3" nodename="dir" />
+    </GS_SphericalHarmonics>
+    <convert name="node7" type="color3">
+      <input name="in" type="float" nodename="sh" />
+    </convert>
+    <add name="node8" type="color3">
+      <input name="in1" type="color3" nodename="baseColor" />
+      <input name="in2" type="color3" nodename="node7" />
+    </add>
+    <output name="out" type="color3" nodename="node8" />
+  </nodegraph>
+</materialx>

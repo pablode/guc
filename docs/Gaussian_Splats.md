@@ -7,8 +7,6 @@ In the future, a USD-native solution using the [proposed](https://github.com/Pix
 
 ## Splat Representation
 
-TODO: Spheres are wrong! they should be ellipsoids -> can we set the Y scale to 0?
-
 Individual splats are either of type UsdGeomSphere or UsdGeomMesh, depending on the settings.
 Spheres may be more efficient to render, although they not be universally supported.
 The geometry is only defined once within the context of a point instancer.
@@ -152,4 +150,6 @@ TODO: side by side comparison between SH degree 0 and 3
 
 For the converted assets to render correctly, a rasterizer with alpha blending and sorting-based transparency is needed.
 Path tracing based renderers may give the impression of being correct, but may deviate from the expected result.
-The rendering performance depends heavily on the renderer, but thousands of alpha objects combined with complex shading networks are usually on the expensive side.
+The rendering performance depends heavily on the renderer, but thousands of transparent objects combined with complex shading networks are usually on the expensive side.
+
+TODO: comment about renderer support, e.g. Karma

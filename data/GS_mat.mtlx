@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<materialx version="1.39">
+
+  <xi:include href="GS.mtlx" />
+
+  <nodegraph name="GS_NG0">
+    <GS_Opacity name="node3" type="float" />
+    <GS_Color name="node2" type="color3">
+      <input name="shDegree" type="integer" value="0" />
+    </GS_Color>
+    <uniform_edf name="node1" type="EDF">
+      <input name="color" type="color3" nodename="node2" />
+    </uniform_edf>
+    <output name="edf" type="EDF" nodename="node1" />
+    <output name="opacity" type="float" nodename="node3" />
+  </nodegraph>
+  <surface name="GS_Surface0" type="surfaceshader">
+    <input name="edf" type="EDF" nodegraph="GS_NG0" output="edf" />
+    <input name="opacity" type="float" nodegraph="GS_NG0" output="opacity" />
+  </surface>
+  <surfacematerial name="GS_Mat0" type="material">
+    <input name="surfaceshader" type="surfaceshader" nodename="GS_Surface0" />
+  </surfacematerial>
+
+</materialx>

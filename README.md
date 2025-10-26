@@ -64,6 +64,13 @@ Both glTF and GLB file types are valid input. USDA, USDC and USDZ formats can be
 
 An example asset conversion is described in the [Structure Mapping](docs/Structure_Mapping.md) document.
 
+### Documentation
+
+* [Comparison to Adobe File Format Plugins](docs/Comparison_FileFormat_Plugins.md): When to use guc, when not?
+* [Ecosystem Limitations](docs/Ecosystem_Limitations.md): Documents good-to-knows and limits
+* [Sdf Plugin](docs/Sdf_Plugin.md): Notes on the use of guc as an Sdf plugin
+* [Structure Mapping](docs/Structure_Mapping.md) Describes the conversion process
+
 ### Extension support
 
 Name                                | Status&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -86,16 +93,6 @@ KHR_texture_transform               | ✅ Complete
 
 <sup>\[1\]</sup> Spotlight cone falloff is ignored.  
 <sup>\[2\]</sup> Thickness is <a href="https://github.com/AcademySoftwareFoundation/MaterialX/pull/861">not supported</a> by the MaterialX glTF PBR implementation.
-
-### Sdf plugin
-
-The _usdGlTF_ library implements USD's Sdf file format interface. Enable the `GUC_BUILD_USDGLTF` CMake option before building and install it as follows:
-```
-cmake --install . --component usdGlTF --config Release --prefix <USD_INSTALL_DIR>/plugin/usd
-```
-
-glTF files can now be referenced as layers and opened with USD tooling.
-The _emitMtlx_ dynamic Sdf file format argument controls MaterialX material emission.
 
 ### License
 

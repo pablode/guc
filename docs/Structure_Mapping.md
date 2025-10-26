@@ -235,7 +235,6 @@ of MaterialX's `<normalmap>` node (see [Ecosystem Limitations](Ecosystem_Limitat
 There are a number of improvements that can be made to the mapping process.
 
 For instance, the MaterialX graph complexity can be reduced with the introduction of helper nodes.
-Resulting USD assets could make use of payloads, and in general, incremental changes
-motivated by the [USD Asset WG Structure Guidelines](https://github.com/pablode/usd-wg-assets/blob/main/docs/asset-structure-guidelines.md) are to be expected.
+Furthermore, incremental changes motivated by the [USD Asset WG Structure Guidelines](https://github.com/pablode/usd-wg-assets/blob/main/docs/asset-structure-guidelines.md) are expected to be implemented.
 
 Lastly, user feedback is welcome in ensuring that assets conform to best practices.

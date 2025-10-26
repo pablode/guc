@@ -28,6 +28,7 @@
 #include <pxr/usd/usdGeom/scope.h>
 #include <pxr/usd/usdGeom/sphere.h>
 #include <pxr/usd/usdGeom/xform.h>
+#include <pxr/usd/usdGeom/xformCommonAPI.h>
 #include <pxr/base/gf/camera.h>
 #include <pxr/usd/usdLux/shapingAPI.h>
 #include <pxr/usd/usdLux/sphereLight.h>
@@ -786,7 +787,7 @@ namespace guc
   // TODO: factor out code we use for both paths
   bool Converter::createGsplatPrimitive(const cgltf_primitive* primitiveData, SdfPath path, UsdPrim& prim)
   {
-    // TODO: proper material handling
+    // TODO: proper material handling?
     const cgltf_material* material = primitiveData->material;
 
 // TODO: how to actually handle indices in a point cloud?
@@ -815,6 +816,7 @@ namespace guc
         return false;
       }
 
+// TODO: see above. do we need them?
       if (indices.empty())
       {
         indices.reserve(accessor->count);
@@ -859,7 +861,7 @@ namespace guc
         opacities[k] = rgbaColors[k][3];
       }
 #else
-      // TODO: I think we need to add our own validation function proxy
+      // TODO: I think we need to add our own validation function proxy. or: contribute to cgltf.
       assert(accessor->type == cgltf_type_vec3); // TODO: only for debugging, should be part of cgltf validation
 
       if (!detail::readVtArrayFromAccessor(accessor, colors))
@@ -919,6 +921,7 @@ namespace guc
     }
 
     // Spherical harmonics (up to 12 accessors)
+    // TODO: based on how the primvars are used in the shading network, this can be a flat vector
     std::vector<std::vector<VtVec3fArray>> shCoeffs; // degree<coeff>
 
     const static std::array<uint32_t, 3> COEFF_BOUNDS = {2, 4, 6};
@@ -964,11 +967,13 @@ namespace guc
     auto primvarsApi = UsdGeomPrimvarsAPI(pointInstancer);
     if (!colors.empty())
     {
+      // TODO: token list + expand to multiple lines
       primvarsApi.CreatePrimvar(TfToken("displayColor"), SdfValueTypeNames->Vector3fArray, UsdGeomTokens->varying).Set(colors);
       primvarsApi.CreatePrimvar(TfToken("color"), SdfValueTypeNames->Vector3fArray, UsdGeomTokens->varying).Set(colors);
     }
     if (!opacities.empty())
     {
+      // TODO: token list + expand to multiple lines
       primvarsApi.CreatePrimvar(TfToken("displayOpacity"), SdfValueTypeNames->FloatArray, UsdGeomTokens->varying).Set(opacities);
       primvarsApi.CreatePrimvar(TfToken("opacity"), SdfValueTypeNames->FloatArray, UsdGeomTokens->varying).Set(opacities);
     }
@@ -983,7 +988,12 @@ namespace guc
     // Create prototype mesh
     auto protoPath = makeUniqueStageSubpath(m_stage, path, "ProtoGeom");
 #if 1
-    UsdGeomSphere protoGeom = UsdGeomSphere::Define(m_stage, protoPath);
+    auto xform = UsdGeomXform::Define(m_stage, protoPath);
+    UsdGeomXformCommonAPI xformApi(xform);
+    xformApi.SetScale(GfVec3f(1.0f, 1.0f, 1e-7f));
+
+    auto spherePath = makeUniqueStageSubpath(m_stage, protoPath, "Sphere");
+    UsdGeomSphere protoGeom = UsdGeomSphere::Define(m_stage, spherePath);
 #else
     UsdGeomMesh protoGeom = UsdGeomMesh::Define(m_stage, protoPath);
 

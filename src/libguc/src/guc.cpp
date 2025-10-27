@@ -21,7 +21,11 @@
 #include <pxr/usd/ar/resolverContext.h>
 #include <pxr/usd/ar/resolverContextBinder.h>
 #include <pxr/usd/usd/stage.h>
+#if PXR_VERSION >= 2511
+#include <pxr/usd/sdf/zipFile.h>
+#else
 #include <pxr/usd/usd/zipFile.h>
+#endif
 #include <pxr/usd/usdUtils/dependencies.h>
 
 #include <filesystem>
@@ -134,30 +138,34 @@ bool guc_convert(const char* gltf_path,
     }
 
     TF_DEBUG(GUC).Msg("creating USDZ archive %s\n", final_usd_path.string().c_str());
-    UsdZipFileWriter writer = UsdZipFileWriter::CreateNew(final_usd_path.string());
+#if PXR_VERSION >= 2511
+    auto zipWriter = SdfZipFileWriter::CreateNew(final_usd_path.string());
+#else
+    auto zipWriter = UsdZipFileWriter::CreateNew(final_usd_path.string());
+#endif
 
     TF_DEBUG(GUC).Msg("adding %s to USDZ archive at ./%s\n", base_usd_path.string().c_str(), base_usd_path.filename().string().c_str());
-    if (writer.AddFile(base_usd_path.string(), base_usd_path.filename().string()) == "")
+    if (zipWriter.AddFile(base_usd_path.string(), base_usd_path.filename().string()) == "")
     {
       TF_RUNTIME_ERROR("unable to usdzip %s to %s", base_usd_path.string().c_str(), base_usd_path.filename().string().c_str());
       return false; // Fatal error
     }
     for (const auto& fileExport : fileExports)
     {
-      // We need to pass explicit source paths to UsdZipFileWriter because it uses the lower-level file
+      // We need to pass explicit source paths to SdfZipFileWriter because it uses the lower-level file
       // API instead of USD's ArResolver: https://github.com/PixarAnimationStudios/OpenUSD/issues/2374
       std::string srcPath = (src_dir / fileExport.filePath).string();
       std::string dstPathInUsdz = fileExport.refPath;
 
       TF_DEBUG(GUC).Msg("adding %s to USDZ archive at ./%s\n", srcPath.c_str(), dstPathInUsdz.c_str());
-      if (writer.AddFile(srcPath, dstPathInUsdz) == "")
+      if (zipWriter.AddFile(srcPath, dstPathInUsdz) == "")
       {
         TF_RUNTIME_ERROR("unable to usdzip %s to %s", srcPath.c_str(), dstPathInUsdz.c_str());
         // (non-fatal error)
       }
     }
 
-    if (!writer.Save())
+    if (!zipWriter.Save())
     {
       TF_RUNTIME_ERROR("unable to save USDZ file");
       return false;

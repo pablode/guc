@@ -23,7 +23,11 @@
 #include <pxr/usd/ar/defaultResolverContext.h>
 #include <pxr/usd/ar/resolverContext.h>
 #include <pxr/usd/ar/resolverContextBinder.h>
+#if PXR_VERSION >= 2511
+#include <pxr/usd/sdf/usdcFileFormat.h>
+#else
 #include <pxr/usd/usd/usdcFileFormat.h>
+#endif
 #include <pxr/usd/pcp/dynamicFileFormatContext.h>
 
 #include <filesystem>
@@ -176,7 +180,12 @@ bool UsdGlTFFileFormat::WriteToString(const SdfLayer& layer,
                                       const std::string& comment) const
 {
   // Not supported, and never will be. Write USDC instead.
-  SdfFileFormatConstPtr usdcFormat =  SdfFileFormat::FindById(UsdUsdcFileFormatTokens->Id);
+#if PXR_VERSION >= 2511
+  TfToken id = SdfUsdcFileFormatTokens->Id;
+#else
+  TfToken id = UsdUsdcFileFormatTokens->Id;
+#endif
+  SdfFileFormatConstPtr usdcFormat = SdfFileFormat::FindById(id);
   return usdcFormat->WriteToString(layer, str, comment);
 }
 
@@ -185,7 +194,12 @@ bool UsdGlTFFileFormat::WriteToStream(const SdfSpecHandle &spec,
                                       size_t indent) const
 {
   // Not supported, and never will be. Write USDC instead.
-  SdfFileFormatConstPtr usdcFormat =  SdfFileFormat::FindById(UsdUsdcFileFormatTokens->Id);
+#if PXR_VERSION >= 2511
+  TfToken id = SdfUsdcFileFormatTokens->Id;
+#else
+  TfToken id = UsdUsdcFileFormatTokens->Id;
+#endif
+  SdfFileFormatConstPtr usdcFormat = SdfFileFormat::FindById(id);
   return usdcFormat->WriteToStream(spec, out, indent);
 }
 

@@ -60,6 +60,7 @@ jobs:
     with:
       usd-version: 24.08
       build-config: Release
+      upload-archive: false
 
   build-2405:
     name: Build guc for USD v24.05
@@ -67,6 +68,7 @@ jobs:
     with:
       usd-version: 24.05
       build-config: Release
+      upload-archive: false
 
   build-2403:
     name: Build guc for USD v24.03
@@ -74,6 +76,7 @@ jobs:
     with:
       usd-version: 24.03
       build-config: Release
+      upload-archive: false
 
   deploy-release:
     name: Deploy Release

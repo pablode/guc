@@ -20,7 +20,7 @@
 
 namespace guc
 {
-  bool load_gltf(const char* gltfPath, cgltf_data** data);
+  bool load_gltf(const char* gltfPath, cgltf_data** data, bool validate);
 
   void free_gltf(cgltf_data* data);
 

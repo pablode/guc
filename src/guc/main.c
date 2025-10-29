@@ -48,6 +48,13 @@ static struct cag_option cmd_options[] = {
     .description = "Index of the material variant that is selected by default"
   },
   {
+    .identifier = 's',
+    .access_letters = "s",
+    .access_name = "skip-validation",
+    .value_name = NULL,
+    .description = "Skip glTF validation for reduced processing time"
+  },
+  {
     .identifier = 'l',
     .access_letters = "l",
     .access_name = "licenses",
@@ -60,7 +67,7 @@ static struct cag_option cmd_options[] = {
     .access_name = "help",
     .value_name = NULL,
     .description = "Show the command help"
-  }
+  },
 };
 
 int main(int argc, char* argv[])
@@ -68,7 +75,8 @@ int main(int argc, char* argv[])
   struct guc_options options = {
     .emit_mtlx = false,
     .mtlx_as_usdshade = false,
-    .default_material_variant = 0
+    .default_material_variant = 0,
+    .skip_validation = false
   };
 
   cag_option_context context;
@@ -88,6 +96,9 @@ int main(int argc, char* argv[])
       options.default_material_variant = atoi(value); // fall back to 0 on error
       break;
     }
+    case 's':
+      options.skip_validation = true;
+      break;
     case 'l': {
       printf("%s\n", license_text);
       return EXIT_SUCCESS;

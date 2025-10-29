@@ -40,6 +40,10 @@ struct guc_options
   // If the asset supports the KHR_materials_variants extension, select the material
   // variant at the given index by default.
   int default_material_variant;
+
+  // If set to true, don't validate the glTF data model on load. This reduces the
+  // processing time at the cost of stability and security.
+  bool skip_validation;
 };
 
 bool guc_convert(const char* gltf_path,

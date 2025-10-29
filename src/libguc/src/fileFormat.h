@@ -77,6 +77,7 @@ class UsdGlTFData : public SdfData
 {
 public:
   bool emitMtlx = false;
+  bool skipValidation = false;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

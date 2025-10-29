@@ -51,6 +51,7 @@ TF_DEFINE_PRIVATE_TOKENS(
   (gltf)
   (glb)
   (emitMtlx)
+  (skipValidation)
 );
 
 TF_REGISTRY_FUNCTION(TfType)
@@ -110,6 +111,11 @@ SdfAbstractDataRefPtr UsdGlTFFileFormat::InitData(const FileFormatArguments& arg
   {
     data->emitMtlx = TfUnstringify<bool>(emitMtlxIt->second);
   }
+  auto skipValidationIt = args.find(_tokens->skipValidation.GetText());
+  if (skipValidationIt != args.end())
+  {
+    data->skipValidation = TfUnstringify<bool>(skipValidationIt->second);
+  }
 
   return data;
 }
@@ -131,15 +137,17 @@ bool UsdGlTFFileFormat::Read(SdfLayer* layer,
   ArDefaultResolverContext ctx({srcDir.string()});
   ArResolverContextBinder binder(ctx);
 
+  SdfAbstractDataRefPtr layerData = InitData(layer->GetFileFormatArguments());
+  UsdGlTFDataConstPtr data = TfDynamic_cast<const UsdGlTFDataConstPtr>(layerData);
+
+  bool validateGltf = !data->skipValidation;
+
   cgltf_data* gltf_data = nullptr;
-  if (!load_gltf(resolvedPath.c_str(), &gltf_data))
+  if (!load_gltf(resolvedPath.c_str(), &gltf_data, validateGltf))
   {
     TF_RUNTIME_ERROR("unable to load glTF file %s", resolvedPath.c_str());
     return false;
   }
-
-  SdfAbstractDataRefPtr layerData = InitData(layer->GetFileFormatArguments());
-  UsdGlTFDataConstPtr data = TfDynamic_cast<const UsdGlTFDataConstPtr>(layerData);
 
   Converter::Params params = {};
   params.srcDir = srcDir;
@@ -208,10 +216,15 @@ void UsdGlTFFileFormat::ComposeFieldsForFileFormatArguments(const std::string& a
                                                             FileFormatArguments* args,
                                                             VtValue *dependencyContextData) const
 {
-  VtValue emitMtlxValue;
-  if (context.ComposeValue(_tokens->emitMtlx, &emitMtlxValue))
+  VtValue emitMtlx;
+  if (context.ComposeValue(_tokens->emitMtlx, &emitMtlx))
   {
-    (*args)[_tokens->emitMtlx] = TfStringify(emitMtlxValue);
+    (*args)[_tokens->emitMtlx] = TfStringify(emitMtlx);
+  }
+  VtValue skipValidation;
+  if (context.ComposeValue(_tokens->skipValidation, &skipValidation))
+  {
+    (*args)[_tokens->skipValidation] = TfStringify(skipValidation);
   }
 }
 

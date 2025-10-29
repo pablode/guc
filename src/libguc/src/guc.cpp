@@ -89,9 +89,9 @@ bool guc_convert(const char* gltf_path,
   fs::path base_usd_path = usd_path;
   fs::path dst_dir = base_usd_path.parent_path();
 
-  bool export_usdz = base_usd_path.extension() == ".usdz";
+  bool exportUsdz = base_usd_path.extension() == ".usdz";
 
-  if (export_usdz)
+  if (exportUsdz)
   {
     dst_dir = ArchMakeTmpSubdir(ArchGetTmpDir(), "guc");
     TF_DEBUG(GUC).Msg("using temp dir %s\n", dst_dir.string().c_str());
@@ -107,14 +107,16 @@ bool guc_convert(const char* gltf_path,
     TF_DEBUG(GUC).Msg("temporary USD path: %s\n", base_usd_path.string().c_str());
   }
 
+  bool validateGltf = !options->skip_validation;
+
   cgltf_data* gltf_data = nullptr;
-  if (!load_gltf(gltf_path, &gltf_data))
+  if (!load_gltf(gltf_path, &gltf_data, validateGltf))
   {
     TF_RUNTIME_ERROR("unable to load glTF file %s", gltf_path);
     return false;
   }
 
-  bool copyExistingFiles = !export_usdz; // Add source files directly to archive in case of USDZ
+  bool copyExistingFiles = !exportUsdz; // Add source files directly to archive in case of USDZ
 
   Converter::FileExports fileExports;
   bool result = convertToUsd(src_dir, gltf_data, base_usd_path, copyExistingFiles, options, fileExports);
@@ -128,7 +130,7 @@ bool guc_convert(const char* gltf_path,
 
   // In case of USDZ, we have now written the USDC file and all image files to a
   // temporary directory. Next, we invoke Pixar's USDZ API in order to zip them.
-  if (export_usdz)
+  if (exportUsdz)
   {
     auto usdz_dst_dir = fs::absolute(final_usd_path).parent_path();
     if (!fs::exists(usdz_dst_dir) && !fs::create_directories(usdz_dst_dir))

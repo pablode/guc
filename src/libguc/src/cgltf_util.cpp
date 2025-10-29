@@ -418,7 +418,7 @@ namespace detail
 
 namespace guc
 {
-  bool load_gltf(const char* gltfPath, cgltf_data** data)
+  bool load_gltf(const char* gltfPath, cgltf_data** data, bool validate)
   {
     detail::BufferHolder* bufferHolder = new detail::BufferHolder;
 
@@ -448,13 +448,16 @@ namespace guc
       return false;
     }
 
-    result = cgltf_validate(*data);
-
-    if (result != cgltf_result_success)
+    if (validate)
     {
-      TF_RUNTIME_ERROR("unable to validate glTF: %s", cgltf_error_string(result));
-      free_gltf(*data);
-      return false;
+      result = cgltf_validate(*data);
+
+      if (result != cgltf_result_success)
+      {
+        TF_RUNTIME_ERROR("unable to validate glTF: %s", cgltf_error_string(result));
+        free_gltf(*data);
+        return false;
+      }
     }
 
     bool meshoptCompressionRequired = false;

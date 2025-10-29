@@ -1,7 +1,7 @@
 ## guc
 
+![USD v25.11](https://github.com/pablode/guc/actions/workflows/run-tests-usd2511.yml/badge.svg?branch=main)
 ![USD v25.08](https://github.com/pablode/guc/actions/workflows/run-tests-usd2508.yml/badge.svg?branch=main)
-![USD v25.05](https://github.com/pablode/guc/actions/workflows/run-tests-usd2505.yml/badge.svg?branch=main)
 
 guc is a glTF to [Universal Scene Description](https://github.com/PixarAnimationStudios/USD) (USD) converter.
 

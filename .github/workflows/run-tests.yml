@@ -152,7 +152,7 @@ jobs:
     - name: Install packages
       run: |
         # Use latest stable mesa because Storm requires OpenGL 4.6
-        sudo add-apt-repository ppa:kisak/kisak-mesa
+        #sudo add-apt-repository ppa:kisak/kisak-mesa
         sudo apt update
         sudo apt upgrade
         sudo apt-get install mesa-utils xvfb qtbase5-dev

@@ -33,6 +33,9 @@
 #include <pxr/usd/usdShade/material.h>
 #include <pxr/usd/usdShade/shader.h>
 #include <pxr/usd/usdShade/materialBindingAPI.h>
+#if PXR_VERSION > 2511
+#include <pxr/usd/usdUI/objectHints.h>
+#endif
 #include <pxr/usd/sdf/types.h>
 #include <pxr/usd/usdMtlx/reader.h>
 #include <pxr/usd/usdMtlx/utils.h>
@@ -180,6 +183,16 @@ namespace detail
     customData[_tokens->generated] = true;
     attr.SetCustomDataByKey(_tokens->guc, VtValue(customData));
   }
+
+  void setDisplayName(UsdObject& object, const char* name)
+  {
+#if PXR_VERSION > 2511
+    UsdUIObjectHints hints(object);
+    hints.SetDisplayName(name);
+#else
+    object.SetDisplayName(name);
+#endif
+  }
 }
 
 namespace guc
@@ -310,7 +323,7 @@ namespace guc
       if (sceneData->name)
       {
         UsdPrim prim = xform.GetPrim();
-        prim.SetDisplayName(sceneData->name);
+        detail::setDisplayName(prim, sceneData->name);
       }
     }
 
@@ -427,7 +440,7 @@ namespace guc
       if (gmat->name)
       {
         UsdPrim prim = m_stage->GetPrimAtPath(previewPath);
-        prim.SetDisplayName(gmat->name);
+        detail::setDisplayName(prim, gmat->name);
       }
     }
 
@@ -546,7 +559,7 @@ namespace guc
     if (nodeData->name)
     {
       UsdPrim prim = xform.GetPrim();
-      prim.SetDisplayName(nodeData->name);
+      detail::setDisplayName(prim, nodeData->name);
     }
   }
 
@@ -600,7 +613,7 @@ namespace guc
 
     if (cameraData->name)
     {
-      prim.SetDisplayName(cameraData->name);
+      detail::setDisplayName(prim, cameraData->name);
     }
 
     m_uniquePaths[(void*) cameraData] = path;
@@ -662,7 +675,7 @@ namespace guc
 
     if (lightData->name)
     {
-      prim.SetDisplayName(lightData->name);
+      detail::setDisplayName(prim, lightData->name);
     }
 
     m_uniquePaths[(void*) lightData] = path;
@@ -733,7 +746,7 @@ namespace guc
 
       if (meshData->name)
       {
-        submesh.SetDisplayName(meshData->name);
+        detail::setDisplayName(submesh, meshData->name);
       }
     }
   }

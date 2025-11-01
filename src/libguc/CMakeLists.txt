@@ -41,7 +41,7 @@ set(LIBGUC_DEFINES
 if(TARGET usd_ms)
   set(LIBGUC_USD_LIBS usd_ms)
 else()
-  set(LIBGUC_USD_LIBS usd usdGeom usdLux usdShade usdUtils usdMtlx)
+  set(LIBGUC_USD_LIBS usd usdGeom usdLux usdShade usdUtils usdMtlx usdUI)
 endif()
 
 set(LIBGUC_SHARED_LIBRARIES

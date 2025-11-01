@@ -50,6 +50,11 @@ This document lists differences and similarities.
       <td>✅</td>
       <td>✅</td>
     </tr>
+    <tr>
+      <td>glTF loader</td>
+      <td>cgltf</td>
+      <td>tinygltf</td>
+    </tr>
   </tbody>
 </table>
 

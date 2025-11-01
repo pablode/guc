@@ -45,35 +45,25 @@ As Gaussian splat shading is of non-trivial complexity, the logic has been imple
 The following is the primary source code listing from which a helper `.mtlx` file is generated, which is referenced by the converted asset.
 
 ```
-float GS_ShCoeff2(int idx)
-{
-  return switch(idx) {
-    1.0925484305920792,
-    -1.0925484305920792,
-    0.31539156525252005,
-    -1.0925484305920792,
-    0.5462742152960396
-  };
-}
-
-float GS_ShCoeff3(int idx)
-{
-  return switch(idx) {
-    -0.5900435899266435,
-    2.890611442640554,
-    -0.4570457994644658,
-    0.3731763325901154,
-    -0.4570457994644658,
-    1.445305721320277,
-    -0.5900435899266435
-  };
-}
-
 // https://github.com/graphdeco-inria/gaussian-splatting/blob/main/utils/sh_utils.py
 float GS_SphericalHarmonics(int shDegree, vector3 dir)
 {
   const float SH_C0 = 0.28209479177387814;
   const float SH_C1 = 0.4886025119029199;
+
+  const float SH_C2_E0 = 1.0925484305920792;
+  const float SH_C2_E1 = -1.0925484305920792;
+  const float SH_C2_E2 = 0.31539156525252005;
+  const float SH_C2_E3 = -1.0925484305920792;
+  const float SH_C2_E4 = 0.5462742152960396;
+
+  const float SH_C3_E0 = -0.5900435899266435;
+  const float SH_C3_E1 = 2.890611442640554;
+  const float SH_C3_E2 = -0.4570457994644658;
+  const float SH_C3_E3 = 0.3731763325901154;
+  const float SH_C3_E4 = -0.4570457994644658;
+  const float SH_C3_E5 = 1.445305721320277;
+  const float SH_C3_E6 = -0.5900435899266435;
 
   float xx = dir.x * dir.x;
   float yy = dir.y * dir.y;
@@ -95,52 +85,51 @@ float GS_SphericalHarmonics(int shDegree, vector3 dir)
   result = if (shDegree >= 2)
   {
     result +
-    GS_ShCoeff2(0) * xy * geompropvalue("sh_coeff4") +
-    GS_ShCoeff2(1) * yz * geompropvalue("sh_coeff5") +
-    GS_ShCoeff2(2) * (2.0 * zz - xx - yy) * geompropvalue("sh_coeff6") +
-    GS_ShCoeff2(3) * xz * geompropvalue("sh_coeff7") +
-    GS_ShCoeff2(4) * (xx - yy) * geompropvalue("sh_coeff8")
+    SH_C2_E0 * xy * geompropvalue("sh_coeff4") +
+    SH_C2_E1 * yz * geompropvalue("sh_coeff5") +
+    SH_C2_E2 * (2.0 * zz - xx - yy) * geompropvalue("sh_coeff6") +
+    SH_C2_E3 * xz * geompropvalue("sh_coeff7") +
+    SH_C2_E4 * (xx - yy) * geompropvalue("sh_coeff8")
   };
 
   result = if (shDegree >= 3)
   {
     result +
-    GS_ShCoeff3(0) * dir.y * (3.0 * xx - yy) * geompropvalue("sh_coeff9") +
-    GS_ShCoeff3(1) * dir.z * xy * geompropvalue("sh_coeff10") +
-    GS_ShCoeff3(2) * dir.y * (4.0 * zz - xx - yy) * geompropvalue("sh_coeff11") +
-    GS_ShCoeff3(3) * dir.z * (2.0 * zz - 3.0 * xx - 3.0 * yy) * geompropvalue("sh_coeff12") +
-    GS_ShCoeff3(4) * dir.x * (4.0 * zz - xx - yy) * geompropvalue("sh_coeff13") +
-    GS_ShCoeff3(5) * dir.z * (xx - yy) * geompropvalue("sh_coeff14") +
-    GS_ShCoeff3(6) * dir.x * (xx - 3.0 * yy) * geompropvalue("sh_coeff15")
+    SH_C3_E0 * dir.y * (3.0 * xx - yy) * geompropvalue("sh_coeff9") +
+    SH_C3_E1 * dir.z * xy * geompropvalue("sh_coeff10") +
+    SH_C3_E2 * dir.y * (4.0 * zz - xx - yy) * geompropvalue("sh_coeff11") +
+    SH_C3_E3 * dir.z * (2.0 * zz - 3.0 * xx - 3.0 * yy) * geompropvalue("sh_coeff12") +
+    SH_C3_E4 * dir.x * (4.0 * zz - xx - yy) * geompropvalue("sh_coeff13") +
+    SH_C3_E5 * dir.z * (xx - yy) * geompropvalue("sh_coeff14") +
+    SH_C3_E6 * dir.x * (xx - 3.0 * yy) * geompropvalue("sh_coeff15")
   };
 
   return result;
 }
 
-surfaceshader GS_SurfaceShader(int shDegree)
+float GS_Opacity()
 {
   vector3 pos = position();
   float mag = magnitude(pos);
   float rxx = power(mag, 2.0);
   float rxxm = rxx * -2.5;
   float rexp = exp(rxxm);
-  float opa = rexp * geompropvalue("opacity");
+  float baseOpacity = geompropvalue("opacity");
+  return rexp * baseOpacity;
+}
+
+color3 GS_Color(int shDegree)
+{
+  color3 baseColor = geompropvalue("color");
 
   vector3 dir = viewdirection("object");
   float sh = GS_SphericalHarmonics(shDegree, dir);
 
-  color3 col = geompropvalue("color");
-  col += color3(sh);
-
-  return surface(
-    edf = uniform_edf(col),
-    opacity = opa
-  );
+  return baseColor + color3(sh);
 }
 ```
 
-The code listing does not define specific materials, but instead a custom surface shader implementation.
-It is parameterized with an integer `shDegree`, which stands for the number of spherical harmonic degrees used.
+`GS_Color` is parameterized with an integer `shDegree`, which stands for the number of spherical harmonic degrees used.
 Due to the value being set at compile time, this allows expensive branches to be optimized away.
 guc generates materials that make use of `GS_SurfaceShader` depending on the spherical harmonic degrees needed.
 

@@ -1,4 +1,4 @@
-# Structure Mapping
+# Conversion Process
 
 guc's conversion process produces self-containing components, which can then be
 composed as part of a larger assembly.
@@ -69,7 +69,7 @@ For the "golden triangle" example above, following high-level scene structure is
 #usda 1.0
 (
     defaultPrim = "Asset"
-    doc = "Converted from glTF with guc 0.2"
+    doc = "Converted from glTF with guc X.Y"
     metersPerUnit = 1
     upAxis = "Y"
 )
@@ -131,7 +131,7 @@ def Mesh "submesh" (
 }
 ```
 
-Depending on material parameters and available accessors, guc creates following primvars:
+Depending on material parameters and available accessors, guc creates following primvars
 
 Name | Description
 ---  | ---
@@ -142,6 +142,8 @@ opacity[N] | Vertex opacity set N
 st[N] | Texture coordinate set N
 tangents | MikkTSpace tangent vectors
 bitangents | MikkTSpace bitangent vectors
+
+where a number is appended if `N > 0`.
 
 Additionally, a material binding relationship is always authored on the prim and its
 overrides, potentially binding a default material.
@@ -202,10 +204,9 @@ the following node graph is generated:
 
       D["<font color=red>&lt;!-- baseColorTexture --&gt;</font> <br/> <font color=blue>&lt;image&gt;</font>"];
       E["<font color=red>&lt;!-- channel extraction --&gt;</font>"];
-      F["<font color=#f99>&lt;!-- opt. colorspace transformation --&gt;</font>"];
-      G["<font color=blue>&lt;multiply&gt;</font>"];
+      F["<font color=blue>&lt;multiply&gt;</font>"];
 
-      H["<font color=blue>&lt;gltf_pbr&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br/> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<font color=red> &lt;!-- base_color input --&gt; <br/>  <font color=blue> &lt;/gltf_pbr&gt;</font> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"];
+      G["<font color=blue>&lt;gltf_pbr&gt; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br/> &nbsp;&nbsp;&nbsp;&nbsp;<font color=red> &lt;!-- base_color input --&gt; <br/>  <font color=blue> &lt;/gltf_pbr&gt;</font> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"];
 
       A-->C
       B-->C
@@ -213,13 +214,11 @@ the following node graph is generated:
 
       D-->E
       E-->F
-      F-->G
 
-      G-->H
+      F-->G
 
       classDef default fill:#fff,stroke:#999
 ```
-Depending on conversion options, the graph may contain additional color space transformation nodes.
 
 
 ## Future improvements

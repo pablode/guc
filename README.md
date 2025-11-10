@@ -5,27 +5,22 @@
 
 guc is a glTF to [Universal Scene Description](https://github.com/PixarAnimationStudios/USD) (USD) converter.
 
-Unlike...
- - [gltf2usd](https://github.com/kcoley/gltf2usd), it aims to be more than a PoC
- - [usd_from_gltf](https://github.com/google/usd_from_gltf), it is not AR Quick Look centric
- - [Apple's USDZ Tools](https://developer.apple.com/augmented-reality/tools/), it is open-source and freely available
+It aims to represent glTF assets a closely as possible within USD. To that end, it uses [MaterialX](https://github.com/AcademySoftwareFoundation/MaterialX) as a standard for material and look interchange.
 
-guc furthermore supports near-lossless material translation via the [MaterialX](https://github.com/AcademySoftwareFoundation/MaterialX) standard.
-
-All glTF features except animation and skinning are implemented and get continuously tested in guc's [test suite](https://github.com/pablode/guc-tests).
+All glTF features with the exception of animation and skinning are implemented and get continuously tested in guc's [test suite](https://github.com/pablode/guc-tests).
 
 <p align="middle">
   <img width=360 src="preview_hdStorm.png" />
   <img width=360 src="preview_glTFSampleViewer.png" />
 </p>
 <p align="middle">
-  Wayfair's <a href="https://github.com/KhronosGroup/glTF-Sample-Models/tree/16e803435fca5b07dde3dbdc5bd0e9b8374b2750/2.0/IridescentDishWithOlives">Iridescent Dish with Olives</a> (<a href="https://creativecommons.org/licenses/by/4.0/">CC BY</a>) converted to USD+MaterialX with guc and rendered in hdStorm (left).
+  Wayfair's <a href="https://github.com/KhronosGroup/glTF-Sample-Models/tree/16e803435fca5b07dde3dbdc5bd0e9b8374b2750/2.0/IridescentDishWithOlives">Iridescent Dish with Olives</a> (<a href="https://creativecommons.org/licenses/by/4.0/">CC BY</a>) converted to USD+MaterialX with guc and rendered in Storm (left).
   The same model in Khronos's <a href="https://github.khronos.org/glTF-Sample-Viewer-Release/">glTF Sample Viewer</a> (right).
 </p>
 
 ### Build
 
-You need USD v24.03+ (e.g. <a href="https://github.com/PixarAnimationStudios/OpenUSD/releases/tag/v25.02">v25.02</a>) with MaterialX support enabled.
+You need USD v24.08+ (e.g. <a href="https://github.com/PixarAnimationStudios/OpenUSD/releases/tag/v25.08">v25.08</a>) with MaterialX support enabled.
 
 Do a recursive clone of the repository and set up a build folder:
 ```
@@ -56,13 +51,18 @@ Options:
   -m, --emit-mtlx                            Emit MaterialX materials in addition to UsdPreviewSurfaces
   -u, --mtlx-as-usdshade                     Convert and inline MaterialX materials into the USD layer using UsdMtlx
   -v, --default-material-variant=<index>     Index of the material variant that is selected by default
+  -s, --skip-validation                      Skip glTF validation for reduced processing time
   -l, --licenses                             Print the license of guc and third-party libraries
   -h, --help                                 Show the command help
 ```
 
 Both glTF and GLB file types are valid input. USDA, USDC and USDZ formats can be written.
 
-An example asset conversion is described in the [Structure Mapping](docs/Structure_Mapping.md) document.
+### Documentation
+
+* [Example asset conversion](docs/Conversion_Process.md)
+* [Technology limitations and open problems](docs/Technology_Limitations.md)
+* [Sdf plugin](docs/Sdf_Plugin.md)
 
 ### Extension support
 
@@ -70,6 +70,7 @@ Name                                | Status&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 ------------------------------------|----------
 EXT_meshopt_compression             | ✅ Complete
 KHR_draco_mesh_compression          | ✅ Complete
+KHR_gaussian_splatting              | 🚧 In Progress
 KHR_lights_punctual                 | ✅ Partial <sup>1</sup>
 KHR_materials_clearcoat             | ✅ Complete
 KHR_materials_emissive_strength     | ✅ Complete
@@ -85,17 +86,7 @@ KHR_mesh_quantization               | ✅ Complete
 KHR_texture_transform               | ✅ Complete
 
 <sup>\[1\]</sup> Spotlight cone falloff is ignored.  
-<sup>\[2\]</sup> Thickness is <a href="https://github.com/AcademySoftwareFoundation/MaterialX/pull/861">not supported</a> by the MaterialX glTF PBR implementation.
-
-### Sdf plugin
-
-The _usdGlTF_ library implements USD's Sdf file format interface. Enable the `GUC_BUILD_USDGLTF` CMake option before building and install it as follows:
-```
-cmake --install . --component usdGlTF --config Release --prefix <USD_INSTALL_DIR>/plugin/usd
-```
-
-glTF files can now be referenced as layers and opened with USD tooling.
-The _emitMtlx_ dynamic Sdf file format argument controls MaterialX material emission.
+<sup>\[2\]</sup> Thickness is not supported by the MaterialX glTF PBR implementation.
 
 ### License
 

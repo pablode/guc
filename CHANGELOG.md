@@ -1,6 +1,25 @@
 
 # Changelog
 
+## Version 0.5 - 2025-11-16
+
+Added
+* Compatibility with monolithic USD builds
+* Guard for UsdObject::SetDisplayName deprecation
+* Option to skip glTF validation
+* Support for [EXT_meshopt_compression](https://github.com/KhronosGroup/glTF/blob/082d5a98f479c37dff18767982d1431fc6c014fd/extensions/2.0/Vendor/EXT_meshopt_compression/README.md) extension
+* Support for [KHR_draco_mesh_compression](https://github.com/KhronosGroup/glTF/blob/082d5a98f479c37dff18767982d1431fc6c014fd/extensions/2.0/Khronos/KHR_draco_mesh_compression/README.md) extension
+* Support for [KHR_mesh_quantization](https://github.com/KhronosGroup/glTF/blob/082d5a98f479c37dff18767982d1431fc6c014fd/extensions/2.0/Khronos/KHR_mesh_quantization/README.md) extension
+* UsdPreviewSurface opacityMode input for alpha cutout
+
+Changed
+* Improved OpenImageIO error handling
+* MaterialX 1.39 normal map node is now used instead of custom logic
+* Removed HdStorm-compat option
+* Replaced reindexing with native primvar interpolation
+* Switched from bitangent signs to vector3 primvar
+* Updated documentation
+
 ## Version 0.4 - 2024-07-15
 
 Added

@@ -43,7 +43,7 @@ cmake --build . -j8 --config Release
 ### Usage
 
 ```
-guc 0.5 - glTF to USD converter
+guc 0.6 - glTF to USD converter
 
 Usage: guc [options] [--] <gltf_path> <usd_path>
 

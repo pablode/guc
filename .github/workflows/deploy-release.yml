@@ -73,7 +73,7 @@ jobs:
         with:
           merge-multiple: true
 
-      - name: Deploy draft release
+      - name: Deploy release
         uses: softprops/action-gh-release@d4e8205d7e959a9107da6396278b2f1f07af0f9b
         with:
           name: ${{ inputs.version-name }}

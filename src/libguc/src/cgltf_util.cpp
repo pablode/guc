@@ -65,6 +65,7 @@ namespace detail
            strcmp(name, "KHR_materials_variants") == 0 ||
            strcmp(name, "KHR_materials_volume") == 0 ||
            strcmp(name, "KHR_mesh_quantization") == 0 ||
+           strcmp(name, "KHR_meshopt_compression") == 0 ||
            strcmp(name, "KHR_texture_transform") == 0;
   }
 
@@ -407,6 +408,10 @@ namespace detail
 
       case cgltf_meshopt_compression_filter_exponential:
         meshopt_decodeFilterExp(result, mc.count, mc.stride);
+        break;
+
+      case cgltf_meshopt_compression_filter_color:
+        meshopt_decodeFilterColor(result, mc.count, mc.stride);
         break;
       }
 

@@ -102,6 +102,14 @@ namespace detail
         }
         item = (int) tmpUint;
       }
+      else if constexpr (std::is_same<T, float>())
+      {
+        if (!cgltf_accessor_read_float(accessor, i, &item, elementSize))
+        {
+          TF_RUNTIME_ERROR("unable to read accessor data");
+          return false;
+        }
+      }
       else if constexpr (std::is_same<T, GfVec2f>() ||
                          std::is_same<T, GfVec3f>() ||
                          std::is_same<T, GfVec4f>())
@@ -152,7 +160,7 @@ namespace detail
         {
           array[i] = GfVec4f(floats[i * 4 + 0], floats[i * 4 + 1], floats[i * 4 + 2], floats[i * 4 + 3]);
         }
-        else if constexpr (std::is_same<T, int>())
+        else if constexpr (std::is_same<T, int>() || std::is_same<T, float>())
         {
           array[i] = floats[i];
         }

@@ -1134,8 +1134,9 @@ namespace guc
       {
         continue;
       }
+
       auto colorPrimvarId = TfToken(makeColorSetName(i));
-      auto colorPrimvar = primvarsApi.CreatePrimvar(colorPrimvarId, SdfValueTypeNames->Float3Array, UsdGeomTokens->vertex);
+      auto colorPrimvar = primvarsApi.CreatePrimvar(colorPrimvarId, SdfValueTypeNames->Color3fArray, UsdGeomTokens->vertex);
       colorPrimvar.Set(colors);
 
       auto colorAttr = colorPrimvar.GetAttr();

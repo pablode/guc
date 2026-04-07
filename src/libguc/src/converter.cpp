@@ -812,6 +812,7 @@ namespace guc
 
       if (indices.empty())
       {
+        indices.reserve(accessor->count);
         for (size_t i = 0; i < accessor->count; i++)
         {
           indices.push_back(i);

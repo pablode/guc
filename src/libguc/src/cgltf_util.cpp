@@ -121,7 +121,8 @@ namespace detail
 
   void releaseFile(const cgltf_memory_options* memory_options,
                    const cgltf_file_options* file_options,
-                   void* data)
+                   void* data,
+                   cgltf_size /*size*/)
   {
     auto bufferPtr = (const char*) data;
     auto bufferHolder = (BufferHolder*) file_options->user_data;

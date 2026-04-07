@@ -17,7 +17,9 @@
 #include "converter.h"
 
 #include <pxr/base/tf/envSetting.h>
+#include <pxr/base/gf/colorSpace.h>
 #include <pxr/base/gf/matrix4f.h>
+#include <pxr/usd/usd/colorSpaceAPI.h>
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usd/editContext.h>
 #include <pxr/usd/usdGeom/camera.h>
@@ -1129,6 +1131,9 @@ namespace guc
       auto colorPrimvar = primvarsApi.CreatePrimvar(colorPrimvarId, SdfValueTypeNames->Float3Array, UsdGeomTokens->vertex);
       colorPrimvar.Set(colors);
 
+      auto colorAttr = colorPrimvar.GetAttr();
+      colorAttr.SetColorSpace(GfColorSpaceNames->LinearRec709);
+
       // We do an emptyness check here instead of in the retrieval routine above
       // in order to keep the color-opacity primvar index correspondence, e.g.:
       //  color1, opacity1
@@ -1149,6 +1154,9 @@ namespace guc
     {
       auto primvar = mesh.CreateDisplayColorPrimvar(displayPrimvarInterpolation);
       primvar.Set(displayColors);
+
+      auto attr = primvar.GetAttr();
+      attr.SetColorSpace(GfColorSpaceNames->LinearRec709);
 
       if (generatedDisplayColors)
       {

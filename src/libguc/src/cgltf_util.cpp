@@ -500,12 +500,12 @@ namespace guc
 
       if (meshoptCompressionRequired)
       {
-        TF_RUNTIME_ERROR(errStr, guc::cgltf_error_string(result));
+        TF_RUNTIME_ERROR(errStr, cgltf_error_string(result));
         free_gltf(*data);
         return false;
       }
 
-      TF_WARN(errStr, guc::cgltf_error_string(result));
+      TF_WARN(errStr, cgltf_error_string(result));
     }
 
 #ifdef GUC_USE_DRACO

@@ -52,6 +52,9 @@ namespace detail
 #ifdef GUC_USE_DRACO
            strcmp(name, GLTF_KHR_DRACO_MESH_COMPRESSION_EXTENSION_NAME) == 0 ||
 #endif
+#if PXR_VERSION >= 2603
+           strcmp(name, "KHR_gaussian_splatting") == 0 ||
+#endif
            strcmp(name, "KHR_lights_punctual") == 0 ||
            strcmp(name, "KHR_materials_clearcoat") == 0 ||
            strcmp(name, "KHR_materials_emissive_strength") == 0 ||

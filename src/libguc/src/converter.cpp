@@ -18,8 +18,13 @@
 
 #include <pxr/base/tf/envSetting.h>
 #include <pxr/base/gf/colorSpace.h>
+#include <pxr/base/gf/math.h>
+#include <pxr/base/gf/matrix3f.h>
 #include <pxr/base/gf/matrix4f.h>
+#include <pxr/base/work/reduce.h>
+#if PXR_VERSION >= 2505
 #include <pxr/usd/usd/colorSpaceAPI.h>
+#endif
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usd/editContext.h>
 #include <pxr/usd/usdGeom/camera.h>
@@ -43,6 +48,10 @@
 #include <pxr/usd/usdMtlx/utils.h>
 #include <pxr/usd/usd/modelAPI.h>
 #include <pxr/usd/kind/registry.h>
+#if PXR_VERSION >= 2603
+#include <pxr/usd/usdVol/particleField3DGaussianSplat.h>
+#include <pxr/usd/usdVol/tokens.h>
+#endif
 
 #include <MaterialXFormat/XmlIo.h>
 #include <MaterialXFormat/Util.h>
@@ -67,6 +76,8 @@ TF_DEFINE_PRIVATE_TOKENS(
   (bitangents)
   (guc)
   (generated)
+  (unknown)
+  (ellipse)
 );
 
 const static char* MTLX_GLTF_PBR_FILE_NAME = "gltf_pbr.mtlx";
@@ -203,6 +214,119 @@ namespace detail
     object.SetDisplayName(name);
 #endif
   }
+
+#if PXR_VERSION >= 2603
+  GfRange3d computeSplatRangeExtent(const VtVec3fArray& points,
+                                    const VtQuatfArray& rotations,
+                                    const VtVec3fArray& scales,
+                                    size_t start,
+                                    size_t end)
+  {
+    const float SIGMA_CUTOFF = 3.0f; // used by most renderers
+
+    GfRange3d range;
+    for (size_t i = start; i != end; i++)
+    {
+      const GfVec3f& point = points[i];
+      const GfQuatf& rot = rotations[i];
+      const GfVec3f& scale = scales[i];
+
+      if (scale[0] <= 0.0f || scale[1] <= 0.0f || scale[2] <= 0.0f)
+      {
+        range.UnionWith(point);
+        continue;
+      }
+
+      GfMatrix3f r(rot);
+      const float sx2 = scale[0] * scale[0];
+      const float sy2 = scale[1] * scale[1];
+      const float sz2 = scale[2] * scale[2];
+
+      // world-space variance (diagonal of covariance)
+      GfVec3f var(
+        r[0][0] * r[0][0] * sx2 + r[0][1] * r[0][1] * sy2 + r[0][2] * r[0][2] * sz2,
+        r[1][0] * r[1][0] * sx2 + r[1][1] * r[1][1] * sy2 + r[1][2] * r[1][2] * sz2,
+        r[2][0] * r[2][0] * sx2 + r[2][1] * r[2][1] * sy2 + r[2][2] * r[2][2] * sz2
+      );
+
+      GfVec3f halfExtent(sqrtf(var[0]), sqrtf(var[1]), sqrtf(var[2]));
+      halfExtent *= SIGMA_CUTOFF;
+
+      range.UnionWith(point - halfExtent);
+      range.UnionWith(point + halfExtent);
+    }
+
+    return range;
+  }
+
+  void computeSplatsExtent(const VtVec3fArray& points,
+                           const VtQuatfArray& rotations,
+                           const VtVec3fArray& scales,
+                           VtVec3fArray& extent)
+  {
+    using namespace std::placeholders;
+
+    GfRange3d bbox;
+    if (!points.empty())
+    {
+      const size_t GRAIN_SIZE = 500;
+
+      bbox = WorkParallelReduceN(
+        GfRange3d(),
+        points.size(),
+        std::bind(computeSplatRangeExtent, points, rotations, scales, _1, _2),
+        [](GfRange3d lhs, GfRange3d rhs) {
+          return GfRange3d::GetUnion(lhs, rhs);
+        },
+        GRAIN_SIZE
+      );
+    }
+
+    extent.resize(2);
+    extent[0] = GfVec3f(bbox.GetMin());
+    extent[1] = GfVec3f(bbox.GetMax());
+  }
+
+  TfToken translateGlTFColorSpace(const char* name)
+  {
+    if (name == std::string_view("srgb_rec709_display"))
+    {
+      return GfColorSpaceNames->SRGBRec709;
+    }
+    else if (name == std::string_view("lin_rec709_display"))
+    {
+      return GfColorSpaceNames->LinearRec709;
+    }
+    else
+    {
+      return GfColorSpaceNames->Unknown;
+    }
+  }
+
+  TfToken translateGlTFGsSortingMode(const char* name)
+  {
+    if (name == std::string_view("cameraDistance"))
+    {
+      return UsdVolTokens->cameraDistance;
+    }
+    return TfToken();
+  }
+
+  TfToken translateGlTFGsProjection(const char* name)
+  {
+    if (name == std::string_view("perspective"))
+    {
+      return UsdVolTokens->perspective;
+    }
+    return TfToken();
+  }
+
+  bool isColorSpaceRec709(TfToken colorSpace)
+  {
+    return colorSpace == GfColorSpaceNames->LinearRec709 ||
+           colorSpace == GfColorSpaceNames->SRGBRec709;
+  }
+#endif
 }
 
 namespace guc
@@ -279,6 +403,11 @@ namespace guc
       for (size_t j = 0; j < gmesh->primitives_count && !createDefaultMaterial; j++)
       {
         const cgltf_primitive* gprim = &gmesh->primitives[j];
+
+        if (gprim->has_gaussian_splatting)
+        {
+          continue;
+        }
 
         createDefaultMaterial |= !gprim->material;
       }
@@ -728,6 +857,8 @@ namespace guc
         materialName = getMaterialName(primitiveData->material);
       }
 
+      bool emitMaterial = !primitiveData->has_gaussian_splatting;
+
       if (primitiveData->mappings_count > 0)
       {
         UsdPrim defaultPrim = m_stage->GetDefaultPrim();
@@ -744,12 +875,16 @@ namespace guc
           UsdEditContext editContext(set.GetVariantEditContext());
 
           materialName = getMaterialName(mapping->material);
-          createMaterialBinding(submesh, materialName);
+
+          if (emitMaterial)
+          {
+            createMaterialBinding(submesh, materialName);
+          }
         }
 
         TF_VERIFY(set.ClearVariantSelection());
       }
-      else
+      else if (emitMaterial)
       {
         createMaterialBinding(submesh, materialName);
       }
@@ -785,6 +920,310 @@ namespace guc
   }
 
   bool Converter::createPrimitive(const cgltf_primitive* primitiveData, SdfPath path, UsdPrim& prim)
+  {
+    if (primitiveData->has_gaussian_splatting)
+    {
+#if PXR_VERSION >= 2603
+      return createGsplatPrimitive(primitiveData, path, prim);
+#else
+      TF_RUNTIME_ERROR("Gaussian splats require USD v26.03 or higher");
+      return false;
+#endif
+    }
+    else
+    {
+      return createMeshPrimitive(primitiveData, path, prim);
+    }
+  }
+
+#if PXR_VERSION >= 2603
+  // TODO: need to check accessor == NULL handling. depends on validation PR merge.
+  bool Converter::createGsplatPrimitive(const cgltf_primitive* primitiveData, SdfPath path, UsdPrim& prim)
+  {
+    const cgltf_gaussian_splatting* gs = &primitiveData->gaussian_splatting;
+
+    TfToken colorSpace = detail::translateGlTFColorSpace(gs->color_space);
+    if (colorSpace == GfColorSpaceNames->Unknown)
+    {
+      TF_WARN("%s: unknown color space", path.GetText());
+    }
+
+    // Points
+    VtVec3fArray points;
+    if (const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "POSITION"); accessor)
+    {
+      if (!detail::readVtArrayFromAccessor(accessor, points) || accessor->count == 0)
+      {
+        TF_RUNTIME_ERROR("can't read %s attribute", accessor->name);
+        return false;
+      }
+    }
+
+    // Rotations
+    VtQuatfArray rotations;
+    if (const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "KHR_gaussian_splatting:ROTATION"); accessor)
+    {
+      VtVec4fArray vec4Rots;
+      if (!detail::readVtArrayFromAccessor(accessor, vec4Rots))
+      {
+        TF_RUNTIME_ERROR("can't read %s attribute", accessor->name);
+        return false;
+      }
+
+      size_t rotCount = vec4Rots.size();
+
+      rotations.resize(rotCount);
+      for (size_t i = 0; i < rotCount; i++)
+      {
+        // according to the glTF spec, the quaternion is normalized
+        rotations[i] = GfQuatf(vec4Rots[i][3], vec4Rots[i][0], vec4Rots[i][1], vec4Rots[i][2]);
+      }
+    }
+
+    // Scales
+    VtVec3fArray scales;
+    if (const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "KHR_gaussian_splatting:SCALE"); accessor)
+    {
+      if (!detail::readVtArrayFromAccessor(accessor, scales))
+      {
+        TF_RUNTIME_ERROR("can't read %s attribute", accessor->name);
+        return false;
+      }
+    }
+
+    // Opacities
+    VtFloatArray opacities;
+    if (const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "KHR_gaussian_splatting:OPACITY"); accessor)
+    {
+      if (!detail::readVtArrayFromAccessor(accessor, opacities))
+      {
+        TF_RUNTIME_ERROR("can't read %s attribute", accessor->name);
+        return false;
+      }
+    }
+
+    // Display colors & opacities
+    VtVec3fArray displayColors;
+    VtFloatArray displayOpacities;
+    bool generatedDisplayColors = false;
+    bool generatedDisplayOpacities = false;
+
+    if (const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, "COLOR_0"); accessor)
+    {
+      if (accessor->type == cgltf_type_vec3)
+      {
+        if (!detail::readVtArrayFromAccessor(accessor, displayColors))
+        {
+          TF_RUNTIME_ERROR("can't read %s attribute", accessor->name);
+          return false;
+        }
+      }
+      else if (accessor->type == cgltf_type_vec4)
+      {
+        VtVec4fArray rgbaColors;
+        if (!detail::readVtArrayFromAccessor(accessor, rgbaColors))
+        {
+          TF_RUNTIME_ERROR("can't read %s attribute", accessor->name);
+          return false;
+        }
+
+        size_t rgbaColorCount = rgbaColors.size();
+
+        displayColors.resize(rgbaColorCount);
+        for (size_t k = 0; k < rgbaColorCount; k++)
+        {
+          displayColors[k] = GfVec3f(rgbaColors[k].data());
+        }
+
+        displayOpacities.resize(rgbaColorCount);
+        for (size_t k = 0; k < rgbaColorCount; k++)
+        {
+          displayOpacities[k] = rgbaColors[k][3];
+        }
+      }
+    }
+
+    const cgltf_accessor* sh0C0Accessor = cgltf_find_accessor(primitiveData, "KHR_gaussian_splatting:SH_DEGREE_0_COEF_0");
+
+    if (displayColors.empty() && sh0C0Accessor && detail::isColorSpaceRec709(colorSpace)/*see spec*/)
+    {
+      if (!detail::readVtArrayFromAccessor(sh0C0Accessor, displayColors))
+      {
+        TF_RUNTIME_ERROR("can't read %s attribute", sh0C0Accessor->name);
+        return false;
+      }
+
+      const float SH0_C0 = 0.28209479177387814f;
+      for (GfVec3f& c : displayColors)
+      {
+        c = c * SH0_C0 + GfVec3f(0.5f);
+        c[0] = GfClamp(c[0], 0.0f, 1.0f);
+        c[1] = GfClamp(c[1], 0.0f, 1.0f);
+        c[2] = GfClamp(c[2], 0.0f, 1.0f);
+      }
+
+      generatedDisplayColors = true;
+    }
+
+    if (displayOpacities.empty())
+    {
+      displayOpacities = opacities;
+
+      generatedDisplayOpacities = true;
+    }
+
+    // Spherical harmonics
+    std::vector<std::vector<VtVec3fArray>> shDegCoefs;
+    shDegCoefs.reserve(4);
+
+    const static std::array<uint32_t, 4> COEF_BOUNDS = {0, 2, 4, 6};
+
+    for (uint32_t degree = 0; degree < uint32_t(COEF_BOUNDS.size()); degree++)
+    {
+      for (uint32_t coef = 0; coef <= COEF_BOUNDS[degree]; coef++)
+      {
+        std::string name = "KHR_gaussian_splatting:SH_DEGREE_" + std::to_string(degree) +
+                           + "_COEF_" + std::to_string(coef);
+
+        const cgltf_accessor* accessor = cgltf_find_accessor(primitiveData, name.c_str());
+        if (!accessor)
+        {
+          break; // sh degrees > 0 are optional
+        }
+
+        VtVec3fArray coefs;
+        if (!detail::readVtArrayFromAccessor(accessor, coefs))
+        {
+          TF_RUNTIME_ERROR("can't read gsplat SH coeffs");
+          return false;
+        }
+
+        if (coef == 0)
+        {
+          auto& coefs = shDegCoefs.emplace_back();
+          coefs.reserve(8);
+        }
+
+        shDegCoefs[degree].push_back(coefs);
+      }
+    }
+
+    // NOTE: parallelize?
+    VtVec3fArray shFlatCoefs(points.size() * shDegCoefs.size() * shDegCoefs.size());
+    for (uint32_t i = 0, j = 0; i < uint32_t(points.size()); i++)
+    {
+      for (const std::vector<VtVec3fArray>& deg : shDegCoefs)
+      {
+        for (const VtVec3fArray& coefs : deg)
+        {
+          shFlatCoefs[j++] = coefs[i];
+        }
+      }
+    }
+
+    // Create prim and set primvars
+    auto pf3dgs = UsdVolParticleField3DGaussianSplat::Define(m_stage, path);
+
+    pf3dgs.CreatePositionsAttr(VtValue(points));
+
+    if (!displayColors.empty())
+    {
+      auto attr = pf3dgs.CreateDisplayColorAttr(VtValue(displayColors));
+      attr.SetColorSpace(generatedDisplayColors ? colorSpace : GfColorSpaceNames->LinearRec709);
+
+      if (generatedDisplayColors)
+      {
+        detail::markAttributeAsGenerated(attr);
+      }
+
+      auto primvar = UsdGeomPrimvar(attr);
+      primvar.SetInterpolation(UsdGeomTokens->vertex);
+    }
+    if (!displayOpacities.empty())
+    {
+      auto attr = pf3dgs.CreateDisplayOpacityAttr(VtValue(displayOpacities));
+
+      if (generatedDisplayOpacities)
+      {
+        detail::markAttributeAsGenerated(attr);
+      }
+
+      auto primvar = UsdGeomPrimvar(attr);
+      primvar.SetInterpolation(UsdGeomTokens->vertex);
+    }
+    if (!rotations.empty())
+    {
+      pf3dgs.CreateOrientationsAttr(VtValue(rotations));
+    }
+    if (!scales.empty())
+    {
+      pf3dgs.CreateScalesAttr(VtValue(scales));
+    }
+    if (!opacities.empty())
+    {
+      pf3dgs.CreateOpacitiesAttr(VtValue(opacities));
+    }
+    if (!shDegCoefs.empty())
+    {
+      pf3dgs.CreateRadianceSphericalHarmonicsDegreeAttr(VtValue(int(shDegCoefs.size() - 1)));
+    }
+    if (!shFlatCoefs.empty())
+    {
+      auto attr = pf3dgs.CreateRadianceSphericalHarmonicsCoefficientsAttr(VtValue(shFlatCoefs));
+
+      // this is technically not needed but can be useful for tooling validating primvar lengths
+      auto primvar = UsdGeomPrimvar(attr);
+      primvar.SetElementSize(shDegCoefs.size() * shDegCoefs.size());
+    }
+
+    // Apply metadata
+    auto kernel = gs->kernel ? TfToken(gs->kernel) : TfToken();
+    if (kernel != _tokens->ellipse)
+    {
+      TF_RUNTIME_ERROR("Gaussian splat requires non-ellipse kernel");
+      return false;
+    }
+
+    if (gs->projection)
+    {
+      TfToken projection = detail::translateGlTFGsProjection(gs->projection);
+      if (!projection.IsEmpty())
+      {
+        pf3dgs.CreateProjectionModeHintAttr(VtValue(projection));
+      }
+    }
+
+    if (gs->sorting_method)
+    {
+      TfToken sortingMode = detail::translateGlTFGsSortingMode(gs->sorting_method);
+      if (!sortingMode.IsEmpty())
+      {
+        pf3dgs.CreateSortingModeHintAttr(VtValue(sortingMode));
+      }
+    }
+
+    prim = pf3dgs.GetPrim();
+
+#if PXR_VERSION >= 2505
+    // Apply color space
+    UsdColorSpaceAPI colorSpaceAPI = UsdColorSpaceAPI::Apply(prim);
+    colorSpaceAPI.CreateColorSpaceNameAttr(VtValue(colorSpace));
+#endif
+
+    // Calculate extent
+    if (auto boundable = UsdGeomBoundable(prim))
+    {
+      VtVec3fArray extent;
+      detail::computeSplatsExtent(points, rotations, scales, extent);
+      boundable.CreateExtentAttr(VtValue(extent));
+    }
+
+    return true;
+  }
+#endif
+
+  // TODO: we should also check accessor existence here (cmp with validation)
+  bool Converter::createMeshPrimitive(const cgltf_primitive* primitiveData, SdfPath path, UsdPrim& prim)
   {
     const cgltf_material* material = primitiveData->material;
 

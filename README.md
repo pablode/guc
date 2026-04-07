@@ -70,8 +70,8 @@ Name                                | Status&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 ------------------------------------|----------
 EXT_meshopt_compression             | ✅ Complete
 KHR_draco_mesh_compression          | ✅ Complete
-KHR_gaussian_splatting              | 🚧 In Progress
-KHR_lights_punctual                 | ✅ Partial <sup>1</sup>
+KHR_gaussian_splatting              | ✅ Complete <sup>1</sup>
+KHR_lights_punctual                 | ✅ Partial <sup>2</sup>
 KHR_materials_clearcoat             | ✅ Complete
 KHR_materials_emissive_strength     | ✅ Complete
 KHR_materials_ior                   | ✅ Complete
@@ -81,12 +81,13 @@ KHR_materials_specular              | ✅ Complete
 KHR_materials_transmission          | ✅ Complete
 KHR_materials_unlit                 | ✅ Complete
 KHR_materials_variants              | ✅ Complete
-KHR_materials_volume                | ✅ Partial <sup>2</sup>
+KHR_materials_volume                | ✅ Partial <sup>3</sup>
 KHR_mesh_quantization               | ✅ Complete
 KHR_texture_transform               | ✅ Complete
 
-<sup>\[1\]</sup> Spotlight cone falloff is ignored.  
-<sup>\[2\]</sup> Thickness is not supported by the MaterialX glTF PBR implementation.
+<sup>\[1\]</sup> Requires USD v26.03+.  
+<sup>\[2\]</sup> Spotlight cone falloff is ignored.  
+<sup>\[3\]</sup> Thickness is not supported by the MaterialX glTF PBR implementation.
 
 ### License
 

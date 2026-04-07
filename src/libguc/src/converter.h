@@ -70,6 +70,10 @@ namespace guc
     void createOrOverMesh(const cgltf_mesh* meshData, SdfPath path);
     void createMaterialBinding(UsdPrim& prim, const std::string& materialName);
     bool createPrimitive(const cgltf_primitive* primitiveData, SdfPath path, UsdPrim& prim);
+    bool createMeshPrimitive(const cgltf_primitive* primitiveData, SdfPath path, UsdPrim& prim);
+#if PXR_VERSION >= 2603
+    bool createGsplatPrimitive(const cgltf_primitive* primitiveData, SdfPath path, UsdPrim& prim);
+#endif
 
   private:
     bool overridePrimInPathMap(void* dataPtr, const SdfPath& path, UsdPrim& prim);

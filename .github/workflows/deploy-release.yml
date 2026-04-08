@@ -61,17 +61,9 @@ jobs:
       usd-version: 24.11
       build-config: Release
 
-  build-2408:
-    name: Build guc for USD v24.08
-    uses: ./.github/workflows/build-usd.yml
-    with:
-      usd-version: 24.08
-      build-config: Release
-      upload-archive: false
-
   deploy-release:
     name: Deploy Release
-    needs: [build-2603, build-2511, build-2508, build-2505, build-2502, build-2411, build-2408]
+    needs: [build-2603, build-2511, build-2508, build-2505, build-2502, build-2411]
     runs-on: ubuntu-latest
 
     steps:

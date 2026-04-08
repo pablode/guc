@@ -20,7 +20,7 @@ All glTF features with the exception of animation and skinning are implemented a
 
 ### Build
 
-You need USD v24.08+ (e.g. <a href="https://github.com/PixarAnimationStudios/OpenUSD/releases/tag/v26.03">v26.03</a>) with MaterialX support enabled.
+You need USD v24.11+ (e.g. <a href="https://github.com/PixarAnimationStudios/OpenUSD/releases/tag/v26.03">v26.03</a>) with MaterialX support enabled.
 
 Do a recursive clone of the repository and set up a build folder:
 ```

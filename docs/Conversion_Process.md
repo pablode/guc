@@ -101,7 +101,7 @@ The glTF buffer, bufferView and accessor concepts are reduced to a single prim,
 in the case of the example above, following mesh prim:
 
 ```
-def Mesh "submesh" (
+def Mesh "primitive" (
     prepend apiSchemas = ["MaterialBindingAPI"]
 )
 {
@@ -120,6 +120,7 @@ def Mesh "submesh" (
     )
     point3f[] points = [(0, 0, 0), (1, 0, 0), (0, 1, 0)]
     color3f[] primvars:displayColor = [(1, 0.766, 0.336)] (
+        colorSpace = "lin_rec709_scene"
         customData = {
             dictionary guc = {
                 bool generated = 1

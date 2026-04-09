@@ -698,19 +698,19 @@ namespace guc
     {
       const cgltf_primitive* primitiveData = &meshData->primitives[i];
 
-      std::string submeshName = (meshData->primitives_count == 1) ? "submesh" : ("submesh_" + std::to_string(i));
-      auto submeshPath = makeUniqueStageSubpath(m_stage, path, submeshName);
+      std::string primitiveName = (meshData->primitives_count == 1) ? "primitive" : ("primitive_" + std::to_string(i));
+      auto primitivePath = makeUniqueStageSubpath(m_stage, path, primitiveName);
 
-      UsdPrim submesh;
-      if (!overridePrimInPathMap((void*) primitiveData, submeshPath, submesh))
+      UsdPrim primitive;
+      if (!overridePrimInPathMap((void*) primitiveData, primitivePath, primitive))
       {
-        if (!createPrimitive(primitiveData, submeshPath, submesh))
+        if (!createPrimitive(primitiveData, primitivePath, primitive))
         {
           TF_RUNTIME_ERROR("unable to create primitive; skipping");
           continue;
         }
 
-        m_uniquePaths[(void*) primitiveData] = submeshPath;
+        m_uniquePaths[(void*) primitiveData] = primitivePath;
       }
 
       // Assign material (explicit, fallback, variants)
@@ -743,19 +743,19 @@ namespace guc
           UsdEditContext editContext(set.GetVariantEditContext());
 
           materialName = getMaterialName(mapping->material);
-          createMaterialBinding(submesh, materialName);
+          createMaterialBinding(primitive, materialName);
         }
 
         TF_VERIFY(set.ClearVariantSelection());
       }
       else
       {
-        createMaterialBinding(submesh, materialName);
+        createMaterialBinding(primitive, materialName);
       }
 
       if (meshData->name)
       {
-        detail::setDisplayName(submesh, meshData->name);
+        detail::setDisplayName(primitive, meshData->name);
       }
     }
   }

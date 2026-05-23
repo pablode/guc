@@ -83,6 +83,7 @@ KHR_materials_unlit                 | ✅ Complete
 KHR_materials_variants              | ✅ Complete
 KHR_materials_volume                | ✅ Partial <sup>2</sup>
 KHR_mesh_quantization               | ✅ Complete
+KHR_node_visibility                 | ✅ Complete
 KHR_texture_transform               | ✅ Complete
 
 <sup>\[1\]</sup> Spotlight cone falloff is ignored.  

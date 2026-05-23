@@ -570,6 +570,11 @@ namespace guc
       UsdPrim prim = xform.GetPrim();
       detail::setDisplayName(prim, nodeData->name);
     }
+
+    if (nodeData->has_visibility && !nodeData->visibility.visible)
+    {
+      xform.MakeInvisible();
+    }
   }
 
   void Converter::createOrOverCamera(const cgltf_camera* cameraData, SdfPath path)

@@ -69,6 +69,7 @@ Both glTF and GLB file types are valid input. USDA, USDC and USDZ formats can be
 Name                                | Status&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 ------------------------------------|----------
 EXT_meshopt_compression             | ✅ Complete
+EXT_mesh_gpu_instancing             | ✅ Complete
 KHR_draco_mesh_compression          | ✅ Complete
 KHR_gaussian_splatting              | 🚧 In Progress
 KHR_lights_punctual                 | ✅ Partial <sup>1</sup>

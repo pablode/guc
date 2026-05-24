@@ -18,6 +18,10 @@
 
 #include <cgltf.h>
 
+#include <pxr/usd/sdf/valueTypeName.h>
+
+using namespace PXR_NS;
+
 namespace guc
 {
   bool load_gltf(const char* gltfPath, cgltf_data** data, bool validate);
@@ -26,8 +30,17 @@ namespace guc
 
   const char* cgltf_error_string(cgltf_result result);
 
+  const cgltf_accessor* cgltf_find_accessor(const cgltf_attribute* attributes,
+                                            size_t attributeCount,
+                                            const char* name);
+
   const cgltf_accessor* cgltf_find_accessor(const cgltf_primitive* primitive,
                                             const char* name);
 
+  const cgltf_accessor* cgltf_find_accessor(const cgltf_mesh_gpu_instancing* meshGpuInstancing,
+                                            const char* name);
+
   bool cgltf_transform_required(const cgltf_texture_transform& transform);
+
+  SdfValueTypeName cgltf_type_to_sdf_type(cgltf_type type, cgltf_component_type componentType);
 }

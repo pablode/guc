@@ -16,14 +16,18 @@
 
 #include "converter.h"
 
+#include <cinttypes>
 #include <pxr/base/tf/envSetting.h>
 #include <pxr/base/gf/colorSpace.h>
+#include <pxr/base/gf/matrix2f.h>
+#include <pxr/base/gf/matrix3f.h>
 #include <pxr/base/gf/matrix4f.h>
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usd/editContext.h>
 #include <pxr/usd/usdGeom/camera.h>
 #include <pxr/usd/usdGeom/mesh.h>
 #include <pxr/usd/usdGeom/metrics.h>
+#include <pxr/usd/usdGeom/pointInstancer.h>
 #include <pxr/usd/usdGeom/primvarsAPI.h>
 #include <pxr/usd/usdGeom/scope.h>
 #include <pxr/usd/usdGeom/xform.h>
@@ -112,7 +116,10 @@ namespace detail
       }
       else if constexpr (std::is_same<T, GfVec2f>() ||
                          std::is_same<T, GfVec3f>() ||
-                         std::is_same<T, GfVec4f>())
+                         std::is_same<T, GfVec4f>() ||
+                         std::is_same<T, GfMatrix2f>() ||
+                         std::is_same<T, GfMatrix3f>() ||
+                         std::is_same<T, GfMatrix4f>())
       {
         if (!cgltf_accessor_read_float(accessor, i, item.data(), elementSize))
         {
@@ -160,6 +167,23 @@ namespace detail
         {
           array[i] = GfVec4f(floats[i * 4 + 0], floats[i * 4 + 1], floats[i * 4 + 2], floats[i * 4 + 3]);
         }
+        else if constexpr (std::is_same<T, GfMatrix2d>())
+        {
+          array[i] = GfMatrix2d(floats[i * 4 + 0], floats[i * 4 + 1], floats[i * 4 + 2], floats[i * 4 + 3]);
+        }
+        else if constexpr (std::is_same<T, GfMatrix3d>())
+        {
+          array[i] = GfMatrix3d(floats[i * 9 + 0], floats[i * 9 + 1], floats[i * 9 + 2],
+                                floats[i * 9 + 3], floats[i * 9 + 4], floats[i * 9 + 5],
+                                floats[i * 9 + 6], floats[i * 9 + 7], floats[i * 9 + 8]);
+        }
+        else if constexpr (std::is_same<T, GfMatrix4d>())
+        {
+          array[i] = GfMatrix4d(floats[i * 16 +  0], floats[i * 16 +  1], floats[i * 16 +  2], floats[i * 16 +  3],
+                                floats[i * 16 +  4], floats[i * 16 +  5], floats[i * 16 +  6], floats[i * 16 +  7],
+                                floats[i * 16 +  8], floats[i * 16 +  9], floats[i * 16 + 10], floats[i * 16 + 11],
+                                floats[i * 16 + 12], floats[i * 16 + 13], floats[i * 16 + 14], floats[i * 16 + 15]);
+        }
         else if constexpr (std::is_same<T, int>() || std::is_same<T, float>())
         {
           array[i] = floats[i];
@@ -184,6 +208,92 @@ namespace detail
       return false;
     }
     return true;
+  }
+
+  bool readBoxedVtArrayFromAccessor(const cgltf_accessor* accessor, VtValue value)
+  {
+    switch (accessor->type)
+    {
+    case cgltf_type_scalar:
+    {
+      if (accessor->component_type == cgltf_component_type_r_32f)
+      {
+        VtFloatArray array;
+        if (readVtArrayFromAccessor(accessor, array))
+        {
+          value = VtValue(array);
+          return true;
+        }
+      }
+      else
+      {
+        VtIntArray array;
+        if (readVtArrayFromAccessor(accessor, array))
+        {
+          value = VtValue(array);
+          return true;
+        }
+      }
+    }
+    case cgltf_type_vec2:
+    {
+      VtVec2fArray array;
+      if (readVtArrayFromAccessor(accessor, array))
+      {
+        value = VtValue(array);
+        return true;
+      }
+    }
+    case cgltf_type_vec3:
+    {
+      VtVec3fArray array;
+      if (readVtArrayFromAccessor(accessor, array))
+      {
+        value = VtValue(array);
+        return true;
+      }
+    }
+    case cgltf_type_vec4:
+    {
+      VtVec4fArray array;
+      if (readVtArrayFromAccessor(accessor, array))
+      {
+        value = VtValue(array);
+        return true;
+      }
+    }
+    case cgltf_type_mat2:
+    {
+      VtMatrix2dArray array;
+      if (readVtArrayFromAccessor(accessor, array))
+      {
+        value = VtValue(array);
+        return true;
+      }
+    }
+    case cgltf_type_mat3:
+    {
+      VtMatrix3dArray array;
+      if (readVtArrayFromAccessor(accessor, array))
+      {
+        value = VtValue(array);
+        return true;
+      }
+    }
+    case cgltf_type_mat4:
+    {
+      VtMatrix4dArray array;
+      if (readVtArrayFromAccessor(accessor, array))
+      {
+        value = VtValue(array);
+        return true;
+      }
+    }
+    default:
+      break;
+    }
+
+    return false;
   }
 
   void markAttributeAsGenerated(UsdAttribute attr)
@@ -531,12 +641,33 @@ namespace guc
       }
     }
 
+    UsdGeomPointInstancer instancer;
+    if (nodeData->has_mesh_gpu_instancing)
+    {
+        std::string instancerName = "instancer";
+        if (nodeData->mesh->name)
+        {
+          instancerName = std::string(nodeData->mesh->name) + "_" + instancerName;
+        }
+        auto instancerPath = makeUniqueStageSubpath(m_stage, path, instancerName);
+
+        instancer = createPointInstancer(&nodeData->mesh_gpu_instancing, instancerPath);
+
+        path = instancerPath; // source path for mesh
+    }
+
     if (nodeData->mesh)
     {
       std::string meshName = nodeData->mesh->name ? std::string(nodeData->mesh->name) : "mesh";
       auto meshPath = makeUniqueStageSubpath(m_stage, path, meshName);
 
       createOrOverMesh(nodeData->mesh, meshPath);
+
+      if (nodeData->has_mesh_gpu_instancing)
+      {
+        UsdRelationship rel = instancer.CreatePrototypesRel();
+        rel.SetTargets({ meshPath });
+      }
     }
 
     if (nodeData->camera)
@@ -758,6 +889,95 @@ namespace guc
         detail::setDisplayName(primitive, meshData->name);
       }
     }
+  }
+
+  UsdGeomPointInstancer Converter::createPointInstancer(const cgltf_mesh_gpu_instancing* meshGpuInstancing, SdfPath path)
+  {
+      auto instancer = UsdGeomPointInstancer::Define(m_stage, path);
+
+      const cgltf_accessor* translationAccessor = cgltf_find_accessor(meshGpuInstancing, "TRANSLATION");
+      const cgltf_accessor* rotationAccessor = cgltf_find_accessor(meshGpuInstancing, "ROTATION");
+      const cgltf_accessor* scaleAccessor = cgltf_find_accessor(meshGpuInstancing, "SCALE");
+
+      VtVec3fArray translations;
+      if (translationAccessor)
+      {
+        detail::readVtArrayFromAccessor(translationAccessor, translations);
+      }
+
+      VtVec4fArray rotations;
+      if (rotationAccessor)
+      {
+        detail::readVtArrayFromAccessor(rotationAccessor, rotations);
+      }
+
+      VtVec3fArray scales;
+      if (scaleAccessor)
+      {
+        detail::readVtArrayFromAccessor(scaleAccessor, scales);
+      }
+
+      size_t instanceCount = 0;
+      instanceCount = std::max(instanceCount, translations.size());
+      instanceCount = std::max(instanceCount, rotations.size());
+      instanceCount = std::max(instanceCount, scales.size());
+
+      // Attribute is mandatory for a point instancer
+      if (translations.empty())
+      {
+        translations = VtVec3fArray(instanceCount, GfVec3f(0.0f));
+      }
+      instancer.CreatePositionsAttr(VtValue(translations));
+
+      if (!rotations.empty())
+      {
+        VtQuathArray orientations(rotations.size());
+        for (size_t i = 0; i < rotations.size(); i++)
+        {
+          const GfVec4f r = rotations[i];
+          orientations[i] = GfQuath(r[3], r[0], r[1], r[2]);
+        }
+
+        instancer.CreateOrientationsAttr(VtValue(orientations));
+      }
+      if (!scales.empty())
+      {
+        instancer.CreateScalesAttr(VtValue(scales));
+      }
+
+      UsdGeomPrimvarsAPI primvarsAPI(instancer.GetPrim());
+
+      for (size_t i = 0; i < meshGpuInstancing->attributes_count; i++)
+      {
+        const cgltf_accessor* accessor = meshGpuInstancing->attributes[i].data;
+
+        if (accessor == translationAccessor || accessor == rotationAccessor || accessor == scaleAccessor)
+        {
+          continue;
+        }
+
+        VtValue value;
+        if (!detail::readBoxedVtArrayFromAccessor(accessor, value))
+        {
+          continue;
+        }
+
+        SdfValueTypeName sdfType = cgltf_type_to_sdf_type(accessor->type, accessor->component_type);
+
+        UsdGeomPrimvar primvar = primvarsAPI.CreatePrimvar(
+          TfToken(accessor->name),
+          sdfType.GetArrayType(),
+          UsdGeomTokens->vertex
+        );
+
+        primvar.Set(value);
+      }
+
+      int protoIndex = 0; // we instance only one mesh
+      VtIntArray protoIndices(instanceCount, protoIndex);
+      instancer.CreateProtoIndicesAttr(VtValue(protoIndices));
+
+      return instancer;
   }
 
   void Converter::createMaterialBinding(UsdPrim& prim, const std::string& materialName)

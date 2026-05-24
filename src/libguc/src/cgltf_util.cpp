@@ -21,6 +21,7 @@
 #include <pxr/usd/ar/asset.h>
 #include <pxr/usd/ar/resolver.h>
 #include <pxr/usd/ar/resolvedPath.h>
+#include <pxr/usd/sdf/types.h>
 
 #define CGLTF_IMPLEMENTATION
 #include <cgltf.h>
@@ -52,6 +53,7 @@ namespace detail
 #ifdef GUC_USE_DRACO
            strcmp(name, GLTF_KHR_DRACO_MESH_COMPRESSION_EXTENSION_NAME) == 0 ||
 #endif
+           strcmp(name, "EXT_mesh_gpu_instancing") == 0 ||
            strcmp(name, "KHR_lights_punctual") == 0 ||
            strcmp(name, "KHR_materials_clearcoat") == 0 ||
            strcmp(name, "KHR_materials_emissive_strength") == 0 ||
@@ -572,12 +574,13 @@ namespace guc
     }
   }
 
-  const cgltf_accessor* cgltf_find_accessor(const cgltf_primitive* primitive,
+  const cgltf_accessor* cgltf_find_accessor(const cgltf_attribute* attributes,
+                                            size_t attributeCount,
                                             const char* name)
   {
-    for (size_t j = 0; j < primitive->attributes_count; j++)
+    for (size_t j = 0; j < attributeCount; j++)
     {
-      const cgltf_attribute* attribute = &primitive->attributes[j];
+      const cgltf_attribute* attribute = &attributes[j];
 
       if (strcmp(attribute->name, name) == 0)
       {
@@ -588,6 +591,16 @@ namespace guc
     return nullptr;
   }
 
+  const cgltf_accessor* cgltf_find_accessor(const cgltf_primitive* primitive, const char* name)
+  {
+    return cgltf_find_accessor(primitive->attributes, primitive->attributes_count, name);
+  }
+
+  const cgltf_accessor* cgltf_find_accessor(const cgltf_mesh_gpu_instancing* meshGpuInstancing, const char* name)
+  {
+    return cgltf_find_accessor(meshGpuInstancing->attributes, meshGpuInstancing->attributes_count, name);
+  }
+
   bool cgltf_transform_required(const cgltf_texture_transform& transform)
   {
     return !GfIsClose(transform.offset[0], 0.0f, 1e-5f) ||
@@ -596,4 +609,73 @@ namespace guc
            !GfIsClose(transform.scale[0], 1.0f, 1e-5f) ||
            !GfIsClose(transform.scale[1], 1.0f, 1e-5f);
   }
+
+  SdfValueTypeName cgltf_type_to_sdf_type(cgltf_type type, cgltf_component_type componentType)
+  {
+PXR_NAMESPACE_USING_DIRECTIVE
+
+      switch (type)
+      {
+          case cgltf_type_scalar:
+          {
+              switch (componentType)
+              {
+                  case cgltf_component_type_r_32f:
+                      return SdfValueTypeNames->Float;
+                  default:
+                      return SdfValueTypeNames->Int;
+              }
+          }
+          case cgltf_type_vec2:
+          {
+              switch (componentType)
+              {
+                  case cgltf_component_type_r_32f:
+                      return SdfValueTypeNames->Float2;
+                  case cgltf_component_type_r_32u:
+                  case cgltf_component_type_r_16u:
+                      return SdfValueTypeNames->Int2;
+                  default:
+                      return SdfValueTypeNames->Float2;
+              }
+          }
+          case cgltf_type_vec3:
+          {
+              switch (componentType)
+              {
+                  case cgltf_component_type_r_32f:
+                      return SdfValueTypeNames->Vector3f;
+                  case cgltf_component_type_r_16u:
+                  case cgltf_component_type_r_32u:
+                      return SdfValueTypeNames->Int3;
+                  default:
+                      return SdfValueTypeNames->Vector3f;
+              }
+          }
+          case cgltf_type_vec4:
+          {
+              switch (componentType)
+              {
+                  case cgltf_component_type_r_32f:
+                      return SdfValueTypeNames->Float4;
+                  case cgltf_component_type_r_8u:
+                  case cgltf_component_type_r_16u:
+                  case cgltf_component_type_r_32u:
+                      return SdfValueTypeNames->Int4;
+                  default:
+                      return SdfValueTypeNames->Float4;
+              }
+          }
+          case cgltf_type_mat2:
+              return SdfValueTypeNames->Matrix2d;
+          case cgltf_type_mat3:
+              return SdfValueTypeNames->Matrix3d;
+          case cgltf_type_mat4:
+              return SdfValueTypeNames->Matrix4d;
+          default:
+          // TODO: CODING_ERROR
+              return {};
+      }
+  }
+
 }

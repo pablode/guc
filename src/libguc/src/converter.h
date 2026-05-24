@@ -19,6 +19,7 @@
 #include <cgltf.h>
 #include <pxr/usd/usd/prim.h>
 #include <pxr/usd/usd/stage.h>
+#include <pxr/usd/usdGeom/pointInstancer.h>
 #include <pxr/usd/usdShade/shader.h>
 #include <MaterialXCore/Document.h>
 
@@ -68,6 +69,7 @@ namespace guc
     void createOrOverCamera(const cgltf_camera* cameraData, SdfPath path);
     void createOrOverLight(const cgltf_light* lightData, SdfPath path);
     void createOrOverMesh(const cgltf_mesh* meshData, SdfPath path);
+    UsdGeomPointInstancer createPointInstancer(const cgltf_mesh_gpu_instancing* meshGpuInstancing, SdfPath path);
     void createMaterialBinding(UsdPrim& prim, const std::string& materialName);
     bool createPrimitive(const cgltf_primitive* primitiveData, SdfPath path, UsdPrim& prim);
 

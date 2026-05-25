@@ -18,7 +18,14 @@
 
 #include <pxr/base/tf/envSetting.h>
 #include <pxr/base/gf/colorSpace.h>
+#include <pxr/base/gf/vec4f.h>
+#include <pxr/base/gf/quatf.h>
+#include <pxr/base/gf/vec3f.h>
 #include <pxr/base/gf/matrix4f.h>
+#include <pxr/base/gf/rotation.h>
+#include <pxr/base/ts/knot.h>
+#include <pxr/base/ts/spline.h>
+#include <pxr/base/vt/visitValue.h>
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usd/editContext.h>
 #include <pxr/usd/usdGeom/camera.h>
@@ -112,7 +119,10 @@ namespace detail
       }
       else if constexpr (std::is_same<T, GfVec2f>() ||
                          std::is_same<T, GfVec3f>() ||
-                         std::is_same<T, GfVec4f>())
+                         std::is_same<T, GfVec4f>() ||
+                         std::is_same<T, GfMatrix2f>() ||
+                         std::is_same<T, GfMatrix3f>() ||
+                         std::is_same<T, GfMatrix4f>())
       {
         if (!cgltf_accessor_read_float(accessor, i, item.data(), elementSize))
         {
@@ -160,6 +170,23 @@ namespace detail
         {
           array[i] = GfVec4f(floats[i * 4 + 0], floats[i * 4 + 1], floats[i * 4 + 2], floats[i * 4 + 3]);
         }
+        else if constexpr (std::is_same<T, GfMatrix2d>())
+        {
+          array[i] = GfMatrix2d(floats[i * 4 + 0], floats[i * 4 + 1], floats[i * 4 + 2], floats[i * 4 + 3]);
+        }
+        else if constexpr (std::is_same<T, GfMatrix3d>())
+        {
+          array[i] = GfMatrix3d(floats[i * 9 + 0], floats[i * 9 + 1], floats[i * 9 + 2],
+                                floats[i * 9 + 3], floats[i * 9 + 4], floats[i * 9 + 5],
+                                floats[i * 9 + 6], floats[i * 9 + 7], floats[i * 9 + 8]);
+        }
+        else if constexpr (std::is_same<T, GfMatrix4d>())
+        {
+          array[i] = GfMatrix4d(floats[i * 16 +  0], floats[i * 16 +  1], floats[i * 16 +  2], floats[i * 16 +  3],
+                                floats[i * 16 +  4], floats[i * 16 +  5], floats[i * 16 +  6], floats[i * 16 +  7],
+                                floats[i * 16 +  8], floats[i * 16 +  9], floats[i * 16 + 10], floats[i * 16 + 11],
+                                floats[i * 16 + 12], floats[i * 16 + 13], floats[i * 16 + 14], floats[i * 16 + 15]);
+        }
         else if constexpr (std::is_same<T, int>() || std::is_same<T, float>())
         {
           array[i] = floats[i];
@@ -184,6 +211,103 @@ namespace detail
       return false;
     }
     return true;
+  }
+
+  // TODO: reduce length
+  bool readBoxedVtArrayFromAccessor(const cgltf_accessor* accessor, VtValue& value)
+  {
+    switch (accessor->type)
+    {
+    case cgltf_type_scalar:
+    {
+      if (accessor->component_type == cgltf_component_type_r_32f)
+      {
+        VtFloatArray array;
+        if (readVtArrayFromAccessor(accessor, array))
+        {
+          value = VtValue(array);
+          return true;
+        }
+      }
+      else
+      {
+        VtIntArray array;
+        if (readVtArrayFromAccessor(accessor, array))
+        {
+          value = VtValue(array);
+          return true;
+        }
+      }
+    }
+    case cgltf_type_vec2:
+    {
+      VtVec2fArray array;
+      if (readVtArrayFromAccessor(accessor, array))
+      {
+        value = VtValue(array);
+        return true;
+      }
+    }
+    case cgltf_type_vec3:
+    {
+      VtVec3fArray array;
+      if (readVtArrayFromAccessor(accessor, array))
+      {
+        value = VtValue(array);
+        return true;
+      }
+    }
+    case cgltf_type_vec4:
+    {
+      VtVec4fArray array;
+      if (readVtArrayFromAccessor(accessor, array))
+      {
+        value = VtValue(array);
+        return true;
+      }
+    }
+    case cgltf_type_mat2:
+    {
+      VtMatrix2dArray array;
+      if (readVtArrayFromAccessor(accessor, array))
+      {
+        value = VtValue(array);
+        return true;
+      }
+    }
+    case cgltf_type_mat3:
+    {
+      VtMatrix3dArray array;
+      if (readVtArrayFromAccessor(accessor, array))
+      {
+        value = VtValue(array);
+        return true;
+      }
+    }
+    case cgltf_type_mat4:
+    {
+      VtMatrix4dArray array;
+      if (readVtArrayFromAccessor(accessor, array))
+      {
+        value = VtValue(array);
+        return true;
+      }
+    }
+    default:
+      break;
+    }
+
+    return false;
+  }
+
+  // TODO: all types
+  VtValue sampleBoxedVtValueFromArray(VtValue array, uint32_t index)
+  {
+    TF_STATUS("%s", array.GetTypeName().c_str());
+    if (array.IsHolding<VtFloatArray>()) { return VtValue(array.UncheckedGet<VtFloatArray>()[index]); }
+    if (array.IsHolding<VtVec3fArray>()) { return VtValue(array.UncheckedGet<VtVec3fArray>()[index]); }
+    if (array.IsHolding<VtVec4fArray>()) { return VtValue(array.UncheckedGet<VtVec4fArray>()[index]); }
+    return VtValue();
   }
 
   void markAttributeAsGenerated(UsdAttribute attr)
@@ -371,6 +495,17 @@ namespace guc
         const cgltf_node* nodeData = &m_data->nodes[i];
 
         createNodes(nodeData, nodesPath);
+      }
+    }
+
+    // Create animation splines retroactively on generated Xforms
+    for (size_t i = 0; i < m_data->animations_count; i++)
+    {
+      const cgltf_animation* anim = &m_data->animations[i];
+
+      for (size_t j = 0; j < anim->channels_count; j++)
+      {
+        createAnimation(anim->name, &anim->channels[j]);
       }
     }
   }
@@ -570,6 +705,144 @@ namespace guc
       UsdPrim prim = xform.GetPrim();
       detail::setDisplayName(prim, nodeData->name);
     }
+
+    // Store the nodes for lookup when handling animations
+    size_t nodeIndex = cgltf_node_index(m_data, nodeData);
+    if (m_nodeXforms.size() <= nodeIndex)
+    {
+      m_nodeXforms.resize(nodeIndex + 1);
+    }
+    m_nodeXforms[nodeIndex] = path;
+  }
+
+  // TODO: are multiple channels on the same node/target allowed?
+  void Converter::createAnimation(const char* name, const cgltf_animation_channel* channel)
+  {
+    if (!channel->target_node)
+    {
+      TF_WARN("skipping animation channel with missing target node");
+      return;
+    }
+
+    size_t nodeIndex = cgltf_node_index(m_data, channel->target_node);
+    const SdfPath& nodePath = m_nodeXforms[nodeIndex];
+    UsdPrim prim = m_stage->GetPrimAtPath(nodePath);
+    UsdGeomXform xform(prim);
+
+    UsdGeomXformOp op;
+    switch (channel->target_path)
+    {
+    case cgltf_animation_path_type_translation:
+      op = xform.AddTranslateOp();
+      break;
+    case cgltf_animation_path_type_rotation:
+      op = xform.AddRotateXYZOp();
+      break;
+    case cgltf_animation_path_type_scale:
+      op = xform.AddScaleOp();
+      break;
+    default:
+      TF_WARN("unsupported target path; skipping animation channel");
+      return;
+    }
+
+    const cgltf_animation_sampler* sampler = channel->sampler;
+
+    TsInterpMode interpMode;
+    switch (sampler->interpolation)
+    {
+    case cgltf_interpolation_type_linear:
+      interpMode = TsInterpLinear;
+      break;
+    case cgltf_interpolation_type_step:
+      interpMode = TsInterpHeld;
+      break;
+    case cgltf_interpolation_type_cubic_spline:
+      interpMode = TsInterpCurve;
+      break;
+    default:
+      TF_WARN("unsupported interpolation type; skipping animation channel");
+      break;
+    }
+
+    VtFloatArray keyframeTimes;
+    VtValue keyframeValues;
+    if (!detail::readVtArrayFromAccessor(sampler->input, keyframeTimes) ||
+        !detail::readBoxedVtArrayFromAccessor(sampler->output, keyframeValues) ||
+        keyframeTimes.size() != keyframeValues.GetArraySize())
+    {
+      TF_WARN("invalid input or output values; skipping animation channel");
+      return;
+    }
+
+    if ((channel->target_path == cgltf_animation_path_type_translation && !keyframeValues.IsHolding<VtVec3fArray>()) ||
+        (channel->target_path == cgltf_animation_path_type_rotation && !keyframeValues.IsHolding<VtVec4fArray>()) ||
+        (channel->target_path == cgltf_animation_path_type_scale && !keyframeValues.IsHolding<VtVec3fArray>()))
+    {
+      TF_WARN("invalid output values; skipping animation channel");
+      return;
+    }
+
+    if (channel->target_path == cgltf_animation_path_type_rotation)
+    {
+      VtVec4fArray array = keyframeValues.UncheckedGet<VtVec4fArray>();
+      VtVec3fArray newArray(array.size());
+
+      for (size_t i = 0; i < array.size(); i++)
+      {
+        const GfVec4f& v = array[i];
+
+        GfQuatf quat(v[3], GfVec3f(v[0], v[1], v[2]));
+
+        GfMatrix4f m;
+        m.SetRotate(quat);
+
+        GfRotation rot = m.ExtractRotation();
+
+        GfVec3d newV = rot.Decompose(
+          GfVec3f(1.0f, 0.0f, 0.0f),
+          GfVec3f(0.0f, 1.0f, 0.0f),
+          GfVec3f(0.0f, 0.0f, 1.0f)
+        );
+
+        newArray[i] = GfVec3f(newV);
+      }
+
+      keyframeValues = VtValue(newArray);
+    }
+
+// TODO: put the following in a separate function which we can call for KHR_animation_pointer
+
+    size_t keyframeCount = keyframeTimes.size();
+
+    TsKnotMap knotMap;
+    knotMap.reserve(keyframeCount);
+
+    for (size_t i = 0; i < keyframeCount; i++)
+    {
+      // TODO: spline & knot classes are WIP; only support SCALAR float values right now :(
+
+      TsKnot knot(TfType::Find<float>());//keyframeValues.GetType());
+      knot.SetTime(keyframeTimes[i]);
+      knot.SetNextInterpolation(interpMode);
+      knot.SetValue(detail::sampleBoxedVtValueFromArray(keyframeValues, i));
+      if (interpMode == TsInterpCurve)
+      {
+        // TODO: Bezier or Hemite?
+        knot.SetCurveType(TsCurveTypeHermite); // TODO: function is deprecated; pass in constructor
+      }
+      knotMap.insert(knot);
+    }
+
+// TODO: do we need to call spline.SetInnerLoopParams()?
+
+    TsSpline spline;//(keyframeValues.GetType());
+    spline.SetKnots(knotMap);
+
+    auto attr = op.GetAttr();
+    attr.SetSpline(spline);
+
+// TODO: author name, for example using user dict
   }
 
   void Converter::createOrOverCamera(const cgltf_camera* cameraData, SdfPath path)

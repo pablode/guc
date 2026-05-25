@@ -65,6 +65,7 @@ namespace guc
   private:
     void createMaterials(FileExports& fileExports, bool createDefaultMaterial);
     void createNodesRecursively(const cgltf_node* nodeData, SdfPath path);
+    void createAnimation(const char* name, const cgltf_animation_channel* channel);
     void createOrOverCamera(const cgltf_camera* cameraData, SdfPath path);
     void createOrOverLight(const cgltf_light* lightData, SdfPath path);
     void createOrOverMesh(const cgltf_mesh* meshData, SdfPath path);
@@ -87,5 +88,6 @@ namespace guc
     UsdPreviewSurfaceMaterialConverter m_usdPreviewSurfaceConverter;
     std::unordered_map<void*, SdfPath> m_uniquePaths;
     std::vector<std::string> m_materialNames;
+    std::vector<SdfPath> m_nodeXforms;
   };
 }
